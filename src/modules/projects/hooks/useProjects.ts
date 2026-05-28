@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi } from '../api/projects.api';
 
-export const useGetProjects = () => {
+export const useGetProjects = (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }) => {
   return useQuery({
-    queryKey: ['projects'],
-    queryFn: projectsApi.getProjects,
+    queryKey: ['projects', params],
+    queryFn: () => projectsApi.getProjects(params),
   });
 };
 
@@ -43,6 +43,24 @@ export const useDeleteProject = () => {
     mutationFn: projectsApi.deleteProject,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
+};
+
+export const useGetProjectMembers = (projectId: number) => {
+  return useQuery({
+    queryKey: ['project-members', projectId],
+    queryFn: () => projectsApi.getProjectMembers(projectId),
+    enabled: !!projectId,
+  });
+};
+
+export const useAddProjectMember = (projectId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) => projectsApi.addProjectMember(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
     },
   });
 };

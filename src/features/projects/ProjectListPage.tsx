@@ -1,11 +1,158 @@
-import { Plus, Search, Filter } from 'lucide-react';
-import { StatusBadge } from '@/shared/components/common/StatusBadge';
-import { useGetProjects } from '@/modules/projects/hooks/useProjects';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Calendar, Edit, Trash2 } from 'lucide-react';
+import { StatusBadge } from '@/shared/components/common/StatusBadge';
+import { useDeleteProject, useGetProjects } from '@/modules/projects/hooks/useProjects';
+import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
+import type { Project } from '@/modules/projects/types';
+import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
+import { ProjectStatus } from '@/shared/constants/enums';
 
 export function ProjectListPage() {
-  const { data: projects = [], isLoading } = useGetProjects();
   const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<string | undefined>(undefined);
+  const [filters, setFilters] = useState<Record<string, any>>({});
+
+  const filterString = Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined;
+
+  const { data, isLoading, refetch } = useGetProjects({
+    page: currentPage,
+    perPage: 10,
+    sort,
+    search,
+    filter: filterString,
+  });
+
+  const deleteMutation = useDeleteProject();
+
+  const projects = data?.data || [];
+  const totalItems = data?.meta?.total || 0;
+
+  const handleSortChange = (sortingState: SortingState) => {
+    if (sortingState.length > 0) {
+      const { id, desc } = sortingState[0];
+      setSort(desc ? `-${id}` : id);
+    } else {
+      setSort(undefined);
+    }
+  };
+
+  const handleFilterChange = (filterState: ColumnFiltersState) => {
+    const nextFilters: Record<string, any> = {};
+    filterState.forEach(f => {
+      nextFilters[f.id] = f.value;
+    });
+    setFilters(nextFilters);
+  };
+
+  const handleDelete = (id: number, projectCode: string) => {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus project ${projectCode}?`)) {
+      deleteMutation.mutate(id, {
+        onSuccess: () => {
+          refetch();
+        }
+      });
+    }
+  };
+
+  const columns: ColumnDef<Project, any>[] = [
+    {
+      id: 'projectCode',
+      header: 'Project Code',
+      accessorKey: 'projectCode',
+      cell: ({ row }) => (
+        <span className="font-mono text-xs text-secondary">{row.original.projectCode || `PRJ-${row.original.id}`}</span>
+      ),
+    },
+    {
+      id: 'name',
+      header: 'Name',
+      accessorKey: 'name',
+      cell: ({ row }) => (
+        <span className="font-semibold text-on-background">{row.original.name}</span>
+      ),
+    },
+    {
+      id: 'customer',
+      header: 'Customer',
+      accessorKey: 'picClient',
+      cell: ({ row }) => (
+        <span className="text-secondary">{row.original.picClient || row.original.customer || '-'}</span>
+      ),
+    },
+    {
+      id: 'progressPct',
+      header: 'Progress',
+      accessorKey: 'progressPct',
+      cell: ({ row }) => {
+        const progress = row.original.progressPct || 0;
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-24 bg-surface-container-high rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-primary h-full rounded-full transition-all duration-350"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+            <span className="text-xs font-semibold text-secondary min-w-[28px]">{progress}%</span>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      accessorKey: 'status',
+      meta: {
+        filterOptions: [
+          { label: 'Planning', value: ProjectStatus.PLANNING },
+          { label: 'In Progress', value: ProjectStatus.IN_PROGRESS },
+          { label: 'SIT', value: ProjectStatus.SIT },
+          { label: 'UAT', value: ProjectStatus.UAT },
+          { label: 'FUT', value: ProjectStatus.FUT },
+          { label: 'On Hold', value: ProjectStatus.ON_HOLD },
+          { label: 'Closed', value: ProjectStatus.CLOSED },
+          { label: 'Cancelled', value: ProjectStatus.CANCELLED },
+        ],
+      },
+      cell: ({ row }) => (
+        <StatusBadge status={row.original.status || ProjectStatus.PLANNING} />
+      ),
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      meta: { className: 'text-right w-24' },
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1 items-center">
+          <button
+            onClick={() => navigate(`/projects/${row.original.id}/timeline`)}
+            className="p-1.5 hover:bg-surface-container-high rounded-lg text-primary transition-all cursor-pointer"
+            title="Timeline"
+          >
+            <Calendar className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => navigate(`/projects/${row.original.id}`)}
+            className="p-1.5 hover:bg-surface-container-high rounded-lg text-secondary hover:text-on-background transition-all cursor-pointer"
+            title="Edit"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleDelete(row.original.id, row.original.projectCode)}
+            className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
+            title="Delete Project"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -14,102 +161,24 @@ export function ProjectListPage() {
           <h1 className="text-3xl font-bold text-on-background mb-1">Projects</h1>
           <p className="text-secondary text-sm">Manage enterprise projects, timelines, and resources.</p>
         </div>
-        <button 
-          onClick={() => navigate('/projects/new')}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold shadow-sm cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Project</span>
-        </button>
       </div>
 
-      <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
-        {/* Toolbar */}
-        <div className="p-4 border-b border-outline-variant flex flex-col sm:flex-row justify-between items-center gap-4">
-          <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
-            <input 
-              type="text" 
-              placeholder="Search projects..." 
-              className="w-full pl-9 pr-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-background"
-            />
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded-lg bg-surface text-secondary hover:bg-surface-container-low transition-colors text-sm font-semibold w-full sm:w-auto cursor-pointer">
-            <Filter className="w-4 h-4" />
-            <span>Filter</span>
-          </button>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-outline-variant bg-surface-container-low">
-                <th className="px-6 py-3 text-xs font-semibold text-secondary uppercase tracking-wider">Project Code</th>
-                <th className="px-6 py-3 text-xs font-semibold text-secondary uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-xs font-semibold text-secondary uppercase tracking-wider">Customer</th>
-                <th className="px-6 py-3 text-xs font-semibold text-secondary uppercase tracking-wider">Progress</th>
-                <th className="px-6 py-3 text-xs font-semibold text-secondary uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-xs font-semibold text-secondary uppercase tracking-wider text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-secondary">
-                    Loading projects...
-                  </td>
-                </tr>
-              ) : projects.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-secondary">
-                    No projects found.
-                  </td>
-                </tr>
-              ) : (
-                projects.map((project) => (
-                  <tr key={project.id} className="hover:bg-surface-container-lowest/50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-mono text-secondary">{project.projectCode || `PRJ-${project.id}`}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-on-background">{project.name}</td>
-                    <td className="px-6 py-4 text-sm text-secondary">{project.picClient || '-'}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-full bg-surface-container-high rounded-full h-2">
-                          <div 
-                            className="bg-primary h-2 rounded-full" 
-                            style={{ width: `0%` }}
-                          ></div>
-                        </div>
-                        <span className="text-xs font-medium text-secondary min-w-[32px]">0%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={project.status || 'PLANNING'} />
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm">
-                      <button 
-                        onClick={() => navigate(`/projects/${project.id}`)}
-                        className="text-primary hover:text-primary/80 font-semibold cursor-pointer"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        
-        {/* Pagination Placeholder */}
-        <div className="p-4 border-t border-outline-variant flex items-center justify-between text-sm text-secondary bg-surface-container-lowest">
-          <span>Showing 1 to 3 of 3 results</span>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1 border border-outline-variant rounded-md hover:bg-surface-container-low disabled:opacity-50 cursor-pointer" disabled>Prev</button>
-            <button className="px-3 py-1 border border-outline-variant rounded-md hover:bg-surface-container-low disabled:opacity-50 cursor-pointer" disabled>Next</button>
-          </div>
-        </div>
-      </div>
+      <DataTable
+        data={projects}
+        columns={columns}
+        isLoading={isLoading}
+        searchPlaceholder="Search projects..."
+        onAdd={() => navigate('/projects/new')}
+        addLabel="New Project"
+        totalItems={totalItems}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        onSearchChange={setSearch}
+        onSortChange={handleSortChange}
+        onFilterChange={handleFilterChange}
+        onRefresh={refetch}
+        exportFilename="project-list"
+      />
     </div>
   );
 }

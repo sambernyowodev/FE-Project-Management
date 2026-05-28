@@ -1,23 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Calendar, Link as LinkIcon, User, Layers } from 'lucide-react';
 import { 
   useGetProject, 
   useCreateProject, 
   useUpdateProject, 
   useDeleteProject 
 } from '@/modules/projects/hooks/useProjects';
+import { ProjectStatus } from '@/shared/constants/enums';
 
-const STATUS_OPTIONS = [
-  'PLANNING',
-  'IN_PROGRESS',
-  'SIT',
-  'UAT',
-  'FUT',
-  'CLOSED',
-  'ON_HOLD',
-  'CANCELLED'
-];
+const STATUS_OPTIONS = Object.values(ProjectStatus);
 
 export function ProjectFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -33,12 +25,20 @@ export function ProjectFormPage() {
     name: '',
     description: '',
     picClient: '',
+    picInternal: '',
     platform: '',
     customer: '',
-    status: 'PLANNING',
+    status: ProjectStatus.PLANNING as string,
     timelineRemark: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    actualStart: '',
+    actualEnd: '',
+    totalMandays: '',
+    progressPct: '0',
+    repositoryLink: '',
+    timelineLink: '',
+    remarks: ''
   });
 
   useEffect(() => {
@@ -47,12 +47,20 @@ export function ProjectFormPage() {
         name: project.name || '',
         description: project.description || '',
         picClient: project.picClient || '',
+        picInternal: project.picInternal || '',
         platform: project.platform || '',
         customer: project.customer || '',
-        status: project.status || 'PLANNING',
+        status: project.status || ProjectStatus.PLANNING,
         timelineRemark: project.timelineRemark || '',
         startDate: project.startDate ? project.startDate.split('T')[0] : '',
-        endDate: project.endDate ? project.endDate.split('T')[0] : ''
+        endDate: project.endDate ? project.endDate.split('T')[0] : '',
+        actualStart: project.actualStart ? project.actualStart.split('T')[0] : '',
+        actualEnd: project.actualEnd ? project.actualEnd.split('T')[0] : '',
+        totalMandays: project.totalMandays !== undefined && project.totalMandays !== null ? String(project.totalMandays) : '',
+        progressPct: project.progressPct !== undefined && project.progressPct !== null ? String(project.progressPct) : '0',
+        repositoryLink: project.repositoryLink || '',
+        timelineLink: project.timelineLink || '',
+        remarks: project.remarks || ''
       });
     }
   }, [project, isEditing]);
@@ -65,13 +73,29 @@ export function ProjectFormPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // For create, we just send required fields based on CreateProjectDto
-    // For update, we can send all fields
-    const dataToSend = { ...formData };
-    if (!dataToSend.startDate) delete (dataToSend as any).startDate;
-    if (!dataToSend.endDate) delete (dataToSend as any).endDate;
+    const dataToSend: any = {
+      name: formData.name,
+      description: formData.description || undefined,
+      picClient: formData.picClient || undefined,
+      picInternal: formData.picInternal || undefined,
+      platform: formData.platform || undefined,
+      customer: formData.customer || undefined,
+      startDate: formData.startDate || undefined,
+      endDate: formData.endDate || undefined,
+      totalMandays: formData.totalMandays ? Number(formData.totalMandays) : undefined,
+    };
 
     if (isEditing) {
+      // Add update-specific fields
+      dataToSend.status = formData.status;
+      dataToSend.timelineRemark = formData.timelineRemark || undefined;
+      dataToSend.progressPct = formData.progressPct ? Number(formData.progressPct) : 0;
+      dataToSend.repositoryLink = formData.repositoryLink || undefined;
+      dataToSend.timelineLink = formData.timelineLink || undefined;
+      dataToSend.remarks = formData.remarks || undefined;
+      dataToSend.actualStart = formData.actualStart || undefined;
+      dataToSend.actualEnd = formData.actualEnd || undefined;
+
       updateMutation.mutate(
         { id: Number(id), data: dataToSend },
         {
@@ -81,7 +105,7 @@ export function ProjectFormPage() {
         }
       );
     } else {
-      createMutation.mutate(dataToSend as any, {
+      createMutation.mutate(dataToSend, {
         onSuccess: () => {
           navigate('/projects');
         }
@@ -100,179 +124,350 @@ export function ProjectFormPage() {
   };
 
   if (isEditing && isProjectLoading) {
-    return <div className="p-8 text-center text-secondary">Loading project details...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+        <span className="ml-3 text-secondary">Loading project details...</span>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full">
-      <div className="flex items-center gap-4 border-b border-outline-variant pb-6">
-        <button 
-          onClick={() => navigate('/projects')}
-          className="p-2 hover:bg-surface-container-low rounded-full transition-colors cursor-pointer text-secondary"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-on-background mb-1">
-            {isEditing ? 'Edit Project' : 'New Project'}
-          </h1>
-          <p className="text-secondary text-sm">
-            {isEditing ? 'Update project details and status.' : 'Fill in the details to create a new project.'}
-          </p>
+    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-12">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant pb-6">
+        <div className="flex items-center gap-4">
+          <button 
+            type="button"
+            onClick={() => navigate('/projects')}
+            className="p-2 hover:bg-surface-container-low rounded-full transition-colors cursor-pointer text-secondary"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-on-background mb-1">
+              {isEditing ? 'Edit Project' : 'Create Project'}
+            </h1>
+            <p className="text-secondary text-sm">
+              {isEditing ? 'Update enterprise project settings, dates, and repositories.' : 'Register a new project in the system.'}
+            </p>
+          </div>
         </div>
         {isEditing && (
           <button 
             type="button"
             onClick={handleDelete}
-            className="flex items-center gap-2 px-4 py-2 border border-error text-error rounded-lg hover:bg-error-container transition-colors text-sm font-semibold shadow-sm cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 border border-error/30 text-error rounded-lg hover:bg-error/5 transition-colors text-sm font-semibold shadow-sm cursor-pointer disabled:opacity-50"
             disabled={deleteMutation.isPending}
           >
             <Trash2 className="w-4 h-4" />
-            <span>Delete</span>
+            <span>Delete Project</span>
           </button>
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="name" className="text-sm font-semibold text-on-background">Project Name *</label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              required
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-              placeholder="e.g. HCM Implementation"
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Info Card */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
+              <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-primary" />
+                <span>General Information</span>
+              </h2>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="customer" className="text-sm font-semibold text-on-background">Customer</label>
-            <input
-              id="customer"
-              name="customer"
-              type="text"
-              value={formData.customer}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-              placeholder="e.g. ACME Corp"
-            />
-          </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="name" className="text-sm font-semibold text-on-background">Project Name *</label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    placeholder="e.g. HCM Implementation"
+                  />
+                </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="picClient" className="text-sm font-semibold text-on-background">PIC Client</label>
-            <input
-              id="picClient"
-              name="picClient"
-              type="text"
-              value={formData.picClient}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-              placeholder="e.g. John Doe"
-            />
-          </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="customer" className="text-sm font-semibold text-on-background">Customer</label>
+                  <input
+                    id="customer"
+                    name="customer"
+                    type="text"
+                    value={formData.customer}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    placeholder="e.g. PT Bank Mandiri"
+                  />
+                </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="platform" className="text-sm font-semibold text-on-background">Platform</label>
-            <input
-              id="platform"
-              name="platform"
-              type="text"
-              value={formData.platform}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-              placeholder="e.g. Web, Mobile, Desktop"
-            />
-          </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="picClient" className="text-sm font-semibold text-on-background">PIC Client</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                    <input
+                      id="picClient"
+                      name="picClient"
+                      type="text"
+                      value={formData.picClient}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                      placeholder="e.g. John Doe (Client PM)"
+                    />
+                  </div>
+                </div>
 
-          {isEditing && (
-            <>
-              <div className="flex flex-col gap-2">
-                <label htmlFor="status" className="text-sm font-semibold text-on-background">Status</label>
-                <select
-                  id="status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                >
-                  {STATUS_OPTIONS.map(status => (
-                    <option key={status} value={status}>{status}</option>
-                  ))}
-                </select>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="picInternal" className="text-sm font-semibold text-on-background">PIC Internal</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
+                    <input
+                      id="picInternal"
+                      name="picInternal"
+                      type="text"
+                      value={formData.picInternal}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                      placeholder="e.g. Jane Smith (Internal PM)"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="platform" className="text-sm font-semibold text-on-background">Platform</label>
+                  <input
+                    id="platform"
+                    name="platform"
+                    type="text"
+                    value={formData.platform}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    placeholder="e.g. Web & Mobile App"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="totalMandays" className="text-sm font-semibold text-on-background">Total Mandays</label>
+                  <input
+                    id="totalMandays"
+                    name="totalMandays"
+                    type="number"
+                    min="0"
+                    value={formData.totalMandays}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    placeholder="e.g. 120"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="timelineRemark" className="text-sm font-semibold text-on-background">Timeline Remark</label>
-                <input
-                  id="timelineRemark"
-                  name="timelineRemark"
-                  type="text"
-                  value={formData.timelineRemark}
+                <label htmlFor="description" className="text-sm font-semibold text-on-background">Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  rows={4}
+                  value={formData.description}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                  placeholder="e.g. On Track, Delayed"
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background resize-y"
+                  placeholder="Detailed description of the project scope and goals..."
                 />
               </div>
+            </div>
 
-              <div className="flex flex-col gap-2">
-                <label htmlFor="startDate" className="text-sm font-semibold text-on-background">Start Date</label>
-                <input
-                  id="startDate"
-                  name="startDate"
-                  type="date"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                />
+            {/* Development Links & Metadata (Only when editing) */}
+            {isEditing && (
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
+                <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
+                  <LinkIcon className="w-5 h-5 text-primary" />
+                  <span>References & Links</span>
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="repositoryLink" className="text-sm font-semibold text-on-background">Repository Link</label>
+                    <input
+                      id="repositoryLink"
+                      name="repositoryLink"
+                      type="url"
+                      value={formData.repositoryLink}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                      placeholder="e.g. https://github.com/org/repo"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="timelineLink" className="text-sm font-semibold text-on-background">External Timeline Link</label>
+                    <input
+                      id="timelineLink"
+                      name="timelineLink"
+                      type="url"
+                      value={formData.timelineLink}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                      placeholder="e.g. https://trello.com/board"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="remarks" className="text-sm font-semibold text-on-background">Remarks</label>
+                  <textarea
+                    id="remarks"
+                    name="remarks"
+                    rows={2}
+                    value={formData.remarks}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background resize-y"
+                    placeholder="General remarks or notes..."
+                  />
+                </div>
               </div>
+            )}
+          </div>
 
-              <div className="flex flex-col gap-2">
-                <label htmlFor="endDate" className="text-sm font-semibold text-on-background">End Date</label>
-                <input
-                  id="endDate"
-                  name="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                />
+          {/* Right Sidebar - Status, Dates, Progress */}
+          <div className="flex flex-col gap-6">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
+              <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-primary" />
+                <span>Timeline & Status</span>
+              </h2>
+
+              <div className="flex flex-col gap-5">
+                {/* Status Options (Only on edit) */}
+                {isEditing && (
+                  <>
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="status" className="text-sm font-semibold text-on-background">Status</label>
+                      <select
+                        id="status"
+                        name="status"
+                        value={formData.status}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background font-semibold"
+                      >
+                        {STATUS_OPTIONS.map(status => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center">
+                        <label htmlFor="progressPct" className="text-sm font-semibold text-on-background">Progress ({formData.progressPct}%)</label>
+                      </div>
+                      <input
+                        id="progressPct"
+                        name="progressPct"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={formData.progressPct}
+                        onChange={handleChange}
+                        className="w-full accent-primary h-2 bg-surface-container-high rounded-lg cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="timelineRemark" className="text-sm font-semibold text-on-background">Timeline Remark</label>
+                      <input
+                        id="timelineRemark"
+                        name="timelineRemark"
+                        type="text"
+                        value={formData.timelineRemark}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                        placeholder="e.g. On Track, Behind Schedule"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Date Inputs */}
+                <div className="border-t border-outline-variant pt-4 flex flex-col gap-4">
+                  <h3 className="text-sm font-bold text-secondary uppercase tracking-wider">Planned Schedule</h3>
+                  
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="startDate" className="text-sm font-semibold text-on-background">Start Date</label>
+                    <input
+                      id="startDate"
+                      name="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="endDate" className="text-sm font-semibold text-on-background">End Date</label>
+                    <input
+                      id="endDate"
+                      name="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    />
+                  </div>
+                </div>
+
+                {/* Actual Schedule (Only on edit) */}
+                {isEditing && (
+                  <div className="border-t border-outline-variant pt-4 flex flex-col gap-4">
+                    <h3 className="text-sm font-bold text-secondary uppercase tracking-wider">Actual Schedule</h3>
+                    
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="actualStart" className="text-sm font-semibold text-on-background">Actual Start</label>
+                      <input
+                        id="actualStart"
+                        name="actualStart"
+                        type="date"
+                        value={formData.actualStart}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="actualEnd" className="text-sm font-semibold text-on-background">Actual End</label>
+                      <input
+                        id="actualEnd"
+                        name="actualEnd"
+                        type="date"
+                        value={formData.actualEnd}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-            </>
-          )}
-
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <label htmlFor="description" className="text-sm font-semibold text-on-background">Description</label>
-            <textarea
-              id="description"
-              name="description"
-              rows={4}
-              value={formData.description}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background resize-y"
-              placeholder="Detailed description of the project..."
-            />
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-4 mt-4 pt-6 border-t border-outline-variant">
+        {/* Submit Actions */}
+        <div className="flex justify-end gap-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm">
           <button
             type="button"
             onClick={() => navigate('/projects')}
-            className="px-6 py-2 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-low transition-colors text-sm font-semibold cursor-pointer"
+            className="px-6 py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-low transition-colors text-sm font-semibold cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={createMutation.isPending || updateMutation.isPending}
-            className="flex items-center gap-2 px-6 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold shadow-sm cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-sm font-semibold shadow-sm cursor-pointer disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            <span>{isEditing ? 'Update Project' : 'Create Project'}</span>
+            <span>{isEditing ? 'Save Changes' : 'Create Project'}</span>
           </button>
         </div>
       </form>

@@ -1,11 +1,20 @@
 import { cn } from "@/shared/lib/utils";
+import { 
+  ProjectStatus, 
+  PurchaseOrderStatus, 
+  SalesOrderStatus, 
+  SupportTicketStatus, 
+  SupportTicketDetailStatus, 
+  InvoiceStatus 
+} from "@/shared/constants/enums";
 
 type StatusType = 
-  | 'PLANNING' | 'IN_PROGRESS' | 'SIT' | 'UAT' | 'CLOSED' | 'ON_HOLD' | 'CANCELLED' | 'FUT'
-  | 'DRAFT' | 'ACTIVE' | 'COMPLETED' 
-  | 'DELIVERED' | 'INVOICED' | 'PAID'
-  | 'SENT' | 'OVERDUE'
-  | 'OPEN' | 'DEV_DONE' | 'SIT_DONE' | 'UAT_DONE' | 'DONE';
+  | keyof typeof ProjectStatus
+  | keyof typeof PurchaseOrderStatus
+  | keyof typeof SalesOrderStatus
+  | keyof typeof SupportTicketStatus
+  | keyof typeof SupportTicketDetailStatus
+  | keyof typeof InvoiceStatus;
 
 const statusStyles: Record<StatusType, string> = {
   PLANNING: "bg-slate-100 text-slate-700 border-slate-200",
@@ -16,7 +25,7 @@ const statusStyles: Record<StatusType, string> = {
   ON_HOLD: "bg-amber-100 text-amber-700 border-amber-200",
   CANCELLED: "bg-red-100 text-red-700 border-red-200",
   FUT: "bg-teal-100 text-teal-700 border-teal-200",
-  
+
   DRAFT: "bg-slate-100 text-slate-700 border-slate-200",
   ACTIVE: "bg-blue-100 text-blue-700 border-blue-200",
   COMPLETED: "bg-green-100 text-green-700 border-green-200",
@@ -33,9 +42,9 @@ const statusStyles: Record<StatusType, string> = {
 };
 
 export function StatusBadge({ status, className }: { status: string; className?: string }) {
-  const normalizedStatus = status as StatusType;
-  const style = statusStyles[normalizedStatus] || "bg-gray-100 text-gray-700 border-gray-200";
-  
+  const lookupKey = status.replace(/ /g, '_') as StatusType;
+  const style = statusStyles[lookupKey] || "bg-gray-100 text-gray-700 border-gray-200";
+
   return (
     <span className={cn("px-2.5 py-0.5 rounded-full text-[11px] font-semibold border inline-flex items-center justify-center uppercase", style, className)}>
       {status.replace(/_/g, ' ')}

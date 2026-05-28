@@ -26,7 +26,8 @@ export function BillingHubPage() {
   const [endDate, setEndDate] = useState<string>('2026-03-31');
   const [taxRate, setTaxRate] = useState<number>(11);
 
-  const { data: projects = [], isLoading: isProjectsLoading } = useGetProjects();
+  const { data: projectsRes, isLoading: isProjectsLoading } = useGetProjects();
+  const projects = projectsRes?.data || [];
   const { data: purchaseOrders = [], isLoading: isPoLoading } = useGetPurchaseOrdersByProject(selectedProject || undefined);
   
   const { data: previewData, isLoading: isPreviewLoading } = useGetBillingPreview({

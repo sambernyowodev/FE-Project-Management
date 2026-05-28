@@ -1,23 +1,25 @@
-import { 
-  FolderKanban, 
-  CalendarDays, 
-  Bug, 
-  Clock, 
-  MoreVertical 
+import {
+  FolderKanban,
+  CalendarDays,
+  Bug,
+  Clock,
+  MoreVertical
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from 'recharts';
-
 import { useMemo } from 'react';
 import { useGetProjects } from '@/modules/projects/hooks/useProjects';
 import { useGetSupportTickets } from '@/modules/support/hooks/useSupportTickets';
+import { SupportTicketStatus } from '@/shared/constants/enums';
 
 export function DashboardPage() {
-  const { data: projects = [], isLoading: isProjectsLoading } = useGetProjects();
-  const { data: tickets = [], isLoading: isTicketsLoading } = useGetSupportTickets();
+  const { data: projectsRes, isLoading: isProjectsLoading } = useGetProjects();
+  const { data: ticketsRes, isLoading: isTicketsLoading } = useGetSupportTickets();
+  const projects = projectsRes?.data || [];
+  const tickets = ticketsRes?.data || [];
 
   const activeProjects = projects.filter(p => p.isActive).length;
   const totalMandays = 0; // Mandays removed from API
-  const openTickets = tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
+  const openTickets = tickets.filter(t => t.status === SupportTicketStatus.OPEN || t.status === SupportTicketStatus.IN_PROGRESS).length;
   const hoursThisMonth = tickets.reduce((acc, t) => acc + (t.hoursSpent || 0), 0);
 
   const barData = useMemo(() => {

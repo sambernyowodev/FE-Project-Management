@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FolderKanban, 
-  CalendarDays, 
-  TicketCheck, 
-  FileText, 
-  FileSpreadsheet, 
+import {
+  LayoutDashboard,
+  FolderKanban,
+  TicketCheck,
+  Users,
+  FileText,
+  FileSpreadsheet,
   Settings,
   Building2
 } from 'lucide-react';
@@ -13,8 +13,8 @@ import { cn } from '@/shared/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Members', href: '/members', icon: Users },
   { name: 'Projects', href: '/projects', icon: FolderKanban },
-  { name: 'Timeline', href: '/timeline', icon: CalendarDays },
   { name: 'Support', href: '/support', icon: TicketCheck },
   { name: 'Billing', href: '/billing', icon: FileText },
   { name: 'Reports', href: '/reports', icon: FileSpreadsheet },

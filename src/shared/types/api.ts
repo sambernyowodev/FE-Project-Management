@@ -4,6 +4,43 @@
  */
 
 export interface paths {
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all users */
+        get: operations["UsersController_findAll"];
+        put?: never;
+        /** Create a new user/member */
+        post: operations["UsersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get user by id */
+        get: operations["UsersController_findOne"];
+        /** Update user */
+        put: operations["UsersController_update"];
+        post?: never;
+        /** Deactivate user (soft delete) */
+        delete: operations["UsersController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roles": {
         parameters: {
             query?: never;
@@ -189,12 +226,31 @@ export interface paths {
         };
         /** Get activity details */
         get: operations["ProjectActivitiesController_findOne"];
+        /** Update a project activity */
+        put: operations["ProjectActivitiesController_update"];
+        post?: never;
+        /** Delete a project activity */
+        delete: operations["ProjectActivitiesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/project-activities/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Quick update activity progress percentage */
+        patch: operations["ProjectActivitiesController_updateProgress"];
         trace?: never;
     };
     "/api/purchase-orders": {
@@ -379,9 +435,11 @@ export interface paths {
         };
         /** Get ticket details */
         get: operations["SupportTicketsController_findOne"];
-        put?: never;
+        /** Update support ticket */
+        put: operations["SupportTicketsController_update"];
         post?: never;
-        delete?: never;
+        /** Delete support ticket */
+        delete: operations["SupportTicketsController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -534,6 +592,44 @@ export interface components {
             /** @example Operation successful */
             message?: string;
         };
+        UserResponseDto: {
+            id: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            createdBy?: number;
+            updatedBy?: number;
+            email: string;
+            fullName: string;
+            employeeId?: string;
+            avatarUrl?: string;
+            isActive: boolean;
+        };
+        Object: Record<string, never>;
+        CreateUserDto: {
+            /** @example John Doe */
+            fullName: string;
+            /**
+             * Format: email
+             * @example user@example.com
+             */
+            email: string;
+            /** @example Password123 */
+            password: string;
+            /** @example EMP-001 */
+            employeeId?: string;
+            avatarUrl?: string;
+        };
+        UpdateUserDto: {
+            /** @example John Doe Updated */
+            fullName?: string;
+            /** @example EMP-002 */
+            employeeId?: string;
+            avatarUrl?: string;
+            /** @example true */
+            isActive?: boolean;
+        };
         RoleResponseDto: {
             id: number;
             /** Format: date-time */
@@ -554,6 +650,37 @@ export interface components {
             /** @example Handles project management */
             description?: string;
         };
+        ProjectResponseDto: {
+            id: number;
+            projectCode: string;
+            name: string;
+            description?: string;
+            picClient?: string;
+            picInternal?: string;
+            platform?: string;
+            customer?: string;
+            /** Format: date-time */
+            startDate: string;
+            /** Format: date-time */
+            endDate?: string;
+            /** Format: date-time */
+            actualStart?: string;
+            /** Format: date-time */
+            actualEnd?: string;
+            /** @enum {string} */
+            status: "PLANNING" | "IN PROGRESS" | "SIT" | "UAT" | "CLOSED" | "ON HOLD" | "CANCELLED" | "FUT";
+            totalMandays?: number;
+            progressPct?: number;
+            repositoryLink?: string;
+            timelineLink?: string;
+            timelineRemark?: string;
+            remarks?: string;
+            isActive: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         RoleRateResponseDto: {
             id: number;
             /** Format: date-time */
@@ -573,6 +700,7 @@ export interface components {
             effectiveUntil?: string;
             isActive: boolean;
             role?: components["schemas"]["RoleResponseDto"];
+            project?: components["schemas"]["ProjectResponseDto"];
         };
         CreateRoleRateDto: {
             roleId: number;
@@ -586,29 +714,16 @@ export interface components {
             /** @example 2026-12-31 */
             effectiveUntil?: string;
         };
-        ProjectResponseDto: {
-            projectCode: string;
-            name: string;
-            description?: string;
-            picClient?: string;
-            picInternal?: string;
-            platform?: string;
-            customer?: string;
-            /** Format: date-time */
-            startDate: string;
-            /** Format: date-time */
-            endDate?: string;
-            /** @enum {string} */
-            status: "PLANNING" | "IN_PROGRESS" | "SIT" | "UAT" | "CLOSED" | "ON_HOLD" | "CANCELLED" | "FUT";
-            timelineRemark?: string;
-            isActive: boolean;
-        };
         CreateProjectDto: {
             name: string;
             description?: string;
             picClient?: string;
             platform?: string;
             customer?: string;
+            startDate?: string;
+            endDate?: string;
+            totalMandays?: number;
+            picInternal?: string;
         };
         UpdateProjectDto: {
             name?: string;
@@ -616,25 +731,17 @@ export interface components {
             picClient?: string;
             platform?: string;
             customer?: string;
-            /** @enum {string} */
-            status?: "PLANNING" | "IN_PROGRESS" | "SIT" | "UAT" | "CLOSED" | "ON_HOLD" | "CANCELLED" | "FUT";
-            timelineRemark?: string;
             startDate?: string;
             endDate?: string;
-        };
-        UserResponseDto: {
-            id: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            createdBy?: number;
-            updatedBy?: number;
-            email: string;
-            fullName: string;
-            employeeId?: string;
-            avatarUrl?: string;
-            isActive: boolean;
+            totalMandays?: number;
+            picInternal?: string;
+            /** @enum {string} */
+            status?: "PLANNING" | "IN PROGRESS" | "SIT" | "UAT" | "CLOSED" | "ON HOLD" | "CANCELLED" | "FUT";
+            timelineRemark?: string;
+            progressPct?: number;
+            repositoryLink?: string;
+            timelineLink?: string;
+            remarks?: string;
         };
         ProjectMemberResponseDto: {
             id: number;
@@ -672,21 +779,70 @@ export interface components {
             createdBy?: number;
             updatedBy?: number;
             projectId: number;
-            createdById: number;
-            title: string;
+            parentId?: number;
+            activityName: string;
             description?: string;
+            feature?: string;
+            subFeature?: string;
+            details?: string;
+            durationDays: number;
+            mandays: number;
             /** Format: date-time */
-            activityDate: string;
-            mandaysLog: number;
-            project?: components["schemas"]["ProjectResponseDto"];
+            startDate?: string;
+            /** Format: date-time */
+            endDate?: string;
+            /** Format: date-time */
+            actualStart?: string;
+            /** Format: date-time */
+            actualEnd?: string;
+            progressPct: number;
+            phase: string;
+            assignedToId?: number;
+            sortOrder: number;
+            isMilestone: boolean;
+            assignedTo?: components["schemas"]["UserResponseDto"];
         };
         CreateProjectActivityDto: {
             projectId: number;
             parentId?: number;
             activityName: string;
             description?: string;
+            feature?: string;
+            subFeature?: string;
+            details?: string;
             durationDays?: number;
             mandays?: number;
+            startDate?: string;
+            endDate?: string;
+            progressPct?: number;
+            /** @enum {string} */
+            phase?: "FCAB" | "REQUIREMENT" | "ANALYSIS" | "DESIGN" | "SRS" | "CRQ" | "DEVELOPMENT" | "UT SIT" | "TRA TC" | "REVIEW" | "SIT" | "UAT" | "NFT" | "SECURITY" | "RFS" | "FUT";
+            assignedToId?: number;
+            sortOrder?: number;
+            isMilestone?: boolean;
+        };
+        UpdateProjectActivityDto: {
+            projectId?: number;
+            parentId?: number;
+            activityName?: string;
+            description?: string;
+            feature?: string;
+            subFeature?: string;
+            details?: string;
+            durationDays?: number;
+            mandays?: number;
+            startDate?: string;
+            endDate?: string;
+            progressPct?: number;
+            /** @enum {string} */
+            phase?: "FCAB" | "REQUIREMENT" | "ANALYSIS" | "DESIGN" | "SRS" | "CRQ" | "DEVELOPMENT" | "UT SIT" | "TRA TC" | "REVIEW" | "SIT" | "UAT" | "NFT" | "SECURITY" | "RFS" | "FUT";
+            assignedToId?: number;
+            sortOrder?: number;
+            isMilestone?: boolean;
+        };
+        UpdateProgressDto: {
+            /** @description Progress percentage (0-100) */
+            progressPct: number;
         };
         PurchaseOrderResponseDto: {
             id: number;
@@ -704,7 +860,7 @@ export interface components {
             totalMandays: number;
             totalAmount: number;
             /** @enum {string} */
-            status: "DRAFT" | "ACTIVE" | "IN_PROGRESS" | "COMPLETED" | "CLOSED" | "CANCELLED";
+            status: "DRAFT" | "ACTIVE" | "IN PROGRESS" | "COMPLETED" | "CLOSED" | "CANCELLED";
             /** Format: date-time */
             startDate?: string;
             /** Format: date-time */
@@ -740,7 +896,7 @@ export interface components {
             totalMandays: number;
             totalAmount: number;
             /** @enum {string} */
-            status: "DRAFT" | "ACTIVE" | "IN_PROGRESS" | "DELIVERED" | "INVOICED" | "PAID" | "CLOSED" | "CANCELLED";
+            status: "DRAFT" | "ACTIVE" | "IN PROGRESS" | "DELIVERED" | "INVOICED" | "PAID" | "CLOSED" | "CANCELLED";
             /** Format: date-time */
             startDate?: string;
             /** Format: date-time */
@@ -753,6 +909,7 @@ export interface components {
             createdById: number;
             project?: components["schemas"]["ProjectResponseDto"];
             purchaseOrder?: components["schemas"]["PurchaseOrderResponseDto"];
+            po?: components["schemas"]["PurchaseOrderResponseDto"];
         };
         CreateSalesOrderDto: {
             soName: string;
@@ -811,7 +968,7 @@ export interface components {
             hoursSpent: number;
             mandaysSpent: number;
             /** @enum {string} */
-            status: "OPEN" | "IN_PROGRESS" | "DEV_DONE" | "SIT_DONE" | "UAT_DONE" | "DONE" | "ON_HOLD" | "CANCELLED";
+            status: "OPEN" | "IN PROGRESS" | "DEV DONE" | "SIT DONE" | "UAT DONE" | "DONE" | "ON HOLD" | "CANCELLED";
             platform?: string;
             /** Format: date-time */
             startDate?: string;
@@ -850,7 +1007,7 @@ export interface components {
             subIssue: string;
             hoursSpent: number;
             /** @enum {string} */
-            status: "OPEN" | "IN_PROGRESS" | "DONE" | "ON_HOLD";
+            status: "OPEN" | "IN PROGRESS" | "DONE" | "ON HOLD";
             platform?: string;
             /** Format: date-time */
             startDate?: string;
@@ -862,6 +1019,17 @@ export interface components {
         CreateSupportTicketDetailDto: {
             subIssue: string;
             hoursSpent?: number;
+        };
+        UpdateSupportTicketDto: {
+            projectName?: string;
+            projectId?: number;
+            issueTitle?: string;
+            issueDescription?: string;
+            picClient?: string;
+            hoursSpent?: number;
+            mandaysSpent?: number;
+            status?: string;
+            notes?: string;
         };
         GenerateInvoiceDto: {
             poId: number;
@@ -941,6 +1109,133 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    UsersController_findAll: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                perPage?: number;
+                /** @description Sort format (e.g. -createdAt or name) */
+                sort?: string;
+                /** @description Search keyword */
+                search?: string;
+                /** @description Column filters (key-value object or JSON string) */
+                filter?: components["schemas"]["Object"];
+                sortOrder?: "ASC" | "DESC" | "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["UserResponseDto"][];
+                    };
+                };
+            };
+        };
+    };
+    UsersController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["UserResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    UsersController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["UserResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    UsersController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["UserResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    UsersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     RolesController_findAll: {
         parameters: {
             query?: never;
@@ -1012,7 +1307,19 @@ export interface operations {
     };
     RoleRatesController_findAll: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                perPage?: number;
+                /** @description Sort format (e.g. -createdAt or name) */
+                sort?: string;
+                /** @description Search keyword */
+                search?: string;
+                /** @description Column filters (key-value object or JSON string) */
+                filter?: components["schemas"]["Object"];
+                sortOrder?: "ASC" | "DESC" | "asc" | "desc";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1102,7 +1409,19 @@ export interface operations {
     };
     ProjectsController_findAll: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                perPage?: number;
+                /** @description Sort format (e.g. -createdAt or name) */
+                sort?: string;
+                /** @description Search keyword */
+                search?: string;
+                /** @description Column filters (key-value object or JSON string) */
+                filter?: components["schemas"]["Object"];
+                sortOrder?: "ASC" | "DESC" | "asc" | "desc";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1336,9 +1655,94 @@ export interface operations {
             };
         };
     };
-    PurchaseOrdersController_findAll: {
+    ProjectActivitiesController_update: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectActivityDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["ProjectActivityResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    ProjectActivitiesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ProjectActivitiesController_updateProgress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProgressDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["ProjectActivityResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    PurchaseOrdersController_findAll: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                perPage?: number;
+                /** @description Sort format (e.g. -createdAt or name) */
+                sort?: string;
+                /** @description Search keyword */
+                search?: string;
+                /** @description Column filters (key-value object or JSON string) */
+                filter?: components["schemas"]["Object"];
+                sortOrder?: "ASC" | "DESC" | "asc" | "desc";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1430,7 +1834,19 @@ export interface operations {
     };
     SalesOrdersController_findAll: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                perPage?: number;
+                /** @description Sort format (e.g. -createdAt or name) */
+                sort?: string;
+                /** @description Search keyword */
+                search?: string;
+                /** @description Column filters (key-value object or JSON string) */
+                filter?: components["schemas"]["Object"];
+                sortOrder?: "ASC" | "DESC" | "asc" | "desc";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1593,7 +2009,19 @@ export interface operations {
     };
     SupportTicketsController_findAll: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                perPage?: number;
+                /** @description Sort format (e.g. -createdAt or name) */
+                sort?: string;
+                /** @description Search keyword */
+                search?: string;
+                /** @description Column filters (key-value object or JSON string) */
+                filter?: components["schemas"]["Object"];
+                sortOrder?: "ASC" | "DESC" | "asc" | "desc";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -1657,6 +2085,52 @@ export interface operations {
                         data?: components["schemas"]["SupportTicketResponseDto"];
                     };
                 };
+            };
+        };
+    };
+    SupportTicketsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSupportTicketDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["SupportTicketResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    SupportTicketsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

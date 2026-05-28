@@ -8,9 +8,12 @@ import { ProjectTimelinePage } from '@/features/projects/ProjectTimelinePage';
 import { POListPage } from '@/features/purchase-orders/POListPage';
 import { SOListPage } from '@/features/sales-orders/SOListPage';
 import { SupportListPage } from '@/features/support/SupportListPage';
+import { SupportFormPage } from '@/features/support/SupportFormPage';
 import { BillingHubPage } from '@/features/billing/BillingHubPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { RoleRateListPage } from '@/features/role-rates/RoleRateListPage';
+import { MemberListPage } from '@/features/members/MemberListPage';
+import { MemberFormPage } from '@/features/members/MemberFormPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 
@@ -36,6 +39,10 @@ export const router = createBrowserRouter([
         element: <ProjectFormPage />
       },
       {
+        path: 'projects/:id/timeline',
+        element: <ProjectTimelinePage />
+      },
+      {
         path: 'timeline',
         element: <ProjectTimelinePage />
       },
@@ -50,6 +57,26 @@ export const router = createBrowserRouter([
       {
         path: 'support',
         element: <SupportListPage />
+      },
+      {
+        path: 'support/new',
+        element: <SupportFormPage />
+      },
+      {
+        path: 'support/:id',
+        element: <SupportFormPage />
+      },
+      {
+        path: 'members',
+        element: <MemberListPage />
+      },
+      {
+        path: 'members/new',
+        element: <MemberFormPage />
+      },
+      {
+        path: 'members/:id',
+        element: <MemberFormPage />
       },
       {
         path: 'billing',
