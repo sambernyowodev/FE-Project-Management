@@ -6,7 +6,7 @@ import {
   useCreateUser,
   useUpdateUser,
   useDeleteUser,
-} from '@/modules/users/hooks/useUsers';
+} from '@/modules/master/users/hooks/useUsers';
 
 export function MemberFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -85,7 +85,7 @@ export function MemberFormPage() {
         { id: Number(id), data: payload },
         {
           onSuccess: () => {
-            navigate('/members');
+            navigate('/master/members');
           },
           onError: (err: any) => {
             setError(err?.response?.data?.message || err.message || 'Gagal memperbarui member');
@@ -102,7 +102,7 @@ export function MemberFormPage() {
 
       createMutation.mutate(payload, {
         onSuccess: () => {
-          navigate('/members');
+          navigate('/master/members');
         },
         onError: (err: any) => {
           setError(err?.response?.data?.message || err.message || 'Gagal membuat member');
@@ -115,7 +115,7 @@ export function MemberFormPage() {
     if (window.confirm('Apakah Anda yakin ingin menonaktifkan member ini?')) {
       deleteMutation.mutate(Number(id), {
         onSuccess: () => {
-          navigate('/members');
+          navigate('/master/members');
         },
       });
     }
@@ -137,7 +137,7 @@ export function MemberFormPage() {
         <div className="flex items-center gap-4">
           <button
             type="button"
-            onClick={() => navigate('/members')}
+            onClick={() => navigate('/master/members')}
             className="p-2 hover:bg-surface-container-low rounded-full transition-colors cursor-pointer text-secondary"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -211,9 +211,8 @@ export function MemberFormPage() {
                   disabled={isEditing}
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background ${
-                    isEditing ? 'opacity-60 cursor-not-allowed bg-surface-container-low' : ''
-                  }`}
+                  className={`w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background ${isEditing ? 'opacity-60 cursor-not-allowed bg-surface-container-low' : ''
+                    }`}
                   placeholder="e.g. john.doe@company.com"
                 />
                 {isEditing && (
@@ -329,7 +328,7 @@ export function MemberFormPage() {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/members')}
+              onClick={() => navigate('/master/members')}
               className="w-full py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-low transition-colors text-sm font-bold cursor-pointer"
             >
               Batal

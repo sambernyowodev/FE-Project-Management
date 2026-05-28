@@ -68,9 +68,11 @@ export interface paths {
         };
         /** Get role by id */
         get: operations["RolesController_findOne"];
-        put?: never;
+        /** Update a role */
+        put: operations["RolesController_update"];
         post?: never;
-        delete?: never;
+        /** Delete a role */
+        delete: operations["RolesController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -85,7 +87,8 @@ export interface paths {
         };
         /** Get all role rates */
         get: operations["RoleRatesController_findAll"];
-        put?: never;
+        /** Update role rate */
+        put: operations["RoleRatesController_update"];
         /** Create a new role rate */
         post: operations["RoleRatesController_create"];
         delete?: never;
@@ -123,6 +126,43 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/master/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all master projects */
+        get: operations["MasterProjectsController_findAll"];
+        put?: never;
+        /** Create a new master project */
+        post: operations["MasterProjectsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/master/projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get master project details */
+        get: operations["MasterProjectsController_findOne"];
+        /** Update master project */
+        put: operations["MasterProjectsController_update"];
+        post?: never;
+        /** Delete master project */
+        delete: operations["MasterProjectsController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -650,15 +690,35 @@ export interface components {
             /** @example Handles project management */
             description?: string;
         };
-        ProjectResponseDto: {
+        SuccessResponseDto: {
+            /** @example true */
+            success: boolean;
+            /** @example Operation successful */
+            message?: string;
+        };
+        MasterProjectResponseDto: {
             id: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            createdBy?: number;
+            updatedBy?: number;
             projectCode: string;
             name: string;
             description?: string;
+            platform?: string;
+            isActive: boolean;
+        };
+        ProjectResponseDto: {
+            id: number;
+            projectId: number;
             picClient?: string;
             picInternal?: string;
-            platform?: string;
             customer?: string;
+            /** @enum {string} */
+            projectType: "New" | "Support";
+            parentProjectId?: number;
             /** Format: date-time */
             startDate: string;
             /** Format: date-time */
@@ -675,13 +735,13 @@ export interface components {
             timelineLink?: string;
             timelineRemark?: string;
             remarks?: string;
-            /** @enum {string} */
-            type: "New" | "Support";
             isActive: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+            project?: components["schemas"]["MasterProjectResponseDto"];
+            parentProject?: components["schemas"]["ProjectResponseDto"];
         };
         RoleRateResponseDto: {
             id: number;
@@ -716,31 +776,38 @@ export interface components {
             /** @example 2026-12-31 */
             effectiveUntil?: string;
         };
-        CreateProjectDto: {
+        CreateMasterProjectDto: {
             name: string;
             description?: string;
-            picClient?: string;
             platform?: string;
+        };
+        CreateProjectDto: {
+            /** @description Master project ID (FK to master_projects) */
+            projectId: number;
+            picClient?: string;
             customer?: string;
+            picInternal?: string;
+            /** @enum {string} */
+            projectType?: "New" | "Support";
+            /** @description Parent project ID (self-ref for support projects) */
+            parentProjectId?: number;
             startDate?: string;
             endDate?: string;
             totalMandays?: number;
-            picInternal?: string;
-            /** @enum {string} */
-            type?: "New" | "Support";
         };
         UpdateProjectDto: {
-            name?: string;
-            description?: string;
+            /** @description Master project ID (FK to master_projects) */
+            projectId?: number;
             picClient?: string;
-            platform?: string;
             customer?: string;
+            picInternal?: string;
+            /** @enum {string} */
+            projectType?: "New" | "Support";
+            /** @description Parent project ID (self-ref for support projects) */
+            parentProjectId?: number;
             startDate?: string;
             endDate?: string;
             totalMandays?: number;
-            picInternal?: string;
-            /** @enum {string} */
-            type?: "New" | "Support";
             /** @enum {string} */
             status?: "PLANNING" | "IN PROGRESS" | "SIT" | "UAT" | "CLOSED" | "ON HOLD" | "CANCELLED" | "FUT";
             timelineRemark?: string;
@@ -966,16 +1033,13 @@ export interface components {
             createdBy?: number;
             updatedBy?: number;
             ticketCode: string;
-            projectId?: number;
-            projectName: string;
-            picClient?: string;
+            masterProjectId?: number;
             issueTitle: string;
             issueDescription?: string;
             hoursSpent: number;
             mandaysSpent: number;
             /** @enum {string} */
             status: "OPEN" | "IN PROGRESS" | "DEV DONE" | "SIT DONE" | "UAT DONE" | "DONE" | "ON HOLD" | "CANCELLED";
-            platform?: string;
             /** Format: date-time */
             startDate?: string;
             /** Format: date-time */
@@ -989,15 +1053,17 @@ export interface components {
             /** Format: date-time */
             updateDate?: string;
             isActive: boolean;
-            project?: components["schemas"]["ProjectResponseDto"];
+            masterProject?: components["schemas"]["MasterProjectResponseDto"];
             businessAnalyst?: components["schemas"]["UserResponseDto"];
             uiUx?: components["schemas"]["UserResponseDto"];
             devFe?: components["schemas"]["UserResponseDto"];
             devBe?: components["schemas"]["UserResponseDto"];
         };
         CreateSupportTicketDto: {
-            projectName: string;
-            projectId?: number;
+            /** @description Master project ID (FK to master_projects) */
+            masterProjectId?: number;
+            /** @description Master project name (used to find/create master project if masterProjectId is not provided) */
+            masterProjectName?: string;
             issueTitle: string;
             issueDescription?: string;
             businessAnalystId?: number;
@@ -1031,11 +1097,10 @@ export interface components {
             hoursSpent?: number;
         };
         UpdateSupportTicketDto: {
-            projectName?: string;
-            projectId?: number;
+            masterProjectId?: number;
+            masterProjectName?: string;
             issueTitle?: string;
             issueDescription?: string;
-            picClient?: string;
             hoursSpent?: number;
             mandaysSpent?: number;
             status?: string;
@@ -1209,7 +1274,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -1236,7 +1301,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -1319,6 +1384,52 @@ export interface operations {
             };
         };
     };
+    RolesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["RoleResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    RolesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["SuccessResponseDto"];
+                    };
+                };
+            };
+        };
+    };
     RoleRatesController_findAll: {
         parameters: {
             query?: {
@@ -1347,6 +1458,29 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
                         data?: components["schemas"]["RoleRateResponseDto"][];
+                    };
+                };
+            };
+        };
+    };
+    RoleRatesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["RoleRateResponseDto"];
                     };
                 };
             };
@@ -1416,6 +1550,133 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
                         data?: components["schemas"]["RoleRateResponseDto"][];
+                    };
+                };
+            };
+        };
+    };
+    MasterProjectsController_findAll: {
+        parameters: {
+            query?: {
+                /** @description Page number */
+                page?: number;
+                /** @description Items per page */
+                perPage?: number;
+                /** @description Sort format (e.g. -createdAt or name) */
+                sort?: string;
+                /** @description Search keyword */
+                search?: string;
+                /** @description Column filters (key-value object or JSON string) */
+                filter?: components["schemas"]["Object"];
+                sortOrder?: "ASC" | "DESC" | "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["MasterProjectResponseDto"][];
+                    };
+                };
+            };
+        };
+    };
+    MasterProjectsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMasterProjectDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["MasterProjectResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    MasterProjectsController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["MasterProjectResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    MasterProjectsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["MasterProjectResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    MasterProjectsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["SuccessResponseDto"];
                     };
                 };
             };
@@ -1674,7 +1935,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -1701,7 +1962,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -1711,7 +1972,11 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["SuccessResponseDto"];
+                    };
+                };
             };
         };
     };
@@ -1720,7 +1985,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -1932,7 +2197,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -2003,7 +2268,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };
@@ -2144,7 +2409,11 @@ export interface operations {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["SuccessResponseDto"];
+                    };
+                };
             };
         };
     };
@@ -2176,7 +2445,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                id: number;
             };
             cookie?: never;
         };

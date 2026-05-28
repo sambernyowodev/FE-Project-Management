@@ -348,9 +348,9 @@ export function ActivityFormModal({
                 className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 <option value="">-- Belum Ditugaskan --</option>
-                {members.map(member => {
+                {Array.from(new Map(members.map(m => [m.userId, m])).values()).map(member => {
                   const roleName = member.role?.roleName || member.secondaryRole?.roleName || 'Resource';
-                  const userName = member.user?.name || `User ID: ${member.userId}`;
+                  const userName = member.user?.fullName || member.user?.name || `User ID: ${member.userId}`;
                   return (
                     <option key={member.userId} value={member.userId}>
                       {userName} ({roleName})

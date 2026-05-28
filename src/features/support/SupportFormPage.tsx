@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, Ticket, Layers, Clock, User } from 'lucide-react';
-import { 
-  useGetSupportTicket, 
-  useCreateSupportTicket, 
+import {
+  useGetSupportTicket,
+  useCreateSupportTicket,
   useUpdateSupportTicket,
   useDeleteSupportTicket
 } from '@/modules/support/hooks/useSupportTickets';
 import { useGetProjects, useGetProjectMembers } from '@/modules/projects/hooks/useProjects';
-import { useGetUsers } from '@/modules/users/hooks/useUsers';
+import { useGetUsers } from '@/modules/master/users/hooks/useUsers';
 import { SupportTicketStatus } from '@/shared/constants/enums';
 
 
@@ -50,9 +50,13 @@ export function SupportFormPage() {
   const { data: usersRes } = useGetUsers({ perPage: 100 });
   const allUsers = usersRes?.data || [];
 
-  const assigneesOptions = formData.projectId === 'new'
+  const rawAssignees = (!formData.projectId || formData.projectId === 'new')
     ? allUsers.map((u: any) => ({ id: u.id, name: u.fullName }))
     : members.map((m: any) => ({ id: m.user?.id || m.userId, name: m.user?.fullName || 'Unknown' }));
+
+  const assigneesOptions = Array.from(
+    new Map(rawAssignees.map((item: any) => [item.id, item])).values()
+  );
 
 
   const [error, setError] = useState('');
@@ -77,12 +81,35 @@ export function SupportFormPage() {
     }
   }, [ticket, isEditing]);
 
+  useEffect(() => {
+    if (membersRes && membersRes.length > 0) {
+      const ba = membersRes.find((m: any) => m.role?.code === 'BA' || m.secondaryRole?.code === 'BA');
+      const uiux = membersRes.find((m: any) => m.role?.code === 'UIUX' || m.secondaryRole?.code === 'UIUX');
+      const devfe = membersRes.find((m: any) => m.role?.code === 'DEV_FE' || m.secondaryRole?.code === 'DEV_FE');
+      const devbe = membersRes.find((m: any) => m.role?.code === 'DEV_BE' || m.secondaryRole?.code === 'DEV_BE');
+
+      setFormData(prev => ({
+        ...prev,
+        businessAnalystId: prev.businessAnalystId || (ba ? String(ba.user?.id || ba.userId) : ''),
+        uiUxId: prev.uiUxId || (uiux ? String(uiux.user?.id || uiux.userId) : ''),
+        devFeId: prev.devFeId || (devfe ? String(devfe.user?.id || devfe.userId) : ''),
+        devBeId: prev.devBeId || (devbe ? String(devbe.user?.id || devbe.userId) : ''),
+      }));
+    }
+  }, [membersRes]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => {
       const next = { ...prev, [name]: value };
-      
+
       if (name === 'projectId') {
+        // Clear previous assignees when switching projects so new project defaults can be loaded
+        next.businessAnalystId = '';
+        next.uiUxId = '';
+        next.devFeId = '';
+        next.devBeId = '';
+
         if (value === 'new') {
           next.projectId = 'new';
           next.projectName = prev.newProjectName || '';
@@ -99,7 +126,7 @@ export function SupportFormPage() {
       } else if (name === 'newProjectName' && prev.projectId === 'new') {
         next.projectName = value;
       }
-      
+
       return next;
     });
   };
@@ -185,7 +212,7 @@ export function SupportFormPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-outline-variant pb-6">
         <div className="flex items-center gap-4">
-          <button 
+          <button
             type="button"
             onClick={() => navigate('/support')}
             className="p-2 hover:bg-surface-container-low rounded-full transition-colors cursor-pointer text-secondary"
@@ -202,7 +229,7 @@ export function SupportFormPage() {
           </div>
         </div>
         {isEditing && (
-          <button 
+          <button
             type="button"
             onClick={handleDelete}
             className="flex items-center gap-2 px-4 py-2 border border-error/30 text-error rounded-lg hover:bg-error/5 transition-colors text-sm font-semibold shadow-sm cursor-pointer"

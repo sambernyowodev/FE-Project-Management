@@ -72,11 +72,11 @@ export function SOListPage() {
       ),
     },
     {
-      id: 'project.name',
+      id: 'project.project.name',
       header: 'Project',
-      accessorKey: 'project.name',
+      accessorKey: 'project.project.name',
       cell: ({ row }) => (
-        <span className="text-secondary">{row.original.project?.name || '-'}</span>
+        <span className="text-secondary">{row.original.project?.project?.name || '-'}</span>
       ),
     },
     {

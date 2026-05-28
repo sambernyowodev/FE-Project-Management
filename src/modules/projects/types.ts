@@ -1,6 +1,12 @@
 import type { Schema, Entity } from '@/shared/lib/api-helpers';
 
-export type Project = Entity<'ProjectResponseDto'>;
+export type Project = Omit<Entity<'ProjectResponseDto'>, 'projectType'> & {
+  name: string;
+  description?: string;
+  platform?: string;
+  projectCode: string;
+  type: 'New' | 'Support';
+};
 export type ProjectMember = Entity<'ProjectMemberResponseDto'>;
 export type ProjectActivity = Entity<'ProjectActivityResponseDto'>;
 
@@ -9,4 +15,3 @@ export type UpdateProject = Partial<CreateProject> & { status?: string, timeline
 
 export type CreateProjectActivity = Schema<'CreateProjectActivityDto'>;
 export type UpdateProjectActivity = Partial<CreateProjectActivity>;
-

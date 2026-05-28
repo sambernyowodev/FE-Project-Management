@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { useGetRoleRates } from '@/modules/role-rates/hooks/useRoleRates';
+import { useNavigate } from 'react-router-dom';
+import { Edit } from 'lucide-react';
+import { useGetRoleRates } from '@/modules/master/role-rates/hooks/useRoleRates';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
-import type { RoleRate } from '@/modules/role-rates/types';
+import type { RoleRate } from '@/modules/master/role-rates/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
 
 export function RoleRateListPage() {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<string | undefined>(undefined);
@@ -59,11 +62,11 @@ export function RoleRateListPage() {
       ),
     },
     {
-      id: 'project.name',
+      id: 'project.project.name',
       header: 'Project',
-      accessorKey: 'project.name',
+      accessorKey: 'project.project.name',
       cell: ({ row }) => (
-        <span className="text-secondary">{row.original.project?.name || <span className="text-primary font-semibold">Global</span>}</span>
+        <span className="text-secondary">{row.original.project?.project?.name || <span className="text-primary font-semibold">Global</span>}</span>
       ),
     },
     {
@@ -116,13 +119,32 @@ export function RoleRateListPage() {
         </span>
       ),
     },
+    {
+      id: 'actions',
+      header: 'Actions',
+      meta: { className: 'text-right w-24' },
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex justify-end gap-1 items-center">
+          <button
+            onClick={() => navigate(`/master/role-rates/${row.original.id}`)}
+            className="p-1.5 hover:bg-surface-container-high rounded-lg text-primary transition-all cursor-pointer"
+            title="Edit Role Rate"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-3xl font-bold text-on-background mb-1">Role Rates</h1>
-        <p className="text-secondary text-sm">Configure global and project-specific rates.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-on-background mb-1">Role Rates</h1>
+          <p className="text-secondary text-sm">Configure global and project-specific rates.</p>
+        </div>
       </div>
 
       <DataTable
@@ -130,6 +152,8 @@ export function RoleRateListPage() {
         columns={columns}
         isLoading={isLoading}
         searchPlaceholder="Search role rates..."
+        onAdd={() => navigate('/master/role-rates/new')}
+        addLabel="New Role Rate"
         totalItems={totalItems}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
