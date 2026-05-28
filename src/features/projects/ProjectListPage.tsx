@@ -6,7 +6,8 @@ import { useDeleteProject, useGetProjects } from '@/modules/projects/hooks/usePr
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { Project } from '@/modules/projects/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
-import { ProjectStatus } from '@/shared/constants/enums';
+import { ProjectStatus, ProjectType } from '@/shared/constants/enums';
+
 
 export function ProjectListPage() {
   const navigate = useNavigate();
@@ -73,6 +74,29 @@ export function ProjectListPage() {
       cell: ({ row }) => (
         <span className="font-semibold text-on-background">{row.original.name}</span>
       ),
+    },
+    {
+      id: 'type',
+      header: 'Type',
+      accessorKey: 'type',
+      meta: {
+        filterOptions: [
+          { label: 'New', value: ProjectType.NEW },
+          { label: 'Support', value: ProjectType.SUPPORT },
+        ],
+      },
+      cell: ({ row }) => {
+        const type = row.original.type || ProjectType.NEW;
+        const isSupport = type === ProjectType.SUPPORT;
+        return (
+          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border inline-flex items-center justify-center uppercase ${isSupport
+              ? 'bg-amber-100 text-amber-700 border-amber-200'
+              : 'bg-blue-100 text-blue-700 border-blue-200'
+            }`}>
+            {type}
+          </span>
+        );
+      },
     },
     {
       id: 'customer',

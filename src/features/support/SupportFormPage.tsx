@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Ticket, Layers, Clock } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Ticket, Layers, Clock, User } from 'lucide-react';
 import { 
   useGetSupportTicket, 
   useCreateSupportTicket, 
   useUpdateSupportTicket,
   useDeleteSupportTicket
 } from '@/modules/support/hooks/useSupportTickets';
-import { useGetProjects } from '@/modules/projects/hooks/useProjects';
+import { useGetProjects, useGetProjectMembers } from '@/modules/projects/hooks/useProjects';
+import { useGetUsers } from '@/modules/users/hooks/useUsers';
 import { SupportTicketStatus } from '@/shared/constants/enums';
+
 
 const STATUS_OPTIONS = Object.values(SupportTicketStatus);
 
@@ -28,13 +30,30 @@ export function SupportFormPage() {
   const [formData, setFormData] = useState({
     projectName: '',
     projectId: '',
+    newProjectName: '',
     issueTitle: '',
     issueDescription: '',
     picClient: '',
     hoursSpent: '0',
     status: SupportTicketStatus.OPEN as string,
-    notes: ''
+    notes: '',
+    businessAnalystId: '',
+    uiUxId: '',
+    devFeId: '',
+    devBeId: '',
   });
+
+  const selectedProjectId = Number(formData.projectId) || 0;
+  const { data: membersRes } = useGetProjectMembers(selectedProjectId);
+  const members = membersRes || [];
+
+  const { data: usersRes } = useGetUsers({ perPage: 100 });
+  const allUsers = usersRes?.data || [];
+
+  const assigneesOptions = formData.projectId === 'new'
+    ? allUsers.map((u: any) => ({ id: u.id, name: u.fullName }))
+    : members.map((m: any) => ({ id: m.user?.id || m.userId, name: m.user?.fullName || 'Unknown' }));
+
 
   const [error, setError] = useState('');
 
@@ -43,37 +62,46 @@ export function SupportFormPage() {
       setFormData({
         projectName: ticket.projectName || '',
         projectId: ticket.projectId ? String(ticket.projectId) : '',
+        newProjectName: '',
         issueTitle: ticket.issueTitle || '',
         issueDescription: ticket.issueDescription || '',
         picClient: ticket.picClient || '',
         hoursSpent: String(ticket.hoursSpent || 0),
         status: ticket.status || SupportTicketStatus.OPEN,
-        notes: ticket.notes || ''
+        notes: ticket.notes || '',
+        businessAnalystId: ticket.businessAnalystId ? String(ticket.businessAnalystId) : '',
+        uiUxId: ticket.uiUxId ? String(ticket.uiUxId) : '',
+        devFeId: ticket.devFeId ? String(ticket.devFeId) : '',
+        devBeId: ticket.devBeId ? String(ticket.devBeId) : '',
       });
     }
   }, [ticket, isEditing]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-
-    // If project dropdown is changed, update projectName automatically
-    if (name === 'projectId') {
-      const selectedProj = projects.find(p => p.id === Number(value));
-      if (selectedProj) {
-        setFormData(prev => ({ 
-          ...prev, 
-          projectId: value, 
-          projectName: selectedProj.name 
-        }));
-      } else {
-        setFormData(prev => ({ 
-          ...prev, 
-          projectId: '', 
-          projectName: '' 
-        }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+      
+      if (name === 'projectId') {
+        if (value === 'new') {
+          next.projectId = 'new';
+          next.projectName = prev.newProjectName || '';
+        } else {
+          const selectedProj = projects.find(p => p.id === Number(value));
+          if (selectedProj) {
+            next.projectId = value;
+            next.projectName = selectedProj.name;
+          } else {
+            next.projectId = '';
+            next.projectName = '';
+          }
+        }
+      } else if (name === 'newProjectName' && prev.projectId === 'new') {
+        next.projectName = value;
       }
-    }
+      
+      return next;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -85,12 +113,25 @@ export function SupportFormPage() {
       return;
     }
 
+    if (formData.projectId === 'new' && !formData.newProjectName.trim()) {
+      setError('Silakan isi nama project support baru');
+      return;
+    }
+
+    const payload: any = {
+      projectName: formData.projectId === 'new' ? formData.newProjectName : formData.projectName,
+      projectId: formData.projectId && formData.projectId !== 'new' ? Number(formData.projectId) : undefined,
+      issueTitle: formData.issueTitle,
+      issueDescription: formData.issueDescription || undefined,
+      businessAnalystId: formData.businessAnalystId ? Number(formData.businessAnalystId) : undefined,
+      uiUxId: formData.uiUxId ? Number(formData.uiUxId) : undefined,
+      devFeId: formData.devFeId ? Number(formData.devFeId) : undefined,
+      devBeId: formData.devBeId ? Number(formData.devBeId) : undefined,
+    };
+
     if (isEditing) {
-      const payload = {
-        projectName: formData.projectName,
-        projectId: formData.projectId ? Number(formData.projectId) : undefined,
-        issueTitle: formData.issueTitle,
-        issueDescription: formData.issueDescription || undefined,
+      const updatePayload = {
+        ...payload,
         picClient: formData.picClient || undefined,
         hoursSpent: formData.hoursSpent ? Number(formData.hoursSpent) : 0,
         status: formData.status,
@@ -98,7 +139,7 @@ export function SupportFormPage() {
       };
 
       updateMutation.mutate(
-        { id: Number(id), data: payload },
+        { id: Number(id), data: updatePayload },
         {
           onSuccess: () => {
             navigate('/support');
@@ -109,13 +150,6 @@ export function SupportFormPage() {
         }
       );
     } else {
-      const payload = {
-        projectName: formData.projectName,
-        projectId: formData.projectId ? Number(formData.projectId) : undefined,
-        issueTitle: formData.issueTitle,
-        issueDescription: formData.issueDescription || undefined
-      };
-
       createMutation.mutate(payload, {
         onSuccess: () => {
           navigate('/support');
@@ -210,8 +244,25 @@ export function SupportFormPage() {
                   {projects.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
+                  <option value="new">+ Tambah Project Baru (Support)</option>
                 </select>
               </div>
+
+              {formData.projectId === 'new' && (
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="newProjectName" className="text-sm font-semibold text-on-background">Nama Project Support Baru *</label>
+                  <input
+                    id="newProjectName"
+                    name="newProjectName"
+                    type="text"
+                    required
+                    value={formData.newProjectName}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    placeholder="e.g. Project Support A"
+                  />
+                </div>
+              )}
 
               {/* Issue Title */}
               <div className="flex flex-col gap-2">
@@ -240,6 +291,83 @@ export function SupportFormPage() {
                   className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background resize-y"
                   placeholder="Jelaskan langkah-langkah reproduksi error atau detail lainnya..."
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Assignee Card */}
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
+            <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
+              <User className="w-5 h-5 text-primary" />
+              <span>Assign Project Members</span>
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Business Analyst */}
+              <div className="flex flex-col gap-2">
+                <label htmlFor="businessAnalystId" className="text-sm font-semibold text-on-background">Business Analyst</label>
+                <select
+                  id="businessAnalystId"
+                  name="businessAnalystId"
+                  value={formData.businessAnalystId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                >
+                  <option value="">-- Pilih BA --</option>
+                  {assigneesOptions.map((opt: any) => (
+                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* UI/UX */}
+              <div className="flex flex-col gap-2">
+                <label htmlFor="uiUxId" className="text-sm font-semibold text-on-background">UI/UX Designer</label>
+                <select
+                  id="uiUxId"
+                  name="uiUxId"
+                  value={formData.uiUxId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                >
+                  <option value="">-- Pilih UI/UX --</option>
+                  {assigneesOptions.map((opt: any) => (
+                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Developer FE */}
+              <div className="flex flex-col gap-2">
+                <label htmlFor="devFeId" className="text-sm font-semibold text-on-background">Developer FE</label>
+                <select
+                  id="devFeId"
+                  name="devFeId"
+                  value={formData.devFeId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                >
+                  <option value="">-- Pilih Dev FE --</option>
+                  {assigneesOptions.map((opt: any) => (
+                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Developer BE */}
+              <div className="flex flex-col gap-2">
+                <label htmlFor="devBeId" className="text-sm font-semibold text-on-background">Developer BE</label>
+                <select
+                  id="devBeId"
+                  name="devBeId"
+                  value={formData.devBeId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                >
+                  <option value="">-- Pilih Dev BE --</option>
+                  {assigneesOptions.map((opt: any) => (
+                    <option key={opt.id} value={opt.id}>{opt.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

@@ -675,6 +675,8 @@ export interface components {
             timelineLink?: string;
             timelineRemark?: string;
             remarks?: string;
+            /** @enum {string} */
+            type: "New" | "Support";
             isActive: boolean;
             /** Format: date-time */
             createdAt?: string;
@@ -724,6 +726,8 @@ export interface components {
             endDate?: string;
             totalMandays?: number;
             picInternal?: string;
+            /** @enum {string} */
+            type?: "New" | "Support";
         };
         UpdateProjectDto: {
             name?: string;
@@ -735,6 +739,8 @@ export interface components {
             endDate?: string;
             totalMandays?: number;
             picInternal?: string;
+            /** @enum {string} */
+            type?: "New" | "Support";
             /** @enum {string} */
             status?: "PLANNING" | "IN PROGRESS" | "SIT" | "UAT" | "CLOSED" | "ON HOLD" | "CANCELLED" | "FUT";
             timelineRemark?: string;
@@ -994,6 +1000,10 @@ export interface components {
             projectId?: number;
             issueTitle: string;
             issueDescription?: string;
+            businessAnalystId?: number;
+            uiUxId?: number;
+            devFeId?: number;
+            devBeId?: number;
         };
         SupportTicketDetailResponseDto: {
             id: number;
@@ -1030,6 +1040,10 @@ export interface components {
             mandaysSpent?: number;
             status?: string;
             notes?: string;
+            businessAnalystId?: number;
+            uiUxId?: number;
+            devFeId?: number;
+            devBeId?: number;
         };
         GenerateInvoiceDto: {
             poId: number;
