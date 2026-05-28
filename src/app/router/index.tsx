@@ -21,6 +21,8 @@ import { RoleListPage } from '@/features/master/roles/RoleListPage';
 import { RoleFormPage } from '@/features/master/roles/RoleFormPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
+import { ProfilePage } from '@/features/auth/ProfilePage';
+
 
 export const router = createBrowserRouter([
   {
@@ -131,6 +133,10 @@ export const router = createBrowserRouter([
       {
         path: 'reports',
         element: <ReportsPage />
+      },
+      {
+        path: 'profile',
+        element: <ProfilePage />
       }
     ]
   },

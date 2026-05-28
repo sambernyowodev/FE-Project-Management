@@ -288,7 +288,7 @@ export function ProjectFormPage() {
                       >
                         <span className={selectedMasterId ? 'text-on-background' : 'text-secondary'}>
                           {selectedMasterId === 'new'
-                            ? ' Pilih Project '
+                            ? ' + Tambah Project Baru '
                             : masterProjects.find(mp => String(mp.id) === selectedMasterId)
                               ? `${masterProjects.find(mp => String(mp.id) === selectedMasterId)?.name} (${masterProjects.find(mp => String(mp.id) === selectedMasterId)?.projectCode})`
                               : '-- Pilih Master Project --'}
@@ -314,8 +314,9 @@ export function ProjectFormPage() {
                                 setIsMasterDropdownOpen(false);
                                 setMasterSearchQuery('');
                               }}
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-surface-container-low text-primary font-bold rounded transition-colors cursor-pointer"
+                              className={`w-full px-3 py-2 text-left text-sm hover:bg-surface-container-low text-primary font-bold rounded transition-colors cursor-pointer ${selectedMasterId === 'new' ? 'bg-surface-container-high' : ''}`}
                             >
+                              + Tambah Project Baru
                             </button>
 
                             {filteredMasterProjects.length > 0 ? (

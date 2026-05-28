@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '../api/auth.api';
+
 
 export function useLogin() {
   const [email, setEmail] = useState('');
@@ -109,3 +110,28 @@ export function useRegister() {
     handleSubmit
   };
 }
+
+export function useProfile() {
+  const token = localStorage.getItem('token');
+  return useQuery({
+    queryKey: ['auth', 'profile'],
+    queryFn: authApi.getProfile,
+    enabled: !!token,
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+export function useLogout() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    queryClient.clear();
+    navigate('/login');
+  };
+
+  return { logout };
+}
+

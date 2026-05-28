@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, Ticket, Layers, Clock, User } from 'lucide-react';
 import {
@@ -22,6 +22,57 @@ export function SupportFormPage() {
   const { data: ticket, isLoading: isTicketLoading } = useGetSupportTicket(Number(id));
   const { data: projectsRes } = useGetProjects();
   const projects = projectsRes?.data || [];
+
+  const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
+  const [projectSearchQuery, setProjectSearchQuery] = useState('');
+  const projectContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (projectContainerRef.current && !projectContainerRef.current.contains(event.target as Node)) {
+        setIsProjectDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleProjectSelect = (value: string) => {
+    setFormData(prev => {
+      const next = { ...prev };
+
+      // Clear previous assignees when switching projects so new project defaults can be loaded
+      next.businessAnalystId = '';
+      next.uiUxId = '';
+      next.devFeId = '';
+      next.devBeId = '';
+
+      if (value === 'new') {
+        next.projectId = 'new';
+        next.projectName = prev.newProjectName || '';
+      } else if (value) {
+        const selectedProj = projects.find(p => p.id === Number(value));
+        if (selectedProj) {
+          next.projectId = value;
+          next.projectName = selectedProj.name;
+        } else {
+          next.projectId = '';
+          next.projectName = '';
+        }
+      } else {
+        next.projectId = '';
+        next.projectName = '';
+      }
+
+      return next;
+    });
+  };
+
+  const filteredProjects = projects.filter(p =>
+    p.name.toLowerCase().includes(projectSearchQuery.toLowerCase())
+  );
 
   const createMutation = useCreateSupportTicket();
   const updateMutation = useUpdateSupportTicket();
@@ -257,22 +308,73 @@ export function SupportFormPage() {
 
             <div className="flex flex-col gap-5">
               {/* Project Selection */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="projectId" className="text-sm font-semibold text-on-background">Project Terkait *</label>
-                <select
-                  id="projectId"
-                  name="projectId"
-                  required
-                  value={formData.projectId}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                >
-                  <option value="">-- Pilih Project --</option>
-                  {projects.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                  <option value="new">+ Tambah Project Baru (Support)</option>
-                </select>
+              <div className="flex flex-col gap-2" ref={projectContainerRef}>
+                <label className="text-sm font-semibold text-on-background">Project Terkait *</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsProjectDropdownOpen(!isProjectDropdownOpen)}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background font-semibold text-left flex justify-between items-center cursor-pointer"
+                  >
+                    <span className={formData.projectId ? 'text-on-background' : 'text-secondary'}>
+                      {formData.projectId === 'new'
+                        ? '+ Tambah Project Baru (Support)'
+                        : projects.find(p => String(p.id) === formData.projectId)
+                          ? projects.find(p => String(p.id) === formData.projectId)?.name
+                          : '-- Pilih Project --'}
+                    </span>
+                    <span className="text-secondary text-xs">▼</span>
+                  </button>
+
+                  {isProjectDropdownOpen && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-lg flex flex-col p-2 gap-2 max-h-80">
+                      <input
+                        type="text"
+                        placeholder="Cari Project..."
+                        value={projectSearchQuery}
+                        onChange={e => setProjectSearchQuery(e.target.value)}
+                        className="w-full px-3 py-1.5 border border-outline-variant rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-background"
+                        autoFocus
+                      />
+                      <div className="overflow-y-auto flex flex-col max-h-48 gap-1">
+                        {filteredProjects.length > 0 ? (
+                          filteredProjects.map(p => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                handleProjectSelect(String(p.id));
+                                setIsProjectDropdownOpen(false);
+                                setProjectSearchQuery('');
+                              }}
+                              className={`w-full px-3 py-2 text-left text-sm hover:bg-surface-container-low rounded transition-colors cursor-pointer ${formData.projectId === String(p.id) ? 'bg-surface-container-high font-bold' : ''}`}
+                            >
+                              {p.name}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-xs text-secondary text-center">
+                            Tidak ditemukan project
+                          </div>
+                        )}
+
+                        <div className="border-t border-outline-variant/60 my-1"></div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleProjectSelect('new');
+                            setIsProjectDropdownOpen(false);
+                            setProjectSearchQuery('');
+                          }}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-surface-container-low text-primary font-bold rounded transition-colors cursor-pointer ${formData.projectId === 'new' ? 'bg-surface-container-high' : ''}`}
+                        >
+                          + Tambah Project Baru (Support)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {formData.projectId === 'new' && (

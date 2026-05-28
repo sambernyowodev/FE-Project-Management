@@ -1,8 +1,22 @@
-import { Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 
 export function Layout() {
+  const navigate = useNavigate();
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/login');
+    }
+  }, [token, navigate]);
+
+  if (!token) {
+    return null;
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
@@ -17,3 +31,4 @@ export function Layout() {
     </div>
   );
 }
+

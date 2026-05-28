@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,9 +13,14 @@ import {
   ChevronRight,
   Database,
   Coins,
-  Shield
+  Shield,
+  ChevronUp,
+  User,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { useProfile, useLogout } from '@/modules/auth/hooks/useAuth';
+
 
 const mainNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -43,6 +48,35 @@ export function Sidebar() {
       setIsMasterOpen(true);
     }
   }, [isMasterRouteActive]);
+
+  const { data: profileRes } = useProfile();
+  const profile = profileRes?.data;
+  const { logout } = useLogout();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
+  };
+
 
   return (
     <nav className="hidden md:flex flex-col fixed left-0 top-0 h-full w-64 bg-surface-container border-r border-outline-variant py-6 px-4 gap-2 z-40 transition-all duration-200 ease-in-out select-none">
@@ -146,23 +180,71 @@ export function Sidebar() {
         ))}
       </div>
 
-      {/* Settings Bottom (Left fallback/future options) */}
-      <div className="mt-auto pt-4 border-t border-outline-variant">
-        <NavLink
-          to="/master/role-rates"
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ease-in-out",
-              isActive
-                ? "bg-primary-container text-on-primary-container"
-                : "text-secondary hover:bg-surface-container-high"
-            )
-          }
-        >
-          <Settings className="w-5 h-5" />
-          <span>Configuration</span>
-        </NavLink>
+      {/* Settings & Profile Bottom */}
+      <div className="mt-auto pt-4 border-t border-outline-variant flex flex-col gap-2 relative" ref={dropdownRef}>
+        {/* Profile Card & Dropdown */}
+        {profile && (
+          <div className="relative">
+            {/* Popover/Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className="absolute bottom-full mb-2 left-0 w-full bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl p-1.5 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                <NavLink
+                  to="/profile"
+                  onClick={() => setIsDropdownOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-secondary hover:bg-surface-container-high hover:text-on-background transition-colors"
+                >
+                  <User className="w-4 h-4 text-primary" />
+                  <span>Profil Saya</span>
+                </NavLink>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDropdownOpen(false);
+                    logout();
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-error hover:bg-error/10 hover:text-error transition-colors cursor-pointer text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            )}
+
+            {/* Profile Row Trigger */}
+            <div
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className={cn(
+                "flex items-center justify-between p-2 rounded-xl hover:bg-surface-container-high cursor-pointer transition-all duration-200 border border-transparent select-none",
+                isDropdownOpen && "bg-surface-container-high border-outline-variant/30"
+              )}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.fullName}
+                    className="w-8 h-8 rounded-full object-cover border border-outline-variant"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-primary-container text-on-primary flex items-center justify-center shrink-0 font-bold text-xs uppercase">
+                    {getInitials(profile.fullName)}
+                  </div>
+                )}
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-bold text-on-background truncate leading-tight">
+                    {profile.fullName}
+                  </span>
+                  <span className="text-[11px] text-secondary truncate">
+                    {profile.email}
+                  </span>
+                </div>
+              </div>
+              <ChevronUp className={cn("w-4 h-4 text-secondary shrink-0 transition-transform duration-200", isDropdownOpen && "rotate-180")} />
+            </div>
+          </div>
+        )}
       </div>
     </nav>
+
   );
 }
