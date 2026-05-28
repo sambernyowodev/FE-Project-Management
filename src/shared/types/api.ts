@@ -87,8 +87,7 @@ export interface paths {
         };
         /** Get all role rates */
         get: operations["RoleRatesController_findAll"];
-        /** Update role rate */
-        put: operations["RoleRatesController_update"];
+        put?: never;
         /** Create a new role rate */
         post: operations["RoleRatesController_create"];
         delete?: never;
@@ -124,6 +123,24 @@ export interface paths {
         /** Get role rates specific to a project */
         get: operations["RoleRatesController_getProjectRates"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/role-rates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get role rate by id */
+        get: operations["RoleRatesController_findOne"];
+        /** Update role rate */
+        put: operations["RoleRatesController_update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -218,6 +235,23 @@ export interface paths {
         /** Add member to project */
         post: operations["ProjectsController_addMember"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/projects/{id}/members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove member from project */
+        delete: operations["ProjectsController_removeMember"];
         options?: never;
         head?: never;
         patch?: never;
@@ -716,8 +750,6 @@ export interface components {
             picClient?: string;
             picInternal?: string;
             customer?: string;
-            /** @enum {string} */
-            projectType: "New" | "Support";
             parentProjectId?: number;
             /** Format: date-time */
             startDate: string;
@@ -787,8 +819,6 @@ export interface components {
             picClient?: string;
             customer?: string;
             picInternal?: string;
-            /** @enum {string} */
-            projectType?: "New" | "Support";
             /** @description Parent project ID (self-ref for support projects) */
             parentProjectId?: number;
             startDate?: string;
@@ -801,8 +831,6 @@ export interface components {
             picClient?: string;
             customer?: string;
             picInternal?: string;
-            /** @enum {string} */
-            projectType?: "New" | "Support";
             /** @description Parent project ID (self-ref for support projects) */
             parentProjectId?: number;
             startDate?: string;
@@ -827,7 +855,6 @@ export interface components {
             projectId: number;
             userId: number;
             roleId: number;
-            secondaryRoleId?: number;
             /** Format: date-time */
             startDate: string;
             /** Format: date-time */
@@ -835,12 +862,10 @@ export interface components {
             isActive: boolean;
             user?: components["schemas"]["UserResponseDto"];
             role?: components["schemas"]["RoleResponseDto"];
-            secondaryRole?: components["schemas"]["RoleResponseDto"];
         };
         AddProjectMemberDto: {
             userId: number;
             roleId: number;
-            secondaryRoleId?: number;
             assignedMandays?: number;
         };
         ProjectActivityResponseDto: {
@@ -1463,29 +1488,6 @@ export interface operations {
             };
         };
     };
-    RoleRatesController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["RoleRateResponseDto"];
-                    };
-                };
-            };
-        };
-    };
     RoleRatesController_create: {
         parameters: {
             query?: never;
@@ -1550,6 +1552,52 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
                         data?: components["schemas"]["RoleRateResponseDto"][];
+                    };
+                };
+            };
+        };
+    };
+    RoleRatesController_findOne: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["RoleRateResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    RoleRatesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["RoleRateResponseDto"];
                     };
                 };
             };
@@ -1856,6 +1904,26 @@ export interface operations {
                         data?: components["schemas"]["ProjectMemberResponseDto"];
                     };
                 };
+            };
+        };
+    };
+    ProjectsController_removeMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -14,6 +14,7 @@ import { GanttChart } from './components/GanttChart';
 import { TaskTable } from './components/TaskTable';
 import { ResourcePanel } from './components/ResourcePanel';
 import { ActivityFormModal } from './components/ActivityFormModal';
+import { ManageMembersModal } from './components/ManageMembersModal';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import { ProjectStatus } from '@/shared/constants/enums';
 import {
@@ -66,6 +67,9 @@ export function ProjectTimelinePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ProjectActivity | null>(null);
   const [subActivityParentId, setSubActivityParentId] = useState<number | null>(null);
+  
+  // 6. Manage Team Modal State
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
   const handleOpenCreateModal = () => {
     setEditingActivity(null);
@@ -364,6 +368,7 @@ export function ProjectTimelinePage() {
                 <ResourcePanel
                   members={members}
                   activities={activities}
+                  onManageTeam={() => setIsManageModalOpen(true)}
                 />
               )}
             </div>
@@ -378,6 +383,14 @@ export function ProjectTimelinePage() {
             parentId={subActivityParentId}
             members={members}
             activities={activities}
+          />
+
+          {/* Modal for Managing Team Members */}
+          <ManageMembersModal
+            isOpen={isManageModalOpen}
+            onClose={() => setIsManageModalOpen(false)}
+            projectId={project.id}
+            members={members}
           />
         </>
       ) : (

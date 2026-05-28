@@ -27,7 +27,7 @@ const mainNavigation = [
 
 const masterNavigation = [
   { name: 'Members', href: '/master/members', icon: Users },
-  { name: 'Master Projects', href: '/master/projects', icon: FolderKanban },
+  { name: 'Projects', href: '/master/projects', icon: FolderKanban },
   { name: 'Roles', href: '/master/roles', icon: Shield },
   { name: 'Role Rates', href: '/master/role-rates', icon: Coins },
 ];

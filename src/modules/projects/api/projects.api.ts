@@ -9,7 +9,6 @@ const mapProject = (p: any): Project => ({
   description: p.project?.description || '',
   platform: p.project?.platform || '',
   projectCode: p.project?.projectCode || `PRJ-${p.id}`,
-  type: p.projectType,
 });
 
 export const projectsApi = {
@@ -48,5 +47,9 @@ export const projectsApi = {
   addProjectMember: async (projectId: number, data: components['schemas']['AddProjectMemberDto']): Promise<ProjectMember> => {
     const response = await apiClient.post<{ data: ProjectMember }>(`/projects/${projectId}/members`, data);
     return response.data.data;
+  },
+
+  removeProjectMember: async (projectId: number, memberId: number): Promise<void> => {
+    await apiClient.delete(`/projects/${projectId}/members/${memberId}`);
   }
 };

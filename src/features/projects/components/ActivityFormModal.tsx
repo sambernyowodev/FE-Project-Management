@@ -349,7 +349,7 @@ export function ActivityFormModal({
               >
                 <option value="">-- Belum Ditugaskan --</option>
                 {Array.from(new Map(members.map(m => [m.userId, m])).values()).map(member => {
-                  const roleName = member.role?.roleName || member.secondaryRole?.roleName || 'Resource';
+                  const roleName = member.role?.name || 'Resource';
                   const userName = member.user?.fullName || member.user?.name || `User ID: ${member.userId}`;
                   return (
                     <option key={member.userId} value={member.userId}>

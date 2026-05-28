@@ -64,3 +64,13 @@ export const useAddProjectMember = (projectId: number) => {
     },
   });
 };
+
+export const useRemoveProjectMember = (projectId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (memberId: number) => projectsApi.removeProjectMember(projectId, memberId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
+    },
+  });
+};

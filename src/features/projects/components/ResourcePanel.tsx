@@ -1,9 +1,10 @@
-import { Users, AlertCircle, CheckCircle2, UserCheck } from 'lucide-react';
+import { Users, AlertCircle, CheckCircle2, UserCheck, Settings } from 'lucide-react';
 import type { ProjectMember, ProjectActivity } from '@/modules/projects/types';
 
 interface ResourcePanelProps {
   members: ProjectMember[];
   activities: ProjectActivity[];
+  onManageTeam?: () => void;
 }
 
 const ROLE_MAPPINGS: Record<string, { label: string; color: string }> = {
@@ -17,7 +18,7 @@ const ROLE_MAPPINGS: Record<string, { label: string; color: string }> = {
   QC: { label: 'Quality Control', color: 'bg-pink-100 text-pink-700 border-pink-200' }
 };
 
-export function ResourcePanel({ members = [], activities = [] }: ResourcePanelProps) {
+export function ResourcePanel({ members = [], activities = [], onManageTeam }: ResourcePanelProps) {
   // Count tasks per user ID
   const taskCounts: Record<number, number> = {};
   activities.forEach(act => {
@@ -26,7 +27,7 @@ export function ResourcePanel({ members = [], activities = [] }: ResourcePanelPr
     }
   });
 
-  // Group members by role code (using role.code or secondaryRole.code)
+  // Group members by role code (using role.code)
   const groupedMembers: Record<string, ProjectMember[]> = {
     PM: [],
     TL: [],
@@ -79,9 +80,20 @@ export function ResourcePanel({ members = [], activities = [] }: ResourcePanelPr
           <Users className="w-5 h-5 text-primary" />
           <h3 className="font-bold text-on-background">Resource Allocation</h3>
         </div>
-        <span className="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-bold">
-          {totalResources} Orang
-        </span>
+        <div className="flex items-center gap-2">
+          {onManageTeam && (
+            <button
+              onClick={onManageTeam}
+              className="p-1 hover:bg-surface-container-high rounded-lg text-primary hover:text-primary/80 transition-colors cursor-pointer"
+              title="Kelola Team Member"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
+          <span className="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-bold">
+            {totalResources} Orang
+          </span>
+        </div>
       </div>
 
       {/* Allocation Summary cards */}
@@ -177,7 +189,7 @@ export function ResourcePanel({ members = [], activities = [] }: ResourcePanelPr
               {otherMembers.map(member => {
                 const tasks = taskCounts[member.userId] || 0;
                 const userName = member.user?.fullName || `User ID: ${member.userId}`;
-                const roleName = member.role?.name || member.secondaryRole?.name || 'Resource';
+                const roleName = member.role?.name || 'Resource';
                 
                 return (
                   <div key={member.id} className="flex items-center justify-between p-2 rounded-lg bg-surface hover:bg-surface-container-low/50 border border-outline-variant/60 transition-colors">

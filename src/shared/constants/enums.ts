@@ -73,8 +73,3 @@ export const InvoiceStatus = {
     OVERDUE: 'OVERDUE',
     CANCELLED: 'CANCELLED',
 } as const;
-
-export const ProjectType = {
-    NEW: 'New',
-    SUPPORT: 'Support',
-} as const;

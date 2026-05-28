@@ -83,10 +83,10 @@ export function SupportFormPage() {
 
   useEffect(() => {
     if (membersRes && membersRes.length > 0) {
-      const ba = membersRes.find((m: any) => m.role?.code === 'BA' || m.secondaryRole?.code === 'BA');
-      const uiux = membersRes.find((m: any) => m.role?.code === 'UIUX' || m.secondaryRole?.code === 'UIUX');
-      const devfe = membersRes.find((m: any) => m.role?.code === 'DEV_FE' || m.secondaryRole?.code === 'DEV_FE');
-      const devbe = membersRes.find((m: any) => m.role?.code === 'DEV_BE' || m.secondaryRole?.code === 'DEV_BE');
+      const ba = membersRes.find((m: any) => m.role?.code === 'BA');
+      const uiux = membersRes.find((m: any) => m.role?.code === 'UIUX');
+      const devfe = membersRes.find((m: any) => m.role?.code === 'DEV_FE');
+      const devbe = membersRes.find((m: any) => m.role?.code === 'DEV_BE');
 
       setFormData(prev => ({
         ...prev,

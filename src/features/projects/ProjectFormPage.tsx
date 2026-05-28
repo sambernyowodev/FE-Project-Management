@@ -7,8 +7,9 @@ import {
   useUpdateProject,
   useDeleteProject
 } from '@/modules/projects/hooks/useProjects';
+import { useGetMasterProjects, useCreateMasterProject } from '@/modules/master/projects/hooks/useMasterProjects';
 import { useGetUsers } from '@/modules/master/users/hooks/useUsers';
-import { ProjectStatus, ProjectType } from '@/shared/constants/enums';
+import { ProjectStatus } from '@/shared/constants/enums';
 
 
 const STATUS_OPTIONS = Object.values(ProjectStatus);
@@ -19,12 +20,20 @@ export function ProjectFormPage() {
   const isEditing = Boolean(id);
 
   const { data: project, isLoading: isProjectLoading } = useGetProject(Number(id));
+  const { data: masterProjectsRes } = useGetMasterProjects({ perPage: 100 });
+  const masterProjects = masterProjectsRes?.data || [];
+
   const createMutation = useCreateProject();
   const updateMutation = useUpdateProject();
   const deleteMutation = useDeleteProject();
+  const createMasterMutation = useCreateMasterProject();
 
+  const [selectedMasterId, setSelectedMasterId] = useState<string>('');
   const [isPicDropdownOpen, setIsPicDropdownOpen] = useState(false);
   const picContainerRef = useRef<HTMLDivElement>(null);
+  const [isMasterDropdownOpen, setIsMasterDropdownOpen] = useState(false);
+  const [masterSearchQuery, setMasterSearchQuery] = useState('');
+  const masterContainerRef = useRef<HTMLDivElement>(null);
   const { data: usersRes } = useGetUsers({ perPage: 100 });
   const activeMembers = (usersRes?.data || []).filter((u: any) => u.isActive);
 
@@ -36,7 +45,6 @@ export function ProjectFormPage() {
     platform: '',
     customer: '',
     status: ProjectStatus.PLANNING as string,
-    type: ProjectType.NEW as string,
     timelineRemark: '',
     startDate: '',
     endDate: '',
@@ -59,7 +67,6 @@ export function ProjectFormPage() {
         platform: project.platform || '',
         customer: project.customer || '',
         status: project.status || ProjectStatus.PLANNING,
-        type: project.type || ProjectType.NEW,
         timelineRemark: project.timelineRemark || '',
         startDate: project.startDate ? project.startDate.split('T')[0] : '',
         endDate: project.endDate ? project.endDate.split('T')[0] : '',
@@ -71,6 +78,7 @@ export function ProjectFormPage() {
         timelineLink: project.timelineLink || '',
         remarks: project.remarks || ''
       });
+      setSelectedMasterId(project.projectId ? String(project.projectId) : '');
     }
   }, [project, isEditing]);
 
@@ -78,6 +86,9 @@ export function ProjectFormPage() {
     function handleClickOutside(event: MouseEvent) {
       if (picContainerRef.current && !picContainerRef.current.contains(event.target as Node)) {
         setIsPicDropdownOpen(false);
+      }
+      if (masterContainerRef.current && !masterContainerRef.current.contains(event.target as Node)) {
+        setIsMasterDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -95,34 +106,74 @@ export function ProjectFormPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleMasterSelection = (value: string) => {
+    setSelectedMasterId(value);
+
+    if (value === 'new') {
+      setFormData(prev => ({
+        ...prev,
+        name: '',
+        description: '',
+        platform: '',
+      }));
+    } else if (value) {
+      const selectedMaster = masterProjects.find(mp => String(mp.id) === value);
+      if (selectedMaster) {
+        setFormData(prev => ({
+          ...prev,
+          name: selectedMaster.name,
+          description: selectedMaster.description || '',
+          platform: selectedMaster.platform || '',
+        }));
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        name: '',
+        description: '',
+        platform: '',
+      }));
+    }
+  };
+
+  const filteredMasterProjects = masterProjects.filter(mp =>
+    mp.name.toLowerCase().includes(masterSearchQuery.toLowerCase()) ||
+    (mp.projectCode && mp.projectCode.toLowerCase().includes(masterSearchQuery.toLowerCase()))
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const isSupport = formData.type === ProjectType.SUPPORT;
-    const dataToSend: any = {
-      name: formData.name,
-      description: formData.description || undefined,
-      picClient: formData.picClient || undefined,
-      picInternal: formData.picInternal || undefined,
-      platform: formData.platform || undefined,
-      customer: formData.customer || undefined,
-      startDate: isSupport ? undefined : (formData.startDate || undefined),
-      endDate: isSupport ? undefined : (formData.endDate || undefined),
-      totalMandays: isSupport ? undefined : (formData.totalMandays ? Number(formData.totalMandays) : undefined),
-      type: formData.type,
-    };
+    if (!selectedMasterId) {
+      alert('Silakan pilih Master Project terlebih dahulu');
+      return;
+    }
 
-    if (isEditing) {
-      if (isSupport) {
-        dataToSend.status = formData.status;
-        dataToSend.progressPct = 0;
-        dataToSend.timelineRemark = undefined;
-        dataToSend.repositoryLink = undefined;
-        dataToSend.timelineLink = undefined;
-        dataToSend.remarks = undefined;
-        dataToSend.actualStart = undefined;
-        dataToSend.actualEnd = undefined;
-      } else {
+    try {
+      let targetProjectId = Number(selectedMasterId);
+
+      // 1. If it's a new master project, create it first
+      if (selectedMasterId === 'new') {
+        const newMaster = await createMasterMutation.mutateAsync({
+          name: formData.name,
+          description: formData.description || undefined,
+          platform: formData.platform || undefined,
+        });
+        targetProjectId = newMaster.id;
+      }
+
+      const dataToSend: any = {
+        projectId: targetProjectId,
+        picClient: formData.picClient || undefined,
+        picInternal: formData.picInternal || undefined,
+        platform: formData.platform || undefined,
+        customer: formData.customer || undefined,
+        startDate: formData.startDate || undefined,
+        endDate: formData.endDate || undefined,
+        totalMandays: formData.totalMandays ? Number(formData.totalMandays) : undefined,
+      };
+
+      if (isEditing) {
         dataToSend.status = formData.status;
         dataToSend.timelineRemark = formData.timelineRemark || undefined;
         dataToSend.progressPct = formData.progressPct ? Number(formData.progressPct) : 0;
@@ -131,22 +182,24 @@ export function ProjectFormPage() {
         dataToSend.remarks = formData.remarks || undefined;
         dataToSend.actualStart = formData.actualStart || undefined;
         dataToSend.actualEnd = formData.actualEnd || undefined;
-      }
 
-      updateMutation.mutate(
-        { id: Number(id), data: dataToSend },
-        {
+        updateMutation.mutate(
+          { id: Number(id), data: dataToSend },
+          {
+            onSuccess: () => {
+              navigate('/projects');
+            }
+          }
+        );
+      } else {
+        createMutation.mutate(dataToSend, {
           onSuccess: () => {
             navigate('/projects');
           }
-        }
-      );
-    } else {
-      createMutation.mutate(dataToSend, {
-        onSuccess: () => {
-          navigate('/projects');
-        }
-      });
+        });
+      }
+    } catch (err: any) {
+      alert(err.message || 'Gagal menyimpan project');
     }
   };
 
@@ -204,9 +257,9 @@ export function ProjectFormPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <div className={formData.type === ProjectType.SUPPORT ? "flex flex-col gap-6 w-full" : "grid grid-cols-1 lg:grid-cols-3 gap-6"}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Info Card */}
-          <div className={formData.type === ProjectType.SUPPORT ? "flex flex-col gap-6 w-full" : "lg:col-span-2 flex flex-col gap-6"}>
+          <div className="lg:col-span-2 flex flex-col gap-6">
             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
               <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
                 <Layers className="w-5 h-5 text-primary" />
@@ -214,6 +267,84 @@ export function ProjectFormPage() {
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {isEditing ? (
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-on-background">Master Project</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={project ? `${project.name} (${project.projectCode})` : ''}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-surface-container-low disabled:opacity-80 font-semibold"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2" ref={masterContainerRef}>
+                    <label className="text-sm font-semibold text-on-background">Master Project *</label>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsMasterDropdownOpen(!isMasterDropdownOpen)}
+                        className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background font-semibold text-left flex justify-between items-center cursor-pointer"
+                      >
+                        <span className={selectedMasterId ? 'text-on-background' : 'text-secondary'}>
+                          {selectedMasterId === 'new'
+                            ? ' Pilih Project '
+                            : masterProjects.find(mp => String(mp.id) === selectedMasterId)
+                              ? `${masterProjects.find(mp => String(mp.id) === selectedMasterId)?.name} (${masterProjects.find(mp => String(mp.id) === selectedMasterId)?.projectCode})`
+                              : '-- Pilih Master Project --'}
+                        </span>
+                        <span className="text-secondary text-xs">▼</span>
+                      </button>
+
+                      {isMasterDropdownOpen && (
+                        <div className="absolute z-50 left-0 right-0 mt-1 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-lg flex flex-col p-2 gap-2 max-h-80">
+                          <input
+                            type="text"
+                            placeholder="Cari Master Project..."
+                            value={masterSearchQuery}
+                            onChange={e => setMasterSearchQuery(e.target.value)}
+                            className="w-full px-3 py-1.5 border border-outline-variant rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-background"
+                            autoFocus
+                          />
+                          <div className="overflow-y-auto flex flex-col max-h-48 gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleMasterSelection('new');
+                                setIsMasterDropdownOpen(false);
+                                setMasterSearchQuery('');
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-surface-container-low text-primary font-bold rounded transition-colors cursor-pointer"
+                            >
+                            </button>
+
+                            {filteredMasterProjects.length > 0 ? (
+                              filteredMasterProjects.map(mp => (
+                                <button
+                                  key={mp.id}
+                                  type="button"
+                                  onClick={() => {
+                                    handleMasterSelection(String(mp.id));
+                                    setIsMasterDropdownOpen(false);
+                                    setMasterSearchQuery('');
+                                  }}
+                                  className={`w-full px-3 py-2 text-left text-sm hover:bg-surface-container-low rounded transition-colors cursor-pointer ${selectedMasterId === String(mp.id) ? 'bg-surface-container-high font-bold' : ''}`}
+                                >
+                                  {mp.name} ({mp.projectCode})
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-3 py-2 text-xs text-secondary text-center">
+                                Tidak ditemukan master project
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-2">
                   <label htmlFor="name" className="text-sm font-semibold text-on-background">Project Name *</label>
                   <input
@@ -221,37 +352,22 @@ export function ProjectFormPage() {
                     name="name"
                     type="text"
                     required
+                    disabled={selectedMasterId !== 'new' && selectedMasterId !== ''}
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background disabled:bg-surface-container-low disabled:opacity-80"
                     placeholder="e.g. HCM Implementation"
                   />
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="type" className="text-sm font-semibold text-on-background">Project Type *</label>
-                  <select
-                    id="type"
-                    name="type"
-                    required
-                    value={formData.type}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background font-semibold"
-                  >
-                    <option value={ProjectType.NEW}>New</option>
-                    <option value={ProjectType.SUPPORT}>Support</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col gap-2">
                   <label htmlFor="customer" className="text-sm font-semibold text-on-background">
-                    Customer{formData.type === ProjectType.SUPPORT ? ' *' : ''}
+                    Customer
                   </label>
                   <input
                     id="customer"
                     name="customer"
                     type="text"
-                    required={formData.type === ProjectType.SUPPORT}
                     value={formData.customer}
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
@@ -261,7 +377,7 @@ export function ProjectFormPage() {
 
                 <div className="flex flex-col gap-2">
                   <label htmlFor="picClient" className="text-sm font-semibold text-on-background">
-                    PIC Client{formData.type === ProjectType.SUPPORT ? ' *' : ''}
+                    PIC Client
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
@@ -269,7 +385,6 @@ export function ProjectFormPage() {
                       id="picClient"
                       name="picClient"
                       type="text"
-                      required={formData.type === ProjectType.SUPPORT}
                       value={formData.picClient}
                       onChange={handleChange}
                       className="w-full pl-10 pr-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
@@ -280,7 +395,7 @@ export function ProjectFormPage() {
 
                 <div className="flex flex-col gap-2" ref={picContainerRef}>
                   <label htmlFor="picInternal" className="text-sm font-semibold text-on-background">
-                    PIC Internal{formData.type === ProjectType.SUPPORT ? ' *' : ''}
+                    PIC Internal
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
@@ -288,7 +403,6 @@ export function ProjectFormPage() {
                       id="picInternal"
                       name="picInternal"
                       type="text"
-                      required={formData.type === ProjectType.SUPPORT}
                       value={formData.picInternal}
                       onChange={handleChange}
                       onFocus={() => setIsPicDropdownOpen(true)}
@@ -326,56 +440,54 @@ export function ProjectFormPage() {
 
                 <div className="flex flex-col gap-2">
                   <label htmlFor="platform" className="text-sm font-semibold text-on-background">
-                    Platform{formData.type === ProjectType.SUPPORT ? ' *' : ''}
+                    Platform
                   </label>
                   <input
                     id="platform"
                     name="platform"
                     type="text"
-                    required={formData.type === ProjectType.SUPPORT}
+                    disabled={selectedMasterId !== 'new' && selectedMasterId !== ''}
                     value={formData.platform}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background disabled:bg-surface-container-low disabled:opacity-80"
                     placeholder="e.g. Web & Mobile App"
                   />
                 </div>
 
-                {formData.type !== ProjectType.SUPPORT && (
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="totalMandays" className="text-sm font-semibold text-on-background">Total Mandays</label>
-                    <input
-                      id="totalMandays"
-                      name="totalMandays"
-                      type="number"
-                      min="0"
-                      value={formData.totalMandays}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                      placeholder="e.g. 120"
-                    />
-                  </div>
-                )}
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="totalMandays" className="text-sm font-semibold text-on-background">Total Mandays</label>
+                  <input
+                    id="totalMandays"
+                    name="totalMandays"
+                    type="number"
+                    min="0"
+                    value={formData.totalMandays}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    placeholder="e.g. 120"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="description" className="text-sm font-semibold text-on-background">
-                  Description{formData.type === ProjectType.SUPPORT ? ' *' : ''}
+                  Description
                 </label>
                 <textarea
                   id="description"
                   name="description"
                   rows={4}
-                  required={formData.type === ProjectType.SUPPORT}
+                  disabled={selectedMasterId !== 'new' && selectedMasterId !== ''}
                   value={formData.description}
                   onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background resize-y"
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background resize-y disabled:bg-surface-container-low disabled:opacity-80"
                   placeholder="Detailed description of the project scope and goals..."
                 />
               </div>
             </div>
 
             {/* Development Links & Metadata (Only when editing) */}
-            {isEditing && formData.type !== ProjectType.SUPPORT && (
+            {isEditing && (
               <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
                 <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
                   <LinkIcon className="w-5 h-5 text-primary" />
@@ -427,127 +539,125 @@ export function ProjectFormPage() {
           </div>
 
           {/* Right Sidebar - Status, Dates, Progress */}
-          {formData.type !== ProjectType.SUPPORT && (
-            <div className="flex flex-col gap-6">
-              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
-                <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  <span>Timeline & Status</span>
-                </h2>
+          <div className="flex flex-col gap-6">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
+              <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-primary" />
+                <span>Timeline & Status</span>
+              </h2>
 
-                <div className="flex flex-col gap-5">
-                  {/* Status Options (Only on edit) */}
-                  {isEditing && (
-                    <>
-                      <div className="flex flex-col gap-2">
-                        <label htmlFor="status" className="text-sm font-semibold text-on-background">Status</label>
-                        <select
-                          id="status"
-                          name="status"
-                          value={formData.status}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background font-semibold"
-                        >
-                          {STATUS_OPTIONS.map(status => (
-                            <option key={status} value={status}>{status}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <div className="flex justify-between items-center">
-                          <label htmlFor="progressPct" className="text-sm font-semibold text-on-background">Progress ({formData.progressPct}%)</label>
-                        </div>
-                        <input
-                          id="progressPct"
-                          name="progressPct"
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={formData.progressPct}
-                          onChange={handleChange}
-                          className="w-full accent-primary h-2 bg-surface-container-high rounded-lg cursor-pointer"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <label htmlFor="timelineRemark" className="text-sm font-semibold text-on-background">Timeline Remark</label>
-                        <input
-                          id="timelineRemark"
-                          name="timelineRemark"
-                          type="text"
-                          value={formData.timelineRemark}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                          placeholder="e.g. On Track, Behind Schedule"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {/* Date Inputs */}
-                  <div className="border-t border-outline-variant pt-4 flex flex-col gap-4">
-                    <h3 className="text-sm font-bold text-secondary uppercase tracking-wider">Planned Schedule</h3>
+              <div className="flex flex-col gap-5">
+                {/* Status Options (Only on edit) */}
+                {isEditing && (
+                  <>
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="status" className="text-sm font-semibold text-on-background">Status</label>
+                      <select
+                        id="status"
+                        name="status"
+                        value={formData.status}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background font-semibold"
+                      >
+                        {STATUS_OPTIONS.map(status => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </div>
 
                     <div className="flex flex-col gap-2">
-                      <label htmlFor="startDate" className="text-sm font-semibold text-on-background">Start Date</label>
+                      <div className="flex justify-between items-center">
+                        <label htmlFor="progressPct" className="text-sm font-semibold text-on-background">Progress ({formData.progressPct}%)</label>
+                      </div>
                       <input
-                        id="startDate"
-                        name="startDate"
+                        id="progressPct"
+                        name="progressPct"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={formData.progressPct}
+                        onChange={handleChange}
+                        className="w-full accent-primary h-2 bg-surface-container-high rounded-lg cursor-pointer"
+                      />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="timelineRemark" className="text-sm font-semibold text-on-background">Timeline Remark</label>
+                      <input
+                        id="timelineRemark"
+                        name="timelineRemark"
+                        type="text"
+                        value={formData.timelineRemark}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                        placeholder="e.g. On Track, Behind Schedule"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Date Inputs */}
+                <div className="border-t border-outline-variant pt-4 flex flex-col gap-4">
+                  <h3 className="text-sm font-bold text-secondary uppercase tracking-wider">Planned Schedule</h3>
+
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="startDate" className="text-sm font-semibold text-on-background">Start Date</label>
+                    <input
+                      id="startDate"
+                      name="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="endDate" className="text-sm font-semibold text-on-background">End Date</label>
+                    <input
+                      id="endDate"
+                      name="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    />
+                  </div>
+                </div>
+
+                {/* Actual Schedule (Only on edit) */}
+                {isEditing && (
+                  <div className="border-t border-outline-variant pt-4 flex flex-col gap-4">
+                    <h3 className="text-sm font-bold text-secondary uppercase tracking-wider">Actual Schedule</h3>
+
+                    <div className="flex flex-col gap-2">
+                      <label htmlFor="actualStart" className="text-sm font-semibold text-on-background">Actual Start</label>
+                      <input
+                        id="actualStart"
+                        name="actualStart"
                         type="date"
-                        value={formData.startDate}
+                        value={formData.actualStart}
                         onChange={handleChange}
                         className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
                       />
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      <label htmlFor="endDate" className="text-sm font-semibold text-on-background">End Date</label>
+                      <label htmlFor="actualEnd" className="text-sm font-semibold text-on-background">Actual End</label>
                       <input
-                        id="endDate"
-                        name="endDate"
+                        id="actualEnd"
+                        name="actualEnd"
                         type="date"
-                        value={formData.endDate}
+                        value={formData.actualEnd}
                         onChange={handleChange}
                         className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
                       />
                     </div>
                   </div>
-
-                  {/* Actual Schedule (Only on edit) */}
-                  {isEditing && (
-                    <div className="border-t border-outline-variant pt-4 flex flex-col gap-4">
-                      <h3 className="text-sm font-bold text-secondary uppercase tracking-wider">Actual Schedule</h3>
-
-                      <div className="flex flex-col gap-2">
-                        <label htmlFor="actualStart" className="text-sm font-semibold text-on-background">Actual Start</label>
-                        <input
-                          id="actualStart"
-                          name="actualStart"
-                          type="date"
-                          value={formData.actualStart}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <label htmlFor="actualEnd" className="text-sm font-semibold text-on-background">Actual End</label>
-                        <input
-                          id="actualEnd"
-                          name="actualEnd"
-                          type="date"
-                          value={formData.actualEnd}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Submit Actions */}
