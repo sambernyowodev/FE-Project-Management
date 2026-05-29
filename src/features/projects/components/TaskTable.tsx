@@ -72,7 +72,7 @@ export function TaskTable({
 
 
   return (
-    <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
+    <div className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
       <div className="px-6 py-4 border-b border-outline-variant bg-surface-container-low flex justify-between items-center">
         <h3 className="font-bold text-on-background">Daftar Aktivitas & Tahapan</h3>
         <span className="text-xs text-secondary font-medium">{activities.length} Aktivitas Terinput</span>

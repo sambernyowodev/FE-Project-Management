@@ -94,11 +94,12 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
   const todayPosition = useMemo(() => {
     const today = new Date();
     if (today >= timelineStart && today <= timelineEnd) {
-      const daysFromStart = differenceInDays(today, timelineStart);
-      return (daysFromStart / totalDays) * 100;
+      const diff = today.getTime() - timelineStart.getTime();
+      const total = timelineEnd.getTime() - timelineStart.getTime();
+      return (diff / total) * 100;
     }
     return null;
-  }, [timelineStart, timelineEnd, totalDays]);
+  }, [timelineStart, timelineEnd]);
 
   return (
     <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
@@ -164,12 +165,14 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
 
             {/* Today indicator vertical line */}
             {todayPosition !== null && (
-              <div 
-                className="absolute inset-y-0 z-20 w-0 border-l-2 border-dashed border-red-500 pointer-events-none group/today"
-                style={{ left: `calc(16rem + ${todayPosition}%)` }}
-              >
-                <div className="absolute top-0 -translate-x-1/2 bg-red-500 text-white font-bold text-[8px] px-1 py-0.5 rounded shadow-sm">
-                  TODAY
+              <div className="absolute inset-y-0 left-64 right-0 pointer-events-none z-20">
+                <div 
+                  className="absolute inset-y-0 w-0 border-l-2 border-dashed border-red-500 group/today"
+                  style={{ left: `${todayPosition}%` }}
+                >
+                  <div className="absolute top-0 -translate-x-1/2 bg-red-500 text-white font-bold text-[8px] px-1 py-0.5 rounded shadow-sm">
+                    TODAY
+                  </div>
                 </div>
               </div>
             )}

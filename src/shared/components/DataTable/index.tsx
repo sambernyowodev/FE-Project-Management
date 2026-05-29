@@ -259,7 +259,7 @@ export default function DataTable<T>({
   const filterableColumns = table.getAllLeafColumns().filter(col => col.getCanFilter() && col.accessorFn != null)
 
   return (
-    <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
+    <div className="w-full bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
       {/* Table Toolbar */}
       <div className="p-4 sm:p-5 border-b border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Search */}

@@ -20,10 +20,10 @@ export function Layout() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar />
-      <div className="flex-1 flex flex-col md:ml-64 relative">
+      <div className="flex-1 flex flex-col md:ml-64 relative min-w-0">
         <Topbar />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          <div className="max-w-[1440px] mx-auto">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 min-w-0">
+          <div className="max-w-[1440px] mx-auto w-full">
             <Outlet />
           </div>
         </main>

@@ -19,13 +19,13 @@ import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import { ProjectStatus } from '@/shared/constants/enums';
 import {
   Calendar,
-  GitBranch,
+  Database,
   ExternalLink,
   Plus,
   BarChart4,
   ListTodo,
   Briefcase,
-  Layers,
+  CalendarDays,
   Edit,
   ArrowLeft
 } from 'lucide-react';
@@ -119,20 +119,6 @@ export function ProjectTimelinePage() {
             <p className="text-secondary text-sm">Detail tahapan, jadwal pengerjaan, progress, dan alokasi resource project.</p>
           </div>
         </div>
-
-        {/* Project Selector Dropdown
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <label className="text-sm font-semibold text-secondary whitespace-nowrap">Pilih Project:</label>
-          <select
-            value={selectedProjectId || ''}
-            onChange={handleProjectChange}
-            className="w-full md:w-64 px-4 py-2 border border-outline-variant rounded-lg text-sm bg-surface-container-lowest text-on-background font-semibold focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer"
-          >
-            {projects.map(p => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
-        </div> */}
       </div>
 
       {project ? (
@@ -243,8 +229,8 @@ export function ProjectTimelinePage() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-outline-variant hover:border-primary/30 hover:bg-surface-container-low text-secondary font-semibold rounded-lg transition-all"
                     >
-                      <GitBranch className="w-3.5 h-3.5 text-secondary" />
-                      <span>Git Repository</span>
+                      <Database className="w-3.5 h-3.5 text-secondary" />
+                      <span>Link Repository</span>
                       <ExternalLink className="w-3 h-3 text-secondary/60" />
                     </a>
                   )}
@@ -255,8 +241,8 @@ export function ProjectTimelinePage() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-surface border border-outline-variant hover:border-primary/30 hover:bg-surface-container-low text-secondary font-semibold rounded-lg transition-all"
                     >
-                      <Layers className="w-3.5 h-3.5 text-secondary" />
-                      <span>External Board</span>
+                      <CalendarDays className="w-3.5 h-3.5 text-secondary" />
+                      <span>Link Timeline</span>
                       <ExternalLink className="w-3 h-3 text-secondary/60" />
                     </a>
                   )}
@@ -274,7 +260,7 @@ export function ProjectTimelinePage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
             {/* Left/Middle Column - Gantt & Task Table */}
-            <div className="lg:col-span-3 flex flex-col gap-6">
+            <div className="lg:col-span-3 flex flex-col gap-6 min-w-0">
 
               {/* Toolbar and View Tabs */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-3 shadow-sm">

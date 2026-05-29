@@ -7,6 +7,7 @@ import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { Project } from '@/modules/projects/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
 import { ProjectStatus } from '@/shared/constants/enums';
+import { formatDate } from '@/shared/lib/formatter';
 
 
 export function ProjectListPage() {
@@ -75,13 +76,15 @@ export function ProjectListPage() {
         <span className="font-semibold text-on-background">{row.original.name}</span>
       ),
     },
-
     {
-      id: 'customer',
-      header: 'Customer',
-      accessorKey: 'picClient',
+      id: 'startDate',
+      header: 'Date',
+      accessorKey: 'startDate',
+      meta: {
+        filterType: 'date',
+      },
       cell: ({ row }) => (
-        <span className="text-secondary">{row.original.picClient || row.original.customer || '-'}</span>
+        <span className="text-secondary">{formatDate(row.original.startDate, 'short')}</span>
       ),
     },
     {
