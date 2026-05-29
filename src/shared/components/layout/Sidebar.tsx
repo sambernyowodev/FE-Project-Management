@@ -15,7 +15,8 @@ import {
   Shield,
   ChevronUp,
   User,
-  LogOut
+  LogOut,
+  Receipt
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useProfile, useLogout } from '@/modules/auth/hooks/useAuth';
@@ -24,6 +25,7 @@ import { useProfile, useLogout } from '@/modules/auth/hooks/useAuth';
 const mainNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projects', href: '/projects', icon: FolderKanban },
+  { name: 'Purchase Orders', href: '/purchase-orders', icon: Receipt },
   { name: 'Support', href: '/support', icon: TicketCheck },
   { name: 'Billing', href: '/billing', icon: FileText },
   { name: 'Reports', href: '/reports', icon: FileSpreadsheet },

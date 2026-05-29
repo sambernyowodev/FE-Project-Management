@@ -37,17 +37,6 @@ export const PurchaseOrderStatus = {
     CANCELLED: 'CANCELLED',
 } as const;
 
-export const SalesOrderStatus = {
-    DRAFT: 'DRAFT',
-    ACTIVE: 'ACTIVE',
-    IN_PROGRESS: 'IN PROGRESS',
-    DELIVERED: 'DELIVERED',
-    INVOICED: 'INVOICED',
-    PAID: 'PAID',
-    CLOSED: 'CLOSED',
-    CANCELLED: 'CANCELLED',
-} as const;
-
 export const SupportTicketStatus = {
     OPEN: 'OPEN',
     IN_PROGRESS: 'IN PROGRESS',

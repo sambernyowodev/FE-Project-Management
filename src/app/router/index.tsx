@@ -6,7 +6,8 @@ import { ProjectListPage } from '@/features/projects/ProjectListPage';
 import { ProjectFormPage } from '@/features/projects/ProjectFormPage';
 import { ProjectTimelinePage } from '@/features/projects/ProjectTimelinePage';
 import { POListPage } from '@/features/purchase-orders/POListPage';
-import { SOListPage } from '@/features/sales-orders/SOListPage';
+import { POFormPage } from '@/features/purchase-orders/POFormPage';
+import { PODetailPage } from '@/features/purchase-orders/PODetailPage';
 import { SupportListPage } from '@/features/support/SupportListPage';
 import { SupportFormPage } from '@/features/support/SupportFormPage';
 import { SupportTimelinePage } from '@/features/support/SupportTimelinePage';
@@ -59,8 +60,16 @@ export const router = createBrowserRouter([
         element: <POListPage />
       },
       {
-        path: 'sales-orders',
-        element: <SOListPage />
+        path: 'purchase-orders/new',
+        element: <POFormPage />
+      },
+      {
+        path: 'purchase-orders/:id',
+        element: <PODetailPage />
+      },
+      {
+        path: 'purchase-orders/:id/edit',
+        element: <POFormPage />
       },
       {
         path: 'support',

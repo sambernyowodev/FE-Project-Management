@@ -2,7 +2,6 @@ import { cn } from "@/shared/lib/utils";
 import {
   ProjectStatus,
   PurchaseOrderStatus,
-  SalesOrderStatus,
   SupportTicketStatus,
   InvoiceStatus
 } from "@/shared/constants/enums";
@@ -10,7 +9,6 @@ import {
 type StatusType =
   | keyof typeof ProjectStatus
   | keyof typeof PurchaseOrderStatus
-  | keyof typeof SalesOrderStatus
   | keyof typeof SupportTicketStatus
   | keyof typeof InvoiceStatus;
 
@@ -27,8 +25,6 @@ const statusStyles: Record<StatusType, string> = {
   DRAFT: "bg-slate-100 text-slate-700 border-slate-200",
   ACTIVE: "bg-blue-100 text-blue-700 border-blue-200",
   COMPLETED: "bg-green-100 text-green-700 border-green-200",
-  DELIVERED: "bg-purple-100 text-purple-700 border-purple-200",
-  INVOICED: "bg-indigo-100 text-indigo-700 border-indigo-200",
   PAID: "bg-green-100 text-green-700 border-green-200",
   SENT: "bg-blue-100 text-blue-700 border-blue-200",
   OVERDUE: "bg-red-100 text-red-700 border-red-200",

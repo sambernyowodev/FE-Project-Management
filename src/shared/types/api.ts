@@ -345,6 +345,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/purchase-orders/without-po": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get active projects without PO */
+        get: operations["PurchaseOrdersController_getProjectsWithoutPo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/purchase-orders/{id}": {
         parameters: {
             query?: never;
@@ -354,9 +371,11 @@ export interface paths {
         };
         /** Get PO details */
         get: operations["PurchaseOrdersController_findOne"];
-        put?: never;
+        /** Update a PO */
+        put: operations["PurchaseOrdersController_update"];
         post?: never;
-        delete?: never;
+        /** Delete a PO */
+        delete: operations["PurchaseOrdersController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -379,59 +398,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/sales-orders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get all SOs */
-        get: operations["SalesOrdersController_findAll"];
-        put?: never;
-        /** Create a new SO */
-        post: operations["SalesOrdersController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/sales-orders/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get SO details */
-        get: operations["SalesOrdersController_findOne"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/sales-orders/{id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Update SO Status */
-        put: operations["SalesOrdersController_updateStatus"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/po-so-members": {
+    "/api/purchase-orders/{id}/projects": {
         parameters: {
             query?: never;
             header?: never;
@@ -440,15 +407,49 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Assign a member to PO/SO */
-        post: operations["PoSoMembersController_assign"];
+        /** Assign project to PO */
+        post: operations["PurchaseOrdersController_addProject"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/po-so-members/po/{poId}": {
+    "/api/purchase-orders/{id}/projects/{projectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove project assignment from PO */
+        delete: operations["PurchaseOrdersController_removeProject"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/po-members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assign a member to PO */
+        post: operations["PoMembersController_assign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/po-members/po/{poId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -456,7 +457,7 @@ export interface paths {
             cookie?: never;
         };
         /** Get members by PO */
-        get: operations["PoSoMembersController_findByPo"];
+        get: operations["PoMembersController_findByPo"];
         put?: never;
         post?: never;
         delete?: never;
@@ -465,7 +466,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/po-so-members/{id}/actuals": {
+    "/api/po-members/{id}/actuals": {
         parameters: {
             query?: never;
             header?: never;
@@ -474,9 +475,26 @@ export interface paths {
         };
         get?: never;
         /** Update actual mandays */
-        put: operations["PoSoMembersController_updateActuals"];
+        put: operations["PoMembersController_updateActuals"];
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/po-members/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove member from PO */
+        delete: operations["PoMembersController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -973,6 +991,20 @@ export interface components {
             /** @description Progress percentage (0-100) */
             progressPct: number;
         };
+        PoProjectResponseDto: {
+            id: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            createdBy?: number;
+            updatedBy?: number;
+            poId: number;
+            projectId: number;
+            allocatedMandays: number;
+            remarks?: string;
+            project?: components["schemas"]["ProjectResponseDto"];
+        };
         PurchaseOrderResponseDto: {
             id: number;
             /** Format: date-time */
@@ -983,7 +1015,6 @@ export interface components {
             updatedBy?: number;
             poNumber: string;
             poName: string;
-            projectId: number;
             customer: string;
             description?: string;
             totalMandays: number;
@@ -994,59 +1025,27 @@ export interface components {
             startDate?: string;
             /** Format: date-time */
             endDate?: string;
-            /** Format: date-time */
-            signedDate?: string;
-            documentUrl?: string;
-            remarks?: string;
             isActive: boolean;
             createdById: number;
-            project?: components["schemas"]["ProjectResponseDto"];
+            poProjects?: components["schemas"]["PoProjectResponseDto"][];
+            allocatedMandays: number;
+            remainingMandays: number;
+            projectCount: number;
         };
         CreatePurchaseOrderDto: {
             poName: string;
-            projectId: number;
             customer: string;
             description?: string;
         };
-        SalesOrderResponseDto: {
-            id: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            createdBy?: number;
-            updatedBy?: number;
-            soNumber: string;
-            soName: string;
+        AddPoProjectDto: {
+            /** @description The project ID to assign */
             projectId: number;
-            purchaseOrderId: number;
-            customer: string;
-            description?: string;
-            totalMandays: number;
-            totalAmount: number;
-            /** @enum {string} */
-            status: "DRAFT" | "ACTIVE" | "IN PROGRESS" | "DELIVERED" | "INVOICED" | "PAID" | "CLOSED" | "CANCELLED";
-            /** Format: date-time */
-            startDate?: string;
-            /** Format: date-time */
-            endDate?: string;
-            /** Format: date-time */
-            signedDate?: string;
-            documentUrl?: string;
+            /** @description Allocated mandays for the project under this PO */
+            allocatedMandays: number;
+            /** @description Optional remarks */
             remarks?: string;
-            isActive: boolean;
-            createdById: number;
-            project?: components["schemas"]["ProjectResponseDto"];
-            purchaseOrder?: components["schemas"]["PurchaseOrderResponseDto"];
-            po?: components["schemas"]["PurchaseOrderResponseDto"];
         };
-        CreateSalesOrderDto: {
-            soName: string;
-            poId: number;
-            projectId: number;
-            description?: string;
-        };
-        PoSoMemberResponseDto: {
+        PoMemberResponseDto: {
             id: number;
             /** Format: date-time */
             createdAt?: string;
@@ -1055,7 +1054,6 @@ export interface components {
             createdBy?: number;
             updatedBy?: number;
             poId: number;
-            soId?: number;
             projectMemberId: number;
             roleId: number;
             actualMandays: number;
@@ -1068,13 +1066,11 @@ export interface components {
             endDate?: string;
             isBillable: boolean;
             po?: components["schemas"]["PurchaseOrderResponseDto"];
-            so?: components["schemas"]["SalesOrderResponseDto"];
             projectMember?: components["schemas"]["ProjectMemberResponseDto"];
             role?: components["schemas"]["RoleResponseDto"];
         };
-        AssignPoSoMemberDto: {
+        AssignPoMemberDto: {
             poId: number;
-            soId?: number;
             projectMemberId: number;
             roleId: number;
             actualMandays?: number;
@@ -1204,7 +1200,6 @@ export interface components {
             invoiceNumber: string;
             projectId: number;
             poId?: number;
-            soId?: number;
             /** Format: date-time */
             periodStart: string;
             /** Format: date-time */
@@ -1218,7 +1213,6 @@ export interface components {
             createdAt: string;
             project?: components["schemas"]["ProjectResponseDto"];
             po?: components["schemas"]["PurchaseOrderResponseDto"];
-            so?: components["schemas"]["SalesOrderResponseDto"];
             createdBy?: components["schemas"]["UserResponseDto"];
             details?: components["schemas"]["BillingInvoiceDetailResponseDto"][];
         };
@@ -2175,6 +2169,27 @@ export interface operations {
             };
         };
     };
+    PurchaseOrdersController_getProjectsWithoutPo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["ProjectResponseDto"][];
+                    };
+                };
+            };
+        };
+    };
     PurchaseOrdersController_findOne: {
         parameters: {
             query?: never;
@@ -2193,6 +2208,52 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
                         data?: components["schemas"]["PurchaseOrderResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    PurchaseOrdersController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["PurchaseOrderResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    PurchaseOrdersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["BaseResponseDto"];
                     };
                 };
             };
@@ -2221,88 +2282,7 @@ export interface operations {
             };
         };
     };
-    SalesOrdersController_findAll: {
-        parameters: {
-            query?: {
-                /** @description Page number */
-                page?: number;
-                /** @description Items per page */
-                perPage?: number;
-                /** @description Sort format (e.g. -createdAt or name) */
-                sort?: string;
-                /** @description Search keyword */
-                search?: string;
-                /** @description Column filters (key-value object or JSON string) */
-                filter?: components["schemas"]["Object"];
-                sortOrder?: "ASC" | "DESC" | "asc" | "desc";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["SalesOrderResponseDto"][];
-                    };
-                };
-            };
-        };
-    };
-    SalesOrdersController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateSalesOrderDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["SalesOrderResponseDto"];
-                    };
-                };
-            };
-        };
-    };
-    SalesOrdersController_findOne: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["SalesOrderResponseDto"];
-                    };
-                };
-            };
-        };
-    };
-    SalesOrdersController_updateStatus: {
+    PurchaseOrdersController_addProject: {
         parameters: {
             query?: never;
             header?: never;
@@ -2311,21 +2291,41 @@ export interface operations {
             };
             cookie?: never;
         };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddPoProjectDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PurchaseOrdersController_removeProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                projectId: number;
+            };
+            cookie?: never;
+        };
         requestBody?: never;
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["SalesOrderResponseDto"];
-                    };
-                };
+                content?: never;
             };
         };
     };
-    PoSoMembersController_assign: {
+    PoMembersController_assign: {
         parameters: {
             query?: never;
             header?: never;
@@ -2334,7 +2334,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AssignPoSoMemberDto"];
+                "application/json": components["schemas"]["AssignPoMemberDto"];
             };
         };
         responses: {
@@ -2344,13 +2344,13 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["PoSoMemberResponseDto"];
+                        data?: components["schemas"]["PoMemberResponseDto"];
                     };
                 };
             };
         };
     };
-    PoSoMembersController_findByPo: {
+    PoMembersController_findByPo: {
         parameters: {
             query?: never;
             header?: never;
@@ -2367,13 +2367,13 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["PoSoMemberResponseDto"][];
+                        data?: components["schemas"]["PoMemberResponseDto"][];
                     };
                 };
             };
         };
     };
-    PoSoMembersController_updateActuals: {
+    PoMembersController_updateActuals: {
         parameters: {
             query?: never;
             header?: never;
@@ -2390,7 +2390,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["PoSoMemberResponseDto"];
+                        data?: components["schemas"]["PoMemberResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    PoMembersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["BaseResponseDto"];
                     };
                 };
             };
