@@ -138,13 +138,19 @@ export function SupportTimelinePage() {
                 <span className="text-secondary flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-primary" /> Total Hours Tiket:
                 </span>
-                <span className="font-mono text-on-background">{Number(ticket.hoursSpent || 0).toFixed(1)} jam</span>
+                <div className="text-right">
+                  <span className="font-mono text-on-background">{Number(ticket.hoursSpent || 0).toFixed(1)} jam</span>
+                  <span className="text-xs text-secondary font-mono block">({(Number(ticket.hoursSpent || 0) / 8).toFixed(2)} md)</span>
+                </div>
               </div>
               <div className="flex justify-between border-b border-outline-variant/40 pb-2">
                 <span className="text-secondary flex items-center gap-1.5">
                   <Users className="w-4 h-4 text-primary" /> Total Assigned Hours:
                 </span>
-                <span className="font-mono text-on-background">{totalHoursAssigned.toFixed(1)} jam</span>
+                <div className="text-right">
+                  <span className="font-mono text-on-background">{totalHoursAssigned.toFixed(1)} jam</span>
+                  <span className="text-xs text-secondary font-mono block">({(totalHoursAssigned / 8).toFixed(2)} md)</span>
+                </div>
               </div>
               <div className="flex justify-between pb-1">
                 <span className="text-secondary flex items-center gap-1.5">
@@ -214,6 +220,7 @@ export function SupportTimelinePage() {
                     <th className="px-6 py-3.5">Role</th>
                     <th className="px-6 py-3.5">Jadwal Penugasan</th>
                     <th className="px-6 py-3.5 text-right">Hours Logged</th>
+                    <th className="px-6 py-3.5 text-right">Mandays</th>
                     <th className="px-6 py-3.5">Status Kerja</th>
                     <th className="px-6 py-3.5">Catatan/Perkembangan</th>
                     <th className="px-6 py-3.5 text-right w-24">Aksi</th>
@@ -262,6 +269,11 @@ export function SupportTimelinePage() {
                         {/* Hours spent */}
                         <td className="px-6 py-4 text-right font-mono font-semibold text-on-background">
                           {Number(assignee.hoursSpent || 0).toFixed(2)} hrs
+                        </td>
+
+                        {/* Mandays */}
+                        <td className="px-6 py-4 text-right font-mono font-bold text-primary">
+                          {((assignee.hoursSpent || 0) / 8).toFixed(2)} md
                         </td>
 
                         {/* Status */}

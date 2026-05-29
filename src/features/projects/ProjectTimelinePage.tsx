@@ -360,6 +360,7 @@ export function ProjectTimelinePage() {
             onClose={() => setIsManageModalOpen(false)}
             projectId={project.id}
             members={members}
+            activities={activities}
           />
         </>
       ) : (

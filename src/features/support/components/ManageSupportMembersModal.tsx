@@ -175,7 +175,7 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
       <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant bg-surface-container-low">
           <div>
@@ -192,7 +192,7 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
 
         {/* Body Container */}
         <div className="flex-1 overflow-y-auto p-6 flex flex-col lg:flex-row gap-6">
-          
+
           {/* Left Column: Allocation Form */}
           <div className="flex-1 flex flex-col gap-4">
             <form onSubmit={handleSave} className="bg-surface-container-low border border-outline-variant rounded-xl p-5 flex flex-col gap-4">
@@ -206,7 +206,7 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
                   {error}
                 </div>
               )}
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Select User (Searchable Dropdown) */}
                 <div className="flex flex-col gap-1.5" ref={dropdownRef}>
@@ -423,7 +423,7 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
                       >
                         <div className="flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5 text-primary/70" />
-                          <span>Waktu: <strong className="text-on-background font-mono">{assignee.hoursSpent || 0} jam</strong></span>
+                          <span>Waktu: <strong className="text-on-background font-mono">{assignee.hoursSpent || 0} jam</strong> ({((assignee.hoursSpent || 0) / 8).toFixed(2)} md)</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Award className="w-3.5 h-3.5 text-primary/70" />
@@ -447,6 +447,64 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {/* Role & Hours/Mandays Summary */}
+            {assignees.length > 0 && (
+              <div className="bg-surface-container-low border border-outline-variant rounded-xl p-3.5 flex flex-col gap-2.5 mt-2">
+                <h5 className="text-[11px] font-bold text-secondary uppercase tracking-wider">
+                  Ringkasan Waktu & Mandays Per Role
+                </h5>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-outline-variant text-secondary font-bold">
+                        <th className="py-1.5">Role</th>
+                        <th className="py-1.5 text-center">Member</th>
+                        <th className="py-1.5 text-right">Total Jam</th>
+                        <th className="py-1.5 text-right">Mandays</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {roles
+                        .map((role: any) => {
+                          const roleAssignees = assignees.filter((a: any) => a.roleId === role.id);
+                          if (roleAssignees.length === 0) return null;
+                          const totalHours = roleAssignees.reduce((sum: number, a: any) => sum + (a.hoursSpent || 0), 0);
+                          const totalMandays = totalHours / 8;
+                          return {
+                            id: role.id,
+                            name: role.name,
+                            count: roleAssignees.length,
+                            hours: totalHours,
+                            mandays: totalMandays,
+                          };
+                        })
+                        .filter(Boolean)
+                        .map((item: any) => (
+                          <tr key={item.id} className="border-b border-outline-variant/30 hover:bg-surface-container-low/50 transition-colors">
+                            <td className="py-1.5 font-medium text-on-background">{item.name}</td>
+                            <td className="py-1.5 text-center text-secondary font-mono">{item.count} orang</td>
+                            <td className="py-1.5 text-right text-secondary font-mono">{item.hours.toFixed(1)} jam</td>
+                            <td className="py-1.5 text-right text-primary font-semibold font-mono">{item.mandays.toFixed(2)} md</td>
+                          </tr>
+                        ))}
+                      <tr className="font-bold text-on-background bg-surface-container-high/15">
+                        <td className="py-2">Grand Total</td>
+                        <td className="py-2 text-center font-mono">
+                          {Array.from(new Set(assignees.map((a: any) => a.userId))).length} orang
+                        </td>
+                        <td className="py-2 text-right font-mono">
+                          {assignees.reduce((sum: number, a: any) => sum + (a.hoursSpent || 0), 0).toFixed(1)} jam
+                        </td>
+                        <td className="py-2 text-right text-primary font-mono">
+                          {(assignees.reduce((sum: number, a: any) => sum + (a.hoursSpent || 0), 0) / 8).toFixed(2)} md
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>

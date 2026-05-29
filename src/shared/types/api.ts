@@ -885,6 +885,7 @@ export interface components {
             projectId: number;
             userId: number;
             roleId: number;
+            assignedMandays: number;
             /** Format: date-time */
             startDate: string;
             /** Format: date-time */

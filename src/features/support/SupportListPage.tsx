@@ -97,7 +97,7 @@ export function SupportListPage() {
       cell: ({ row }) => {
         const hours = Number(row.original.hoursSpent || 0);
         return (
-          <span className="font-mono text-xs text-secondary">{hours.toFixed(2)} hrs</span>
+          <span className="font-mono text-xs text-secondary">{hours.toFixed(1)} hrs</span>
         );
       },
     },

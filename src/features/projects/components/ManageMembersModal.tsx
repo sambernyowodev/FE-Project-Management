@@ -9,9 +9,10 @@ interface ManageMembersModalProps {
   onClose: () => void;
   projectId: number;
   members: any[];
+  activities?: any[];
 }
 
-export function ManageMembersModal({ isOpen, onClose, projectId, members }: ManageMembersModalProps) {
+export function ManageMembersModal({ isOpen, onClose, projectId, members, activities = [] }: ManageMembersModalProps) {
   const { data: usersRes } = useGetUsers({ perPage: 200 });
   const { data: rolesRes } = useGetRoles();
 
@@ -20,8 +21,13 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members }: Mana
 
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedRoleId, setSelectedRoleId] = useState('');
-  const [assignedMandays, setAssignedMandays] = useState('0');
   const [error, setError] = useState('');
+
+  const getCalculatedMandays = (userId: number) => {
+    return activities
+      .filter((act: any) => act.assignedToId === userId)
+      .reduce((sum: number, act: any) => sum + (act.mandays || 0), 0);
+  };
 
   if (!isOpen) return null;
 
@@ -52,13 +58,12 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members }: Mana
       {
         userId: Number(selectedUserId),
         roleId: Number(selectedRoleId),
-        assignedMandays: Number(assignedMandays) || 0,
+        assignedMandays: 0,
       },
       {
         onSuccess: () => {
           setSelectedUserId('');
           setSelectedRoleId('');
-          setAssignedMandays('0');
         },
         onError: (err: any) => {
           setError(err.message || 'Gagal menambahkan member');
@@ -165,28 +170,14 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members }: Mana
                 </select>
               </div>
 
-              {/* Assigned Mandays & Submit Button */}
-              <div className="grid grid-cols-2 gap-3 items-end">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-bold text-on-background">Mandays</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.1"
-                    value={assignedMandays}
-                    onChange={(e) => setAssignedMandays(e.target.value)}
-                    className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-                
-                <button
-                  type="submit"
-                  disabled={addMemberMutation.isPending}
-                  className="w-full px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-sm font-bold shadow-sm disabled:opacity-50 cursor-pointer h-[38px] flex items-center justify-center gap-1"
-                >
-                  <span>Tambah</span>
-                </button>
-              </div>
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={addMemberMutation.isPending}
+                className="w-full px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-sm font-bold shadow-sm disabled:opacity-50 cursor-pointer h-[38px] flex items-center justify-center gap-1"
+              >
+                <span>Tambah Member</span>
+              </button>
             </div>
           </form>
 
@@ -233,8 +224,8 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members }: Mana
                         </span>
 
                         {/* Mandays */}
-                        <span className="text-xs text-secondary font-medium font-mono">
-                          {member.assignedMandays || 0} md
+                        <span className="text-xs text-primary font-bold font-mono shrink-0" title="Mandays (dari Activities)">
+                          {getCalculatedMandays(member.userId).toFixed(1)} md
                         </span>
 
                         {/* Remove Action */}
@@ -254,6 +245,59 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members }: Mana
               </div>
             )}
           </div>
+
+          {/* Summary Table */}
+          {members.length > 0 && (
+            <div className="bg-surface-container-low border border-outline-variant rounded-xl p-4 flex flex-col gap-3">
+              <h4 className="text-xs font-bold text-secondary uppercase tracking-wider">
+                Ringkasan Alokasi Per Role
+              </h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-outline-variant text-secondary text-xs font-bold">
+                      <th className="py-2">Role</th>
+                      <th className="py-2 text-center font-semibold">Jumlah Member</th>
+                      <th className="py-2 text-right">Total Mandays</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roles
+                      .map((role: any) => {
+                        const roleMembers = members.filter((m: any) => m.roleId === role.id);
+                        if (roleMembers.length === 0) return null;
+                        const totalAktual = roleMembers.reduce((sum: number, m: any) => sum + getCalculatedMandays(m.userId), 0);
+                        return {
+                          id: role.id,
+                          name: role.name,
+                          count: roleMembers.length,
+                          aktual: totalAktual,
+                        };
+                      })
+                      .filter(Boolean)
+                      .map((item: any) => (
+                        <tr key={item.id} className="border-b border-outline-variant/40 hover:bg-surface-container-low/60 transition-colors">
+                          <td className="py-2 font-medium text-on-background">{item.name}</td>
+                          <td className="py-2 text-center text-secondary font-mono">{item.count} orang</td>
+                          <td className="py-2 text-right text-primary font-mono font-semibold">{item.aktual.toFixed(1)} md</td>
+                        </tr>
+                      ))}
+                    <tr className="font-bold text-on-background bg-surface-container-high/20">
+                      <td className="py-3">Grand Total</td>
+                      <td className="py-3 text-center font-mono">
+                        {Array.from(new Set(members.map((m: any) => m.userId))).length} orang
+                      </td>
+                      <td className="py-3 text-right text-primary font-mono">
+                        {Array.from(new Set(members.map((m: any) => m.userId)))
+                          .reduce((sum: number, userId: any) => sum + getCalculatedMandays(userId), 0)
+                          .toFixed(1)} md
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

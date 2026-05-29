@@ -27,6 +27,17 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
     }
   });
 
+  const getUserCalculatedMandays = (userId: number) => {
+    return activities
+      .filter(act => act.assignedToId === userId)
+      .reduce((sum, act) => sum + (act.mandays || 0), 0);
+  };
+
+  const getRoleCalculatedMandays = (roleMembers: ProjectMember[]) => {
+    const uniqueUserIds = Array.from(new Set(roleMembers.map(m => m.userId)));
+    return uniqueUserIds.reduce((sum, userId) => sum + getUserCalculatedMandays(userId), 0);
+  };
+
   // Group members by role code (using role.code)
   const groupedMembers: Record<string, ProjectMember[]> = {
     PM: [],
@@ -52,7 +63,9 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
 
   const totalResources = members.length;
   const activeResources = members.filter(m => (taskCounts[m.userId] || 0) > 0).length;
-  const underAllocated = totalResources - activeResources;
+
+  const totalAktual = Array.from(new Set(members.map(m => m.userId)))
+    .reduce((sum, userId) => sum + getUserCalculatedMandays(userId), 0);
 
   const getInitials = (name: string) => {
     if (!name) return '??';
@@ -99,22 +112,19 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
       {/* Allocation Summary cards */}
       <div className="p-4 grid grid-cols-3 gap-2 border-b border-outline-variant bg-surface-container-lowest">
         <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-surface border border-outline-variant text-center">
-          <span className="text-lg font-bold text-primary">{totalResources}</span>
-          <span className="text-[10px] text-secondary font-medium">Total Team</span>
+          <span className="text-base font-bold text-on-background">{totalResources}</span>
+          <span className="text-[9px] text-secondary font-medium">Total Team</span>
         </div>
         <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-surface border border-outline-variant text-center">
-          <span className="text-lg font-bold text-emerald-600 flex items-center gap-1">
-            <UserCheck className="w-4 h-4 inline-block" />
+          <span className="text-base font-bold text-emerald-600 flex items-center gap-0.5 justify-center">
+            <UserCheck className="w-3.5 h-3.5 inline-block" />
             {activeResources}
           </span>
-          <span className="text-[10px] text-secondary font-medium">Active</span>
+          <span className="text-[9px] text-secondary font-medium">Active</span>
         </div>
-        <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-surface border border-outline-variant text-center">
-          <span className="text-lg font-bold text-amber-600 flex items-center gap-1">
-            <AlertCircle className="w-4 h-4 inline-block" />
-            {underAllocated}
-          </span>
-          <span className="text-[10px] text-secondary font-medium">Idle</span>
+        <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-surface border border-outline-variant text-center" title="Total Mandays dari Tasks">
+          <span className="text-base font-bold text-primary font-mono">{totalAktual.toFixed(1)}</span>
+          <span className="text-[9px] text-secondary font-medium">Mandays</span>
         </div>
       </div>
 
@@ -130,7 +140,9 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                 <span className={`px-2 py-0.5 border rounded-full text-[10px] font-bold uppercase tracking-wider ${roleMapping?.color || 'bg-slate-100 text-slate-700'}`}>
                   {roleMapping?.label || roleCode}
                 </span>
-                <span className="text-xs text-secondary font-medium">{roleMembers.length} Person</span>
+                <span className="text-[10px] text-secondary font-medium bg-surface-container-high/40 px-2 py-0.5 rounded-md border border-outline-variant/30">
+                  {roleMembers.length} orang • {getRoleCalculatedMandays(roleMembers).toFixed(1)} md
+                </span>
               </div>
               
               <div className="flex flex-col gap-2">
@@ -153,8 +165,8 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                         </div>
                       </div>
                       
-                      {/* Task Count Badge */}
-                      <div className="shrink-0 pl-2">
+                      {/* Task Count & Mandays Badges */}
+                      <div className="shrink-0 pl-2 flex flex-col items-end gap-1">
                         {tasks > 0 ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -166,6 +178,9 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                             Idle
                           </span>
                         )}
+                        <span className="text-[10px] font-mono text-primary font-bold">
+                          {getUserCalculatedMandays(member.userId).toFixed(1)} md
+                        </span>
                       </div>
                     </div>
                   );
@@ -182,7 +197,9 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
               <span className="px-2 py-0.5 border border-slate-200 bg-slate-100 text-slate-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
                 Other Resources
               </span>
-              <span className="text-xs text-secondary font-medium">{otherMembers.length} Person</span>
+              <span className="text-[10px] text-secondary font-medium bg-surface-container-high/40 px-2 py-0.5 rounded-md border border-outline-variant/30">
+                {otherMembers.length} orang • {getRoleCalculatedMandays(otherMembers).toFixed(1)} md
+              </span>
             </div>
             
             <div className="flex flex-col gap-2">
@@ -203,7 +220,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                       </div>
                     </div>
                     
-                    <div className="shrink-0 pl-2">
+                    <div className="shrink-0 pl-2 flex flex-col items-end gap-1">
                       {tasks > 0 ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
@@ -215,6 +232,9 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                           Idle
                         </span>
                       )}
+                      <span className="text-[10px] font-mono text-primary font-bold">
+                        {getUserCalculatedMandays(member.userId).toFixed(1)} md
+                      </span>
                     </div>
                   </div>
                 );
