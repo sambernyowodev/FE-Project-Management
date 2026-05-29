@@ -171,18 +171,17 @@ export function ProjectFormPage() {
         startDate: formData.startDate || undefined,
         endDate: formData.endDate || undefined,
         totalMandays: formData.totalMandays ? Number(formData.totalMandays) : undefined,
+        status: formData.status,
+        timelineRemark: formData.timelineRemark || undefined,
+        progressPct: formData.progressPct ? Number(formData.progressPct) : 0,
+        repositoryLink: formData.repositoryLink || undefined,
+        timelineLink: formData.timelineLink || undefined,
+        remarks: formData.remarks || undefined,
+        actualStart: formData.actualStart || undefined,
+        actualEnd: formData.actualEnd || undefined,
       };
 
       if (isEditing) {
-        dataToSend.status = formData.status;
-        dataToSend.timelineRemark = formData.timelineRemark || undefined;
-        dataToSend.progressPct = formData.progressPct ? Number(formData.progressPct) : 0;
-        dataToSend.repositoryLink = formData.repositoryLink || undefined;
-        dataToSend.timelineLink = formData.timelineLink || undefined;
-        dataToSend.remarks = formData.remarks || undefined;
-        dataToSend.actualStart = formData.actualStart || undefined;
-        dataToSend.actualEnd = formData.actualEnd || undefined;
-
         updateMutation.mutate(
           { id: Number(id), data: dataToSend },
           {

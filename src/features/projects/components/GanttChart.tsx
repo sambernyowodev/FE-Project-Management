@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { 
-  format, 
   differenceInDays, 
   startOfWeek, 
   endOfWeek, 
@@ -8,6 +7,7 @@ import {
   addDays, 
   isAfter
 } from 'date-fns';
+import { formatDate } from '@/shared/lib/formatter';
 import { Milestone, User, Calendar, CheckCircle2 } from 'lucide-react';
 import type { ProjectActivity, ProjectMember } from '@/modules/projects/types';
 
@@ -146,7 +146,7 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
                   className="flex-1 text-center border-r border-outline-variant/50 py-2.5 flex flex-col min-w-[70px] bg-surface-container-low/20"
                 >
                   <span className="text-[10px] font-bold text-secondary">W{idx + 1}</span>
-                  <span className="text-[10px] font-medium text-secondary/70 mt-0.5">{format(week, 'dd MMM')}</span>
+                  <span className="text-[10px] font-medium text-secondary/70 mt-0.5">{formatDate(week, 'short')}</span>
                 </div>
               ))}
             </div>
@@ -264,7 +264,7 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
                             </span>
                             <div className="flex items-center gap-1 text-secondary font-medium">
                               <Calendar className="w-3.5 h-3.5 shrink-0" />
-                              <span>{act.startDate ? format(new Date(act.startDate), 'dd MMM yyyy') : format(new Date(act.endDate!), 'dd MMM yyyy')}</span>
+                              <span>{act.startDate ? formatDate(act.startDate, 'short') : formatDate(act.endDate, 'short')}</span>
                             </div>
                             <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 w-fit">
                               Milestone Project
@@ -314,7 +314,7 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
                             <div className="flex flex-col gap-1 text-secondary font-medium">
                               <div className="flex items-center gap-1.5">
                                 <Calendar className="w-3.5 h-3.5 shrink-0" />
-                                <span>{format(new Date(act.startDate!), 'dd MMM')} - {format(new Date(act.endDate!), 'dd MMM yyyy')}</span>
+                                <span>{formatDate(act.startDate, 'short')} - {formatDate(act.endDate, 'short')}</span>
                               </div>
                               <div className="flex items-center justify-between text-[10px] mt-1 bg-surface-container-low p-1.5 rounded border border-outline-variant/40">
                                 <span>Durasi: <strong>{act.durationDays} hari</strong></span>

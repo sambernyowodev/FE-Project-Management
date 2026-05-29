@@ -5,7 +5,8 @@ const mapTicket = (t: any): SupportTicket => ({
   ...t,
   projectName: t.masterProject?.name || '',
   projectId: t.masterProjectId || 0,
-  picClient: '', // Fallback as picClient isn't in backend DTO but used by UI
+  picClient: t.picClient || '',
+  customer: t.customer || '',
 });
 
 export const supportApi = {

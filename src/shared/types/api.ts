@@ -679,6 +679,7 @@ export interface components {
             employeeId?: string;
             avatarUrl?: string;
             isActive: boolean;
+            passwordHash?: string;
         };
         Object: Record<string, never>;
         CreateUserDto: {
@@ -823,7 +824,16 @@ export interface components {
             parentProjectId?: number;
             startDate?: string;
             endDate?: string;
+            actualStart?: string;
+            actualEnd?: string;
             totalMandays?: number;
+            /** @enum {string} */
+            status?: "PLANNING" | "IN PROGRESS" | "SIT" | "UAT" | "CLOSED" | "ON HOLD" | "CANCELLED" | "FUT";
+            timelineRemark?: string;
+            progressPct?: number;
+            repositoryLink?: string;
+            timelineLink?: string;
+            remarks?: string;
         };
         UpdateProjectDto: {
             /** @description Master project ID (FK to master_projects) */
@@ -835,6 +845,8 @@ export interface components {
             parentProjectId?: number;
             startDate?: string;
             endDate?: string;
+            actualStart?: string;
+            actualEnd?: string;
             totalMandays?: number;
             /** @enum {string} */
             status?: "PLANNING" | "IN PROGRESS" | "SIT" | "UAT" | "CLOSED" | "ON HOLD" | "CANCELLED" | "FUT";
@@ -1059,6 +1071,8 @@ export interface components {
             updatedBy?: number;
             ticketCode: string;
             masterProjectId?: number;
+            customer?: string;
+            picClient?: string;
             issueTitle: string;
             issueDescription?: string;
             hoursSpent: number;
@@ -1089,6 +1103,8 @@ export interface components {
             masterProjectId?: number;
             /** @description Master project name (used to find/create master project if masterProjectId is not provided) */
             masterProjectName?: string;
+            customer?: string;
+            picClient?: string;
             issueTitle: string;
             issueDescription?: string;
             businessAnalystId?: number;
@@ -1124,6 +1140,8 @@ export interface components {
         UpdateSupportTicketDto: {
             masterProjectId?: number;
             masterProjectName?: string;
+            customer?: string;
+            picClient?: string;
             issueTitle?: string;
             issueDescription?: string;
             hoursSpent?: number;

@@ -7,6 +7,7 @@ import {
   useUpdateUser,
   useDeleteUser,
 } from '@/modules/master/users/hooks/useUsers';
+import { formatDate } from '@/shared/lib/formatter';
 
 export function MemberFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -297,11 +298,7 @@ export function MemberFormPage() {
                     <p>Member ID: <span className="font-mono font-semibold">{user?.id}</span></p>
                     {user?.createdAt && (
                       <p className="mt-1">
-                        Dibuat: {new Date(user.createdAt).toLocaleDateString('id-ID', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
+                        Dibuat: {formatDate(user.createdAt, 'short')}
                       </p>
                     )}
                   </div>

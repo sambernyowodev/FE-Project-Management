@@ -29,7 +29,7 @@ import {
   Edit,
   ArrowLeft
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatDate } from '@/shared/lib/formatter';
 import type { ProjectActivity } from '@/modules/projects/types';
 
 export function ProjectTimelinePage() {
@@ -67,7 +67,7 @@ export function ProjectTimelinePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ProjectActivity | null>(null);
   const [subActivityParentId, setSubActivityParentId] = useState<number | null>(null);
-  
+
   // 6. Manage Team Modal State
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
@@ -88,23 +88,6 @@ export function ProjectTimelinePage() {
     setSubActivityParentId(parentId);
     setIsModalOpen(true);
   };
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '-';
-    try {
-      return format(new Date(dateStr), 'dd MMM yyyy');
-    } catch {
-      return '-';
-    }
-  };
-
-  // const handleProjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  //   const nextId = Number(e.target.value);
-  //   setSelectedProjectId(nextId);
-  //   if (hasRouteId) {
-  //     navigate(`/projects/${nextId}/timeline`);
-  //   }
-  // };
 
   const isLoading = isProjectLoading || isProjectsListLoading;
 
@@ -218,7 +201,7 @@ export function ProjectTimelinePage() {
                 <span className="text-xs font-bold text-secondary uppercase tracking-wider">Jadwal Rencana</span>
                 <div className="flex items-center gap-2 text-sm font-semibold text-on-background">
                   <Calendar className="w-4 h-4 text-primary shrink-0" />
-                  <span>{formatDate(project.startDate)} - {formatDate(project.endDate)}</span>
+                  <span>{formatDate(project.startDate, 'short')} - {formatDate(project.endDate, 'short')}</span>
                 </div>
                 <span className="text-[10px] text-secondary font-medium">Jadwal yang disepakati di awal project</span>
               </div>
@@ -228,7 +211,7 @@ export function ProjectTimelinePage() {
                 <span className="text-xs font-bold text-secondary uppercase tracking-wider">Jadwal Realisasi (Actual)</span>
                 <div className="flex items-center gap-2 text-sm font-semibold text-on-background">
                   <Calendar className="w-4 h-4 text-primary shrink-0" />
-                  <span>{formatDate(project.actualStart)} - {formatDate(project.actualEnd)}</span>
+                  <span>{formatDate(project.actualStart, 'short')} - {formatDate(project.actualEnd, 'short')}</span>
                 </div>
                 <span className="text-[10px] text-secondary font-medium">Realisasi pengerjaan di lapangan</span>
               </div>

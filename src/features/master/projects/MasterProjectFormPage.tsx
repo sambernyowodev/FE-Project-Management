@@ -7,6 +7,7 @@ import {
   useUpdateMasterProject,
   useDeleteMasterProject
 } from '@/modules/master/projects/hooks/useMasterProjects';
+import { formatDate } from '@/shared/lib/formatter';
 
 export function MasterProjectFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -239,11 +240,7 @@ export function MasterProjectFormPage() {
                     <p className="mt-1">Project ID: <span className="font-mono font-semibold">{project?.id}</span></p>
                     {project?.createdAt && (
                       <p className="mt-1">
-                        Terdaftar: {new Date(project.createdAt).toLocaleDateString('id-ID', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
+                        Terdaftar: {formatDate(project.createdAt, 'short')}
                       </p>
                     )}
                   </div>

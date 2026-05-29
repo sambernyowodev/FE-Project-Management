@@ -10,7 +10,7 @@ import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { SupportTicket } from '@/modules/support/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
 import { SupportTicketStatus } from '@/shared/constants/enums';
-import { formatDateTime } from '@/shared/lib/formatter';
+import { formatDate } from '@/shared/lib/formatter';
 
 export function SupportListPage() {
   const navigate = useNavigate();
@@ -91,7 +91,7 @@ export function SupportListPage() {
       header: 'Date',
       accessorKey: 'startDate',
       cell: ({ row }) => (
-        <span className="text-secondary">{formatDateTime(row.original.startDate) || '-'}</span>
+        <span className="text-secondary">{formatDate(row.original.startDate, 'short')}</span>
       ),
     },
     {

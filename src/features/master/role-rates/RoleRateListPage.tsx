@@ -5,6 +5,7 @@ import { useGetRoleRates } from '@/modules/master/role-rates/hooks/useRoleRates'
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { RoleRate } from '@/modules/master/role-rates/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
+import { formatDate } from '@/shared/lib/formatter';
 
 export function RoleRateListPage() {
   const navigate = useNavigate();
@@ -30,10 +31,7 @@ export function RoleRateListPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: currencyCode, minimumFractionDigits: 0 }).format(amount);
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
-  };
+
 
   const handleSortChange = (sortingState: SortingState) => {
     if (sortingState.length > 0) {
@@ -92,7 +90,7 @@ export function RoleRateListPage() {
       header: 'Effective From',
       accessorKey: 'effectiveFrom',
       cell: ({ row }) => (
-        <span className="text-secondary">{formatDate(row.original.effectiveFrom)}</span>
+        <span className="text-secondary">{formatDate(row.original.effectiveFrom, 'short')}</span>
       ),
     },
     {
@@ -100,7 +98,7 @@ export function RoleRateListPage() {
       header: 'Effective Until',
       accessorKey: 'effectiveUntil',
       cell: ({ row }) => (
-        <span className="text-secondary">{formatDate(row.original.effectiveUntil)}</span>
+        <span className="text-secondary">{formatDate(row.original.effectiveUntil, 'short')}</span>
       ),
     },
     {

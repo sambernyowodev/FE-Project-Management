@@ -7,7 +7,6 @@ import {
   Users,
   FileText,
   FileSpreadsheet,
-  Settings,
   Building2,
   ChevronDown,
   ChevronRight,

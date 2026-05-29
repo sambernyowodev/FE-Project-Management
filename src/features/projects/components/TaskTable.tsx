@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Plus, Edit, Trash2, CornerDownRight, Check, X, Calendar, User, Milestone } from 'lucide-react';
 import { useDeleteProjectActivity, useUpdateActivityProgress } from '@/modules/projects/hooks/useProjectActivities';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
+import { formatDate } from '@/shared/lib/formatter';
 import type { ProjectActivity, ProjectMember } from '@/modules/projects/types';
-import { format } from 'date-fns';
 
 interface TaskTableProps {
   projectId: number;
@@ -70,14 +70,6 @@ export function TaskTable({
     return member?.user?.fullName || `ID: ${userId}`;
   };
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '-';
-    try {
-      return format(new Date(dateStr), 'dd MMM yyyy');
-    } catch {
-      return '-';
-    }
-  };
 
   return (
     <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
@@ -162,7 +154,7 @@ export function TaskTable({
                         <div className="flex flex-col text-xs text-secondary gap-0.5">
                           <div className="flex items-center gap-1">
                             <Calendar className="w-3.5 h-3.5 text-secondary/60 shrink-0" />
-                            <span>{formatDate(act.startDate)} - {formatDate(act.endDate)}</span>
+                            <span>{formatDate(act.startDate, 'short')} - {formatDate(act.endDate, 'short')}</span>
                           </div>
                           {act.durationDays !== undefined && (
                             <span className="font-medium text-[10px] text-primary/80 ml-4.5">

@@ -20,7 +20,7 @@ export function SupportFormPage() {
   const isEditing = Boolean(id);
 
   const { data: ticket, isLoading: isTicketLoading } = useGetSupportTicket(Number(id));
-  const { data: projectsRes } = useGetProjects();
+  const { data: projectsRes, isLoading: isProjectsLoading } = useGetProjects();
   const projects = projectsRes?.data || [];
 
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
@@ -52,18 +52,22 @@ export function SupportFormPage() {
       if (value === 'new') {
         next.projectId = 'new';
         next.projectName = prev.newProjectName || '';
+        next.customer = '';
       } else if (value) {
         const selectedProj = projects.find(p => p.id === Number(value));
         if (selectedProj) {
           next.projectId = value;
           next.projectName = selectedProj.name;
+          next.customer = selectedProj.customer || '';
         } else {
           next.projectId = '';
           next.projectName = '';
+          next.customer = '';
         }
       } else {
         next.projectId = '';
         next.projectName = '';
+        next.customer = '';
       }
 
       return next;
@@ -82,6 +86,7 @@ export function SupportFormPage() {
     projectName: '',
     projectId: '',
     newProjectName: '',
+    customer: '',
     issueTitle: '',
     issueDescription: '',
     picClient: '',
@@ -111,26 +116,36 @@ export function SupportFormPage() {
 
 
   const [error, setError] = useState('');
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
-    if (ticket && isEditing) {
-      setFormData({
-        projectName: ticket.projectName || '',
-        projectId: ticket.projectId ? String(ticket.projectId) : '',
-        newProjectName: '',
-        issueTitle: ticket.issueTitle || '',
-        issueDescription: ticket.issueDescription || '',
-        picClient: ticket.picClient || '',
-        hoursSpent: String(ticket.hoursSpent || 0),
-        status: ticket.status || SupportTicketStatus.OPEN,
-        notes: ticket.notes || '',
-        businessAnalystId: ticket.businessAnalystId ? String(ticket.businessAnalystId) : '',
-        uiUxId: ticket.uiUxId ? String(ticket.uiUxId) : '',
-        devFeId: ticket.devFeId ? String(ticket.devFeId) : '',
-        devBeId: ticket.devBeId ? String(ticket.devBeId) : '',
-      });
+    if (isEditing) {
+      if (isTicketLoading || isProjectsLoading) return;
+      if (hasInitialized.current) return;
+
+      if (ticket) {
+        // Find the project instance whose master project ID matches ticket.projectId (which is masterProjectId)
+        const matchedProj = projects.find(p => p.projectId === ticket.projectId);
+        setFormData({
+          projectName: ticket.projectName || '',
+          projectId: matchedProj ? String(matchedProj.id) : '',
+          newProjectName: '',
+          customer: ticket.customer || '',
+          issueTitle: ticket.issueTitle || '',
+          issueDescription: ticket.issueDescription || '',
+          picClient: ticket.picClient || '',
+          hoursSpent: String(ticket.hoursSpent || 0),
+          status: ticket.status || SupportTicketStatus.OPEN,
+          notes: ticket.notes || '',
+          businessAnalystId: ticket.businessAnalystId ? String(ticket.businessAnalystId) : '',
+          uiUxId: ticket.uiUxId ? String(ticket.uiUxId) : '',
+          devFeId: ticket.devFeId ? String(ticket.devFeId) : '',
+          devBeId: ticket.devBeId ? String(ticket.devBeId) : '',
+        });
+        hasInitialized.current = true;
+      }
     }
-  }, [ticket, isEditing]);
+  }, [ticket, isEditing, projects, isTicketLoading, isProjectsLoading]);
 
   useEffect(() => {
     if (membersRes && membersRes.length > 0) {
@@ -164,14 +179,17 @@ export function SupportFormPage() {
         if (value === 'new') {
           next.projectId = 'new';
           next.projectName = prev.newProjectName || '';
+          next.customer = '';
         } else {
           const selectedProj = projects.find(p => p.id === Number(value));
           if (selectedProj) {
             next.projectId = value;
             next.projectName = selectedProj.name;
+            next.customer = selectedProj.customer || '';
           } else {
             next.projectId = '';
             next.projectName = '';
+            next.customer = '';
           }
         }
       } else if (name === 'newProjectName' && prev.projectId === 'new') {
@@ -196,9 +214,18 @@ export function SupportFormPage() {
       return;
     }
 
+    const selectedProj = projects.find(p => String(p.id) === formData.projectId);
+    const masterProjectId = formData.projectId && formData.projectId !== 'new' && selectedProj
+      ? selectedProj.projectId
+      : undefined;
+    const masterProjectName = formData.projectId === 'new'
+      ? formData.newProjectName
+      : (selectedProj ? selectedProj.name : formData.projectName);
+
     const payload: any = {
-      projectName: formData.projectId === 'new' ? formData.newProjectName : formData.projectName,
-      projectId: formData.projectId && formData.projectId !== 'new' ? Number(formData.projectId) : undefined,
+      projectName: masterProjectName,
+      masterProjectId,
+      masterProjectName,
       issueTitle: formData.issueTitle,
       issueDescription: formData.issueDescription || undefined,
       businessAnalystId: formData.businessAnalystId ? Number(formData.businessAnalystId) : undefined,
@@ -249,7 +276,7 @@ export function SupportFormPage() {
     }
   };
 
-  if (isEditing && isTicketLoading) {
+  if (isEditing && (isTicketLoading || isProjectsLoading)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
@@ -392,6 +419,34 @@ export function SupportFormPage() {
                   />
                 </div>
               )}
+
+              {/* Customer & Client PIC */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="customer" className="text-sm font-semibold text-on-background">Customer</label>
+                  <input
+                    id="customer"
+                    name="customer"
+                    type="text"
+                    value={formData.customer}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    placeholder="e.g. Telkomsel"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="picClient" className="text-sm font-semibold text-on-background">Client PIC</label>
+                  <input
+                    id="picClient"
+                    name="picClient"
+                    type="text"
+                    value={formData.picClient}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    placeholder="e.g. Mba Isti"
+                  />
+                </div>
+              </div>
 
               {/* Issue Title */}
               <div className="flex flex-col gap-2">
@@ -561,19 +616,6 @@ export function SupportFormPage() {
                       value={formData.hoursSpent}
                       onChange={handleChange}
                       className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <label htmlFor="picClient" className="text-sm font-semibold text-on-background">Client PIC</label>
-                    <input
-                      id="picClient"
-                      name="picClient"
-                      type="text"
-                      value={formData.picClient}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                      placeholder="e.g. Mba Isti"
                     />
                   </div>
                 </>
