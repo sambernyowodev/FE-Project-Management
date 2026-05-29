@@ -1,16 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Ticket, Layers, Clock, User } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Ticket, Clock } from 'lucide-react';
 import {
   useGetSupportTicket,
   useCreateSupportTicket,
   useUpdateSupportTicket,
   useDeleteSupportTicket
 } from '@/modules/support/hooks/useSupportTickets';
-import { useGetProjects, useGetProjectMembers } from '@/modules/projects/hooks/useProjects';
-import { useGetUsers } from '@/modules/master/users/hooks/useUsers';
+import { useGetMasterProjects } from '@/modules/master/projects/hooks/useMasterProjects';
 import { SupportTicketStatus } from '@/shared/constants/enums';
-
 
 const STATUS_OPTIONS = Object.values(SupportTicketStatus);
 
@@ -20,8 +18,8 @@ export function SupportFormPage() {
   const isEditing = Boolean(id);
 
   const { data: ticket, isLoading: isTicketLoading } = useGetSupportTicket(Number(id));
-  const { data: projectsRes, isLoading: isProjectsLoading } = useGetProjects();
-  const projects = projectsRes?.data || [];
+  const { data: masterProjectsRes, isLoading: isMasterProjectsLoading } = useGetMasterProjects({ perPage: 200 });
+  const masterProjects = masterProjectsRes?.data || [];
 
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
@@ -42,23 +40,16 @@ export function SupportFormPage() {
   const handleProjectSelect = (value: string) => {
     setFormData(prev => {
       const next = { ...prev };
-
-      // Clear previous assignees when switching projects so new project defaults can be loaded
-      next.businessAnalystId = '';
-      next.uiUxId = '';
-      next.devFeId = '';
-      next.devBeId = '';
-
       if (value === 'new') {
         next.projectId = 'new';
         next.projectName = prev.newProjectName || '';
         next.customer = '';
       } else if (value) {
-        const selectedProj = projects.find(p => p.id === Number(value));
+        const selectedProj = masterProjects.find(p => p.id === Number(value));
         if (selectedProj) {
           next.projectId = value;
           next.projectName = selectedProj.name;
-          next.customer = selectedProj.customer || '';
+          next.customer = ''; // Customer can be updated by user if needed
         } else {
           next.projectId = '';
           next.projectName = '';
@@ -69,12 +60,11 @@ export function SupportFormPage() {
         next.projectName = '';
         next.customer = '';
       }
-
       return next;
     });
   };
 
-  const filteredProjects = projects.filter(p =>
+  const filteredProjects = masterProjects.filter(p =>
     p.name.toLowerCase().includes(projectSearchQuery.toLowerCase())
   );
 
@@ -93,42 +83,20 @@ export function SupportFormPage() {
     hoursSpent: '0',
     status: SupportTicketStatus.OPEN as string,
     notes: '',
-    businessAnalystId: '',
-    uiUxId: '',
-    devFeId: '',
-    devBeId: '',
   });
-
-  const selectedProjectId = Number(formData.projectId) || 0;
-  const { data: membersRes } = useGetProjectMembers(selectedProjectId);
-  const members = membersRes || [];
-
-  const { data: usersRes } = useGetUsers({ perPage: 100 });
-  const allUsers = usersRes?.data || [];
-
-  const rawAssignees = (!formData.projectId || formData.projectId === 'new')
-    ? allUsers.map((u: any) => ({ id: u.id, name: u.fullName }))
-    : members.map((m: any) => ({ id: m.user?.id || m.userId, name: m.user?.fullName || 'Unknown' }));
-
-  const assigneesOptions = Array.from(
-    new Map(rawAssignees.map((item: any) => [item.id, item])).values()
-  );
-
 
   const [error, setError] = useState('');
   const hasInitialized = useRef(false);
 
   useEffect(() => {
     if (isEditing) {
-      if (isTicketLoading || isProjectsLoading) return;
+      if (isTicketLoading || isMasterProjectsLoading) return;
       if (hasInitialized.current) return;
 
       if (ticket) {
-        // Find the project instance whose master project ID matches ticket.projectId (which is masterProjectId)
-        const matchedProj = projects.find(p => p.projectId === ticket.projectId);
         setFormData({
-          projectName: ticket.projectName || '',
-          projectId: matchedProj ? String(matchedProj.id) : '',
+          projectName: ticket.masterProject?.name || '',
+          projectId: ticket.masterProjectId ? String(ticket.masterProjectId) : '',
           newProjectName: '',
           customer: ticket.customer || '',
           issueTitle: ticket.issueTitle || '',
@@ -137,32 +105,11 @@ export function SupportFormPage() {
           hoursSpent: String(ticket.hoursSpent || 0),
           status: ticket.status || SupportTicketStatus.OPEN,
           notes: ticket.notes || '',
-          businessAnalystId: ticket.businessAnalystId ? String(ticket.businessAnalystId) : '',
-          uiUxId: ticket.uiUxId ? String(ticket.uiUxId) : '',
-          devFeId: ticket.devFeId ? String(ticket.devFeId) : '',
-          devBeId: ticket.devBeId ? String(ticket.devBeId) : '',
         });
         hasInitialized.current = true;
       }
     }
-  }, [ticket, isEditing, projects, isTicketLoading, isProjectsLoading]);
-
-  useEffect(() => {
-    if (membersRes && membersRes.length > 0) {
-      const ba = membersRes.find((m: any) => m.role?.code === 'BA');
-      const uiux = membersRes.find((m: any) => m.role?.code === 'UIUX');
-      const devfe = membersRes.find((m: any) => m.role?.code === 'DEV_FE');
-      const devbe = membersRes.find((m: any) => m.role?.code === 'DEV_BE');
-
-      setFormData(prev => ({
-        ...prev,
-        businessAnalystId: prev.businessAnalystId || (ba ? String(ba.user?.id || ba.userId) : ''),
-        uiUxId: prev.uiUxId || (uiux ? String(uiux.user?.id || uiux.userId) : ''),
-        devFeId: prev.devFeId || (devfe ? String(devfe.user?.id || devfe.userId) : ''),
-        devBeId: prev.devBeId || (devbe ? String(devbe.user?.id || devbe.userId) : ''),
-      }));
-    }
-  }, [membersRes]);
+  }, [ticket, isEditing, masterProjects, isTicketLoading, isMasterProjectsLoading]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -170,22 +117,16 @@ export function SupportFormPage() {
       const next = { ...prev, [name]: value };
 
       if (name === 'projectId') {
-        // Clear previous assignees when switching projects so new project defaults can be loaded
-        next.businessAnalystId = '';
-        next.uiUxId = '';
-        next.devFeId = '';
-        next.devBeId = '';
-
         if (value === 'new') {
           next.projectId = 'new';
           next.projectName = prev.newProjectName || '';
           next.customer = '';
         } else {
-          const selectedProj = projects.find(p => p.id === Number(value));
+          const selectedProj = masterProjects.find(p => p.id === Number(value));
           if (selectedProj) {
             next.projectId = value;
             next.projectName = selectedProj.name;
-            next.customer = selectedProj.customer || '';
+            next.customer = '';
           } else {
             next.projectId = '';
             next.projectName = '';
@@ -214,9 +155,9 @@ export function SupportFormPage() {
       return;
     }
 
-    const selectedProj = projects.find(p => String(p.id) === formData.projectId);
+    const selectedProj = masterProjects.find(p => String(p.id) === formData.projectId);
     const masterProjectId = formData.projectId && formData.projectId !== 'new' && selectedProj
-      ? selectedProj.projectId
+      ? selectedProj.id
       : undefined;
     const masterProjectName = formData.projectId === 'new'
       ? formData.newProjectName
@@ -228,10 +169,6 @@ export function SupportFormPage() {
       masterProjectName,
       issueTitle: formData.issueTitle,
       issueDescription: formData.issueDescription || undefined,
-      businessAnalystId: formData.businessAnalystId ? Number(formData.businessAnalystId) : undefined,
-      uiUxId: formData.uiUxId ? Number(formData.uiUxId) : undefined,
-      devFeId: formData.devFeId ? Number(formData.devFeId) : undefined,
-      devBeId: formData.devBeId ? Number(formData.devBeId) : undefined,
     };
 
     if (isEditing) {
@@ -276,7 +213,7 @@ export function SupportFormPage() {
     }
   };
 
-  if (isEditing && (isTicketLoading || isProjectsLoading)) {
+  if (isEditing && (isTicketLoading || isMasterProjectsLoading)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
@@ -346,8 +283,8 @@ export function SupportFormPage() {
                     <span className={formData.projectId ? 'text-on-background' : 'text-secondary'}>
                       {formData.projectId === 'new'
                         ? '+ Tambah Project Baru (Support)'
-                        : projects.find(p => String(p.id) === formData.projectId)
-                          ? projects.find(p => String(p.id) === formData.projectId)?.name
+                        : masterProjects.find(p => String(p.id) === formData.projectId)
+                          ? masterProjects.find(p => String(p.id) === formData.projectId)?.name
                           : '-- Pilih Project --'}
                     </span>
                     <span className="text-secondary text-xs">▼</span>
@@ -479,88 +416,11 @@ export function SupportFormPage() {
             </div>
           </div>
 
-          {/* Assignee Card */}
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
-            <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              <span>Assign Project Members</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Business Analyst */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="businessAnalystId" className="text-sm font-semibold text-on-background">Business Analyst</label>
-                <select
-                  id="businessAnalystId"
-                  name="businessAnalystId"
-                  value={formData.businessAnalystId}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                >
-                  <option value="">-- Pilih BA --</option>
-                  {assigneesOptions.map((opt: any) => (
-                    <option key={opt.id} value={opt.id}>{opt.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* UI/UX */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="uiUxId" className="text-sm font-semibold text-on-background">UI/UX Designer</label>
-                <select
-                  id="uiUxId"
-                  name="uiUxId"
-                  value={formData.uiUxId}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                >
-                  <option value="">-- Pilih UI/UX --</option>
-                  {assigneesOptions.map((opt: any) => (
-                    <option key={opt.id} value={opt.id}>{opt.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Developer FE */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="devFeId" className="text-sm font-semibold text-on-background">Developer FE</label>
-                <select
-                  id="devFeId"
-                  name="devFeId"
-                  value={formData.devFeId}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                >
-                  <option value="">-- Pilih Dev FE --</option>
-                  {assigneesOptions.map((opt: any) => (
-                    <option key={opt.id} value={opt.id}>{opt.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Developer BE */}
-              <div className="flex flex-col gap-2">
-                <label htmlFor="devBeId" className="text-sm font-semibold text-on-background">Developer BE</label>
-                <select
-                  id="devBeId"
-                  name="devBeId"
-                  value={formData.devBeId}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
-                >
-                  <option value="">-- Pilih Dev BE --</option>
-                  {assigneesOptions.map((opt: any) => (
-                    <option key={opt.id} value={opt.id}>{opt.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
           {/* Notes (Only when editing) */}
           {isEditing && (
             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
               <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-primary" />
+                <Ticket className="w-5 h-5 text-primary" />
                 <span>Catatan Penyelesaian (Internal Notes)</span>
               </h2>
               <div className="flex flex-col gap-2">
@@ -579,7 +439,7 @@ export function SupportFormPage() {
           )}
         </div>
 
-        {/* Right Sidebar - Status, Hours, PIC (Only visible/editable when editing or partially custom) */}
+        {/* Right Sidebar - Status, Hours, PIC */}
         <div className="flex flex-col gap-6">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col gap-6">
             <h2 className="text-lg font-bold text-on-background border-b border-outline-variant pb-3 flex items-center gap-2">

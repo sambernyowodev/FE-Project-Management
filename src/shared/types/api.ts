@@ -519,19 +519,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/support-tickets/{id}/details": {
+    "/api/support-tickets/{id}/assignees": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get ticket details/sub-issues */
-        get: operations["SupportTicketsController_getDetails"];
+        /** Get ticket assignees */
+        get: operations["SupportTicketsController_getAssignees"];
         put?: never;
-        /** Add detail/sub-issue to ticket */
-        post: operations["SupportTicketsController_addDetail"];
+        /** Assign a member to ticket */
+        post: operations["SupportTicketsController_addAssignee"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/support-tickets/{id}/assignees/{assigneeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update an assignee allocation */
+        put: operations["SupportTicketsController_updateAssignee"];
+        post?: never;
+        /** Remove an assignee from ticket */
+        delete: operations["SupportTicketsController_removeAssignee"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1083,20 +1101,36 @@ export interface components {
             startDate?: string;
             /** Format: date-time */
             endDate?: string;
-            businessAnalystId?: number;
-            uiUxId?: number;
-            devFeId?: number;
-            devBeId?: number;
             folderAttachment?: string;
             notes?: string;
             /** Format: date-time */
             updateDate?: string;
             isActive: boolean;
             masterProject?: components["schemas"]["MasterProjectResponseDto"];
-            businessAnalyst?: components["schemas"]["UserResponseDto"];
-            uiUx?: components["schemas"]["UserResponseDto"];
-            devFe?: components["schemas"]["UserResponseDto"];
-            devBe?: components["schemas"]["UserResponseDto"];
+            assignees?: components["schemas"]["SupportTicketAssigneeResponseDto"][];
+        };
+        SupportTicketAssigneeResponseDto: {
+            id: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            createdBy?: number;
+            updatedBy?: number;
+            supportTicketId: number;
+            userId: number;
+            roleId?: number;
+            hoursSpent: number;
+            /** @enum {string} */
+            status: "OPEN" | "IN PROGRESS" | "DONE" | "ON HOLD";
+            /** Format: date-time */
+            startDate?: string;
+            /** Format: date-time */
+            endDate?: string;
+            notes?: string;
+            supportTicket?: components["schemas"]["SupportTicketResponseDto"];
+            user?: components["schemas"]["UserResponseDto"];
+            role?: components["schemas"]["RoleResponseDto"];
         };
         CreateSupportTicketDto: {
             /** @description Master project ID (FK to master_projects) */
@@ -1107,35 +1141,28 @@ export interface components {
             picClient?: string;
             issueTitle: string;
             issueDescription?: string;
-            businessAnalystId?: number;
-            uiUxId?: number;
-            devFeId?: number;
-            devBeId?: number;
         };
-        SupportTicketDetailResponseDto: {
-            id: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            createdBy?: number;
-            updatedBy?: number;
-            supportTicketId: number;
-            subIssue: string;
-            hoursSpent: number;
-            /** @enum {string} */
-            status: "OPEN" | "IN PROGRESS" | "DONE" | "ON HOLD";
-            platform?: string;
-            /** Format: date-time */
-            startDate?: string;
-            /** Format: date-time */
-            endDate?: string;
-            devBeNames?: string;
-            supportTicket?: components["schemas"]["SupportTicketResponseDto"];
-        };
-        CreateSupportTicketDetailDto: {
-            subIssue: string;
+        CreateSupportTicketAssigneeDto: {
+            /** @description User ID of the assigned member */
+            userId: number;
+            /** @description Role ID of the assigned member */
+            roleId?: number;
             hoursSpent?: number;
+            /** @enum {string} */
+            status?: "OPEN" | "IN PROGRESS" | "DONE" | "ON HOLD";
+            startDate?: string;
+            endDate?: string;
+            notes?: string;
+        };
+        UpdateSupportTicketAssigneeDto: {
+            /** @description Role ID of the assigned member */
+            roleId?: number;
+            hoursSpent?: number;
+            /** @enum {string} */
+            status?: "OPEN" | "IN PROGRESS" | "DONE" | "ON HOLD";
+            startDate?: string;
+            endDate?: string;
+            notes?: string;
         };
         UpdateSupportTicketDto: {
             masterProjectId?: number;
@@ -1148,10 +1175,6 @@ export interface components {
             mandaysSpent?: number;
             status?: string;
             notes?: string;
-            businessAnalystId?: number;
-            uiUxId?: number;
-            devFeId?: number;
-            devBeId?: number;
         };
         GenerateInvoiceDto: {
             poId: number;
@@ -2503,7 +2526,7 @@ export interface operations {
             };
         };
     };
-    SupportTicketsController_getDetails: {
+    SupportTicketsController_getAssignees: {
         parameters: {
             query?: never;
             header?: never;
@@ -2520,13 +2543,13 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["SupportTicketDetailResponseDto"][];
+                        data?: components["schemas"]["SupportTicketAssigneeResponseDto"][];
                     };
                 };
             };
         };
     };
-    SupportTicketsController_addDetail: {
+    SupportTicketsController_addAssignee: {
         parameters: {
             query?: never;
             header?: never;
@@ -2537,7 +2560,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateSupportTicketDetailDto"];
+                "application/json": components["schemas"]["CreateSupportTicketAssigneeDto"];
             };
         };
         responses: {
@@ -2547,7 +2570,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["SupportTicketDetailResponseDto"];
+                        data?: components["schemas"]["SupportTicketAssigneeResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    SupportTicketsController_updateAssignee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                assigneeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSupportTicketAssigneeDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["SupportTicketAssigneeResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    SupportTicketsController_removeAssignee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                assigneeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["SuccessResponseDto"];
                     };
                 };
             };

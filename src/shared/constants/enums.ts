@@ -59,13 +59,6 @@ export const SupportTicketStatus = {
     CANCELLED: 'CANCELLED',
 } as const;
 
-export const SupportTicketDetailStatus = {
-    OPEN: 'OPEN',
-    IN_PROGRESS: 'IN PROGRESS',
-    DONE: 'DONE',
-    ON_HOLD: 'ON HOLD',
-} as const;
-
 export const InvoiceStatus = {
     DRAFT: 'DRAFT',
     SENT: 'SENT',

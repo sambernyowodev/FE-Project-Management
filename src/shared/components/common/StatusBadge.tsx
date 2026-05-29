@@ -1,19 +1,17 @@
 import { cn } from "@/shared/lib/utils";
-import { 
-  ProjectStatus, 
-  PurchaseOrderStatus, 
-  SalesOrderStatus, 
-  SupportTicketStatus, 
-  SupportTicketDetailStatus, 
-  InvoiceStatus 
+import {
+  ProjectStatus,
+  PurchaseOrderStatus,
+  SalesOrderStatus,
+  SupportTicketStatus,
+  InvoiceStatus
 } from "@/shared/constants/enums";
 
-type StatusType = 
+type StatusType =
   | keyof typeof ProjectStatus
   | keyof typeof PurchaseOrderStatus
   | keyof typeof SalesOrderStatus
   | keyof typeof SupportTicketStatus
-  | keyof typeof SupportTicketDetailStatus
   | keyof typeof InvoiceStatus;
 
 const statusStyles: Record<StatusType, string> = {

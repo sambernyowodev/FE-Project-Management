@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, Trash2 } from 'lucide-react';
+import { Edit, Trash2, Users } from 'lucide-react';
 import {
   useGetSupportTickets,
   useDeleteSupportTicket
@@ -75,21 +75,16 @@ export function SupportListPage() {
       header: 'Project Name',
       accessorKey: 'projectName',
       cell: ({ row }) => (
-        <span className="font-semibold text-on-background">{row.original.projectName || '-'}</span>
-      ),
-    },
-    {
-      id: 'picClient',
-      header: 'Client PIC',
-      accessorKey: 'picClient',
-      cell: ({ row }) => (
-        <span className="text-secondary">{row.original.picClient || '-'}</span>
+        <span className="font-semibold text-on-background">{row.original.masterProject?.name || '-'}</span>
       ),
     },
     {
       id: 'startDate',
       header: 'Date',
       accessorKey: 'startDate',
+      meta: {
+        filterType: 'date',
+      },
       cell: ({ row }) => (
         <span className="text-secondary">{formatDate(row.original.startDate, 'short')}</span>
       ),
@@ -129,13 +124,20 @@ export function SupportListPage() {
     {
       id: 'actions',
       header: 'Actions',
-      meta: { className: 'text-right w-24' },
+      meta: { className: 'text-right w-32' },
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-end gap-1 items-center">
           <button
-            onClick={() => navigate(`/support/${row.original.id}`)}
+            onClick={() => navigate(`/support/${row.original.id}/timeline`)}
             className="p-1.5 hover:bg-surface-container-high rounded-lg text-primary transition-all cursor-pointer"
+            title="Kelola Member"
+          >
+            <Users className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => navigate(`/support/${row.original.id}`)}
+            className="p-1.5 hover:bg-surface-container-high rounded-lg text-secondary hover:text-on-background transition-all cursor-pointer"
             title="Edit Ticket"
           >
             <Edit className="w-4 h-4" />

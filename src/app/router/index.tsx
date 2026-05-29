@@ -9,6 +9,7 @@ import { POListPage } from '@/features/purchase-orders/POListPage';
 import { SOListPage } from '@/features/sales-orders/SOListPage';
 import { SupportListPage } from '@/features/support/SupportListPage';
 import { SupportFormPage } from '@/features/support/SupportFormPage';
+import { SupportTimelinePage } from '@/features/support/SupportTimelinePage';
 import { BillingHubPage } from '@/features/billing/BillingHubPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { RoleRateListPage } from '@/features/master/role-rates/RoleRateListPage';
@@ -72,6 +73,10 @@ export const router = createBrowserRouter([
       {
         path: 'support/:id',
         element: <SupportFormPage />
+      },
+      {
+        path: 'support/:id/timeline',
+        element: <SupportTimelinePage />
       },
       {
         path: 'master',
