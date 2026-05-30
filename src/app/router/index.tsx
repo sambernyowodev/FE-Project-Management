@@ -12,6 +12,7 @@ import { SupportListPage } from '@/features/support/SupportListPage';
 import { SupportFormPage } from '@/features/support/SupportFormPage';
 import { SupportTimelinePage } from '@/features/support/SupportTimelinePage';
 import { BillingHubPage } from '@/features/billing/BillingHubPage';
+import { BillingFormPage } from '@/features/billing/BillingFormPage';
 import { ReportsPage } from '@/features/reports/ReportsPage';
 import { RoleRateListPage } from '@/features/master/role-rates/RoleRateListPage';
 import { RoleRateFormPage } from '@/features/master/role-rates/RoleRateFormPage';
@@ -143,6 +144,10 @@ export const router = createBrowserRouter([
       {
         path: 'billing',
         element: <BillingHubPage />
+      },
+      {
+        path: 'billing/new',
+        element: <BillingFormPage />
       },
       {
         path: 'reports',

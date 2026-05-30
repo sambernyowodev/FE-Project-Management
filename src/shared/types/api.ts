@@ -103,25 +103,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get global role rates (no project tied) */
+        /** Get global role rates */
         get: operations["RoleRatesController_getGlobalRates"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/role-rates/project/{projectId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get role rates specific to a project */
-        get: operations["RoleRatesController_getProjectRates"];
         put?: never;
         post?: never;
         delete?: never;
@@ -142,7 +125,8 @@ export interface paths {
         /** Update role rate */
         put: operations["RoleRatesController_update"];
         post?: never;
-        delete?: never;
+        /** Delete role rate */
+        delete: operations["RoleRatesController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -582,7 +566,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Generate preview of invoice calculations */
+        /** Generate preview of billing calculations */
         post: operations["BillingController_generatePreview"];
         delete?: never;
         options?: never;
@@ -590,48 +574,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/billing/invoice": {
+    "/api/billing": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Get all billing records */
+        get: operations["BillingController_findAllBillings"];
         put?: never;
-        /** Create an invoice based on actuals */
-        post: operations["BillingController_createInvoice"];
+        /** Create a billing record */
+        post: operations["BillingController_createBilling"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/billing/invoices": {
+    "/api/billing/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get all invoices */
-        get: operations["BillingController_findAllInvoices"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/billing/invoices/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get invoice details */
+        /** Get billing details */
         get: operations["BillingController_findOne"];
         put?: never;
         post?: never;
@@ -767,6 +735,28 @@ export interface components {
             /** @example Operation successful */
             message?: string;
         };
+        RoleRateResponseDto: {
+            id: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            createdBy?: number;
+            updatedBy?: number;
+            roleId: number;
+            ratePerMandayProject: number;
+            ratePerMandaySupport: number;
+            currency: string;
+            isActive: boolean;
+            role?: components["schemas"]["RoleResponseDto"];
+        };
+        CreateRoleRateDto: {
+            roleId: number;
+            ratePerMandayProject: number;
+            ratePerMandaySupport: number;
+            /** @default IDR */
+            currency: string;
+        };
         MasterProjectResponseDto: {
             id: number;
             /** Format: date-time */
@@ -780,6 +770,11 @@ export interface components {
             description?: string;
             platform?: string;
             isActive: boolean;
+        };
+        CreateMasterProjectDto: {
+            name: string;
+            description?: string;
+            platform?: string;
         };
         ProjectResponseDto: {
             id: number;
@@ -811,44 +806,6 @@ export interface components {
             updatedAt?: string;
             project?: components["schemas"]["MasterProjectResponseDto"];
             parentProject?: components["schemas"]["ProjectResponseDto"];
-        };
-        RoleRateResponseDto: {
-            id: number;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            createdBy?: number;
-            updatedBy?: number;
-            roleId: number;
-            projectId?: number;
-            ratePerManday: number;
-            ratePerHour: number;
-            currency: string;
-            /** Format: date-time */
-            effectiveFrom: string;
-            /** Format: date-time */
-            effectiveUntil?: string;
-            isActive: boolean;
-            role?: components["schemas"]["RoleResponseDto"];
-            project?: components["schemas"]["ProjectResponseDto"];
-        };
-        CreateRoleRateDto: {
-            roleId: number;
-            projectId?: number;
-            ratePerManday: number;
-            ratePerHour?: number;
-            /** @default IDR */
-            currency: string;
-            /** @example 2026-01-01 */
-            effectiveFrom: string;
-            /** @example 2026-12-31 */
-            effectiveUntil?: string;
-        };
-        CreateMasterProjectDto: {
-            name: string;
-            description?: string;
-            platform?: string;
         };
         CreateProjectDto: {
             /** @description Master project ID (FK to master_projects) */
@@ -1173,14 +1130,19 @@ export interface components {
             status?: string;
             notes?: string;
         };
-        GenerateInvoiceDto: {
-            poId: number;
-            projectId: number;
+        GenerateBillingDto: {
+            /**
+             * @example PROJECT
+             * @enum {string}
+             */
+            billingType: "PROJECT" | "SUPPORT";
+            projectIds?: number[];
+            supportTicketIds?: number[];
             startDate: string;
             endDate: string;
-            taxRate?: number;
+            remarks?: string;
         };
-        BillingInvoiceDetailResponseDto: {
+        BillingDetailResponseDto: {
             id: number;
             /** Format: date-time */
             createdAt?: string;
@@ -1188,33 +1150,36 @@ export interface components {
             updatedAt?: string;
             createdBy?: number;
             updatedBy?: number;
-            billingInvoiceId: number;
-            roleId?: number;
-            description: string;
-            totalMandays: number;
+            billingId: number;
+            projectId?: number;
+            roleId: number;
+            mandays: number;
             ratePerManday: number;
-            amount: number;
+            subtotal: number;
+            project?: components["schemas"]["ProjectResponseDto"];
             role?: components["schemas"]["RoleResponseDto"];
         };
-        BillingInvoiceResponseDto: {
-            invoiceNumber: string;
-            projectId: number;
-            poId?: number;
+        BillingResponseDto: {
+            id: number;
             /** Format: date-time */
-            periodStart: string;
+            createdAt?: string;
             /** Format: date-time */
-            periodEnd: string;
+            updatedAt?: string;
+            createdBy?: number;
+            updatedBy?: number;
+            billingNumber: string;
+            billingType: string;
+            /** Format: date-time */
+            billingPeriodStart: string;
+            /** Format: date-time */
+            billingPeriodEnd: string;
+            totalMandays: number;
             totalAmount: number;
             /** @enum {string} */
-            status: "DRAFT" | "SENT" | "PAID" | "OVERDUE" | "CANCELLED";
-            isActive: boolean;
-            createdById: number;
-            /** Format: date-time */
-            createdAt: string;
-            project?: components["schemas"]["ProjectResponseDto"];
-            po?: components["schemas"]["PurchaseOrderResponseDto"];
-            createdBy?: components["schemas"]["UserResponseDto"];
-            details?: components["schemas"]["BillingInvoiceDetailResponseDto"][];
+            status: "DRAFT" | "FINALIZED" | "CANCELLED";
+            remarks?: string;
+            projects?: components["schemas"]["ProjectResponseDto"][];
+            details?: components["schemas"]["BillingDetailResponseDto"][];
         };
         AuthResponseDto: {
             accessToken: string;
@@ -1570,29 +1535,6 @@ export interface operations {
             };
         };
     };
-    RoleRatesController_getProjectRates: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["RoleRateResponseDto"][];
-                    };
-                };
-            };
-        };
-    };
     RoleRatesController_findOne: {
         parameters: {
             query?: never;
@@ -1617,6 +1559,29 @@ export interface operations {
         };
     };
     RoleRatesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["RoleRateResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    RoleRatesController_remove: {
         parameters: {
             query?: never;
             header?: never;
@@ -2661,7 +2626,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["GenerateInvoiceDto"];
+                "application/json": components["schemas"]["GenerateBillingDto"];
             };
         };
         responses: {
@@ -2673,32 +2638,7 @@ export interface operations {
             };
         };
     };
-    BillingController_createInvoice: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GenerateInvoiceDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["BillingInvoiceResponseDto"];
-                    };
-                };
-            };
-        };
-    };
-    BillingController_findAllInvoices: {
+    BillingController_findAllBillings: {
         parameters: {
             query?: never;
             header?: never;
@@ -2713,7 +2653,32 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["BillingInvoiceResponseDto"][];
+                        data?: components["schemas"]["BillingResponseDto"][];
+                    };
+                };
+            };
+        };
+    };
+    BillingController_createBilling: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateBillingDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["BillingResponseDto"];
                     };
                 };
             };
@@ -2736,7 +2701,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
-                        data?: components["schemas"]["BillingInvoiceResponseDto"];
+                        data?: components["schemas"]["BillingResponseDto"];
                     };
                 };
             };

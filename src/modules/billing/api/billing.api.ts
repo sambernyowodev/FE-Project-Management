@@ -1,22 +1,24 @@
 import { apiClient } from '@/shared/api/api-client';
-import type { BillingInvoice } from '../types';
-import type { components } from '@/shared/types/api';
-
-type GenerateInvoiceDto = components['schemas']['GenerateInvoiceDto'];
+import type { Billing, GenerateBillingRequest } from '../types';
 
 export const billingApi = {
-  getInvoices: async (): Promise<BillingInvoice[]> => {
-    const response = await apiClient.get<{ data: BillingInvoice[] }>('/billing/invoices');
+  getBillings: async (): Promise<Billing[]> => {
+    const response = await apiClient.get<{ data: Billing[] }>('/billing');
     return response.data.data;
   },
 
-  getPreview: async (dto: GenerateInvoiceDto): Promise<any> => {
+  getBillingById: async (id: number): Promise<Billing> => {
+    const response = await apiClient.get<{ data: Billing }>(`/billing/${id}`);
+    return response.data.data;
+  },
+
+  getPreview: async (dto: GenerateBillingRequest): Promise<any> => {
     const response = await apiClient.post<{ data: any }>('/billing/preview', dto);
     return response.data.data;
   },
 
-  createInvoice: async (dto: GenerateInvoiceDto): Promise<BillingInvoice> => {
-    const response = await apiClient.post<{ data: BillingInvoice }>('/billing/invoice', dto);
+  createBilling: async (dto: GenerateBillingRequest): Promise<Billing> => {
+    const response = await apiClient.post<{ data: Billing }>('/billing', dto);
     return response.data.data;
   }
 };

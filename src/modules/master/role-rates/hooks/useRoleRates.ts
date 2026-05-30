@@ -36,3 +36,13 @@ export const useUpdateRoleRate = () => {
     },
   });
 };
+
+export const useDeleteRoleRate = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => roleRatesApi.deleteRoleRate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['role-rates'] });
+    },
+  });
+};

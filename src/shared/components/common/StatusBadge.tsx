@@ -3,14 +3,14 @@ import {
   ProjectStatus,
   PurchaseOrderStatus,
   SupportTicketStatus,
-  InvoiceStatus
+  BillingStatus
 } from "@/shared/constants/enums";
 
 type StatusType =
   | keyof typeof ProjectStatus
   | keyof typeof PurchaseOrderStatus
   | keyof typeof SupportTicketStatus
-  | keyof typeof InvoiceStatus;
+  | keyof typeof BillingStatus;
 
 const statusStyles: Record<StatusType, string> = {
   PLANNING: "bg-slate-100 text-slate-700 border-slate-200",
@@ -25,9 +25,7 @@ const statusStyles: Record<StatusType, string> = {
   DRAFT: "bg-slate-100 text-slate-700 border-slate-200",
   ACTIVE: "bg-blue-100 text-blue-700 border-blue-200",
   COMPLETED: "bg-green-100 text-green-700 border-green-200",
-  PAID: "bg-green-100 text-green-700 border-green-200",
-  SENT: "bg-blue-100 text-blue-700 border-blue-200",
-  OVERDUE: "bg-red-100 text-red-700 border-red-200",
+  FINALIZED: "bg-green-100 text-green-700 border-green-200",
   OPEN: "bg-red-100 text-red-700 border-red-200",
   DEV_DONE: "bg-indigo-100 text-indigo-700 border-indigo-200",
   SIT_DONE: "bg-sky-100 text-sky-700 border-sky-200",

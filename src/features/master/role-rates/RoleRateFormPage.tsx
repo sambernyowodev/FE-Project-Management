@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Coins, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Save, Coins, ShieldCheck, Trash2 } from 'lucide-react';
 import {
   useGetRoleRate,
   useCreateRoleRate,
-  useUpdateRoleRate
+  useUpdateRoleRate,
+  useDeleteRoleRate
 } from '@/modules/master/role-rates/hooks/useRoleRates';
 import { useGetRoles } from '@/modules/master/roles/hooks/useRoles';
-import { useGetProjects } from '@/modules/projects/hooks/useProjects';
 
 export function RoleRateFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -16,38 +16,28 @@ export function RoleRateFormPage() {
 
   const { data: roleRate, isLoading: isRoleRateLoading } = useGetRoleRate(Number(id));
   const { data: roles = [], isLoading: isRolesLoading } = useGetRoles();
-  const { data: projectsRes, isLoading: isProjectsLoading } = useGetProjects({ perPage: 100 });
 
   const createMutation = useCreateRoleRate();
   const updateMutation = useUpdateRoleRate();
+  const deleteMutation = useDeleteRoleRate();
 
-  const [scope, setScope] = useState<'global' | 'project'>('global');
   const [formData, setFormData] = useState({
     roleId: '',
-    projectId: '',
-    ratePerManday: '',
-    ratePerHour: '',
+    ratePerMandayProject: '',
+    ratePerMandaySupport: '',
     currency: 'IDR',
-    effectiveFrom: new Date().toISOString().split('T')[0],
-    effectiveUntil: '',
     isActive: true,
   });
 
   const [error, setError] = useState('');
 
-  const projects = projectsRes?.data || [];
-
   useEffect(() => {
     if (roleRate && isEditing) {
-      setScope(roleRate.projectId ? 'project' : 'global');
       setFormData({
         roleId: String(roleRate.roleId || ''),
-        projectId: roleRate.projectId ? String(roleRate.projectId) : '',
-        ratePerManday: String(roleRate.ratePerManday || ''),
-        ratePerHour: roleRate.ratePerHour ? String(roleRate.ratePerHour) : '',
+        ratePerMandayProject: String(roleRate.ratePerMandayProject || ''),
+        ratePerMandaySupport: String(roleRate.ratePerMandaySupport || ''),
         currency: roleRate.currency || 'IDR',
-        effectiveFrom: roleRate.effectiveFrom ? roleRate.effectiveFrom.split('T')[0] : '',
-        effectiveUntil: roleRate.effectiveUntil ? roleRate.effectiveUntil.split('T')[0] : '',
         isActive: roleRate.isActive !== undefined ? roleRate.isActive : true,
       });
     }
@@ -67,29 +57,21 @@ export function RoleRateFormPage() {
       return;
     }
 
-    if (scope === 'project' && !formData.projectId) {
-      setError('Project wajib dipilih jika cakupan adalah Project-Specific');
+    if (!formData.ratePerMandayProject || Number(formData.ratePerMandayProject) <= 0) {
+      setError('Rate per Manday Project wajib diisi dan harus lebih besar dari 0');
       return;
     }
 
-    if (!formData.ratePerManday || Number(formData.ratePerManday) <= 0) {
-      setError('Rate per manday wajib diisi dan harus lebih besar dari 0');
+    if (!formData.ratePerMandaySupport || Number(formData.ratePerMandaySupport) <= 0) {
+      setError('Rate per Manday Support wajib diisi dan harus lebih besar dari 0');
       return;
     }
 
-    if (!formData.effectiveFrom) {
-      setError('Tanggal berlaku efektif (Effective From) wajib diisi');
-      return;
-    }
-
-    const payload: any = {
+    const payload = {
       roleId: Number(formData.roleId),
-      projectId: scope === 'project' ? Number(formData.projectId) : null,
-      ratePerManday: Number(formData.ratePerManday),
-      ratePerHour: formData.ratePerHour ? Number(formData.ratePerHour) : undefined,
+      ratePerMandayProject: Number(formData.ratePerMandayProject),
+      ratePerMandaySupport: Number(formData.ratePerMandaySupport),
       currency: formData.currency,
-      effectiveFrom: formData.effectiveFrom,
-      effectiveUntil: formData.effectiveUntil || undefined,
       isActive: formData.isActive,
     };
 
@@ -117,7 +99,20 @@ export function RoleRateFormPage() {
     }
   };
 
-  if (isEditing && (isRoleRateLoading || isRolesLoading || isProjectsLoading)) {
+  const handleDelete = () => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus rate ini?')) {
+      deleteMutation.mutate(Number(id), {
+        onSuccess: () => {
+          navigate('/master/role-rates');
+        },
+        onError: (err: any) => {
+          setError(err?.message || 'Gagal menghapus rate');
+        },
+      });
+    }
+  };
+
+  if (isEditing && (isRoleRateLoading || isRolesLoading)) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
@@ -189,71 +184,20 @@ export function RoleRateFormPage() {
                 </select>
               </div>
 
-              {/* Scope Scope Selection */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-semibold text-on-background">Cakupan Rate (Scope) *</label>
-                <div className="flex gap-4">
-                  <label className="flex items-center gap-2 text-sm text-on-background font-medium cursor-pointer">
-                    <input
-                      type="radio"
-                      name="scope"
-                      checked={scope === 'global'}
-                      onChange={() => setScope('global')}
-                      className="accent-primary w-4 h-4"
-                    />
-                    <span>Global (Berlaku untuk semua project)</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-on-background font-medium cursor-pointer">
-                    <input
-                      type="radio"
-                      name="scope"
-                      checked={scope === 'project'}
-                      onChange={() => setScope('project')}
-                      className="accent-primary w-4 h-4"
-                    />
-                    <span>Project-Specific</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Project Selection (Conditional) */}
-              {scope === 'project' && (
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="projectId" className="text-sm font-semibold text-on-background">
-                    Project *
-                  </label>
-                  <select
-                    id="projectId"
-                    name="projectId"
-                    required
-                    value={formData.projectId}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold"
-                  >
-                    <option value="">-- Pilih Project --</option>
-                    {projects.map((proj: any) => (
-                      <option key={proj.id} value={proj.id}>
-                        {proj.name} ({proj.customer})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {/* Rate Per Manday */}
+              {/* Rate Per Manday Project & Support */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="ratePerManday" className="text-sm font-semibold text-on-background">
-                    Rate per Manday *
+                  <label htmlFor="ratePerMandayProject" className="text-sm font-semibold text-on-background">
+                    Rate per Manday (Project) *
                   </label>
                   <div className="relative">
                     <input
-                      id="ratePerManday"
-                      name="ratePerManday"
+                      id="ratePerMandayProject"
+                      name="ratePerMandayProject"
                       type="number"
                       min="1"
                       required
-                      value={formData.ratePerManday}
+                      value={formData.ratePerMandayProject}
                       onChange={handleChange}
                       className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
                       placeholder="e.g. 1500000"
@@ -264,21 +208,21 @@ export function RoleRateFormPage() {
                   </div>
                 </div>
 
-                {/* Rate Per Hour */}
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="ratePerHour" className="text-sm font-semibold text-on-background">
-                    Rate per Hour (Opsional)
+                  <label htmlFor="ratePerMandaySupport" className="text-sm font-semibold text-on-background">
+                    Rate per Manday (Support) *
                   </label>
                   <div className="relative">
                     <input
-                      id="ratePerHour"
-                      name="ratePerHour"
+                      id="ratePerMandaySupport"
+                      name="ratePerMandaySupport"
                       type="number"
                       min="1"
-                      value={formData.ratePerHour}
+                      required
+                      value={formData.ratePerMandaySupport}
                       onChange={handleChange}
                       className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                      placeholder="e.g. 187500"
+                      placeholder="e.g. 1200000"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-secondary font-bold font-mono">
                       {formData.currency}
@@ -303,38 +247,6 @@ export function RoleRateFormPage() {
                   <option value="USD">USD - US Dollar</option>
                   <option value="SGD">SGD - Singapore Dollar</option>
                 </select>
-              </div>
-
-              {/* Date ranges */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="effectiveFrom" className="text-sm font-semibold text-on-background">
-                    Effective From *
-                  </label>
-                  <input
-                    id="effectiveFrom"
-                    name="effectiveFrom"
-                    type="date"
-                    required
-                    value={formData.effectiveFrom}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background font-semibold"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="effectiveUntil" className="text-sm font-semibold text-on-background">
-                    Effective Until (Opsional)
-                  </label>
-                  <input
-                    id="effectiveUntil"
-                    name="effectiveUntil"
-                    type="date"
-                    value={formData.effectiveUntil}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background font-semibold"
-                  />
-                </div>
               </div>
             </div>
           </div>
@@ -388,10 +300,22 @@ export function RoleRateFormPage() {
             <button
               type="button"
               onClick={() => navigate('/master/role-rates')}
-              className="w-full py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-low transition-colors text-sm font-bold cursor-pointer"
+              className="w-full py-2.5 border border-outline-variant text-on-surface-variant rounded-lg hover:bg-surface-container-low transition-colors text-sm font-bold cursor-pointer mb-2"
             >
               Batal
             </button>
+
+            {isEditing && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 px-6 py-2.5 bg-error/10 hover:bg-error/20 text-error rounded-lg transition-colors text-sm font-bold cursor-pointer disabled:opacity-50 border border-error/20"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Hapus Rate (Soft Delete)</span>
+              </button>
+            )}
           </div>
         </div>
       </form>

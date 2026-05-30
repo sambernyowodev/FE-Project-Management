@@ -1,15 +1,23 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { billingApi } from '../api/billing.api';
-import type { GenerateInvoiceRequest } from '../types';
+import type { GenerateBillingRequest } from '../types';
 
-export const useGetInvoices = () => {
+export const useGetBillings = () => {
   return useQuery({
-    queryKey: ['billing', 'invoices'],
-    queryFn: billingApi.getInvoices,
+    queryKey: ['billing', 'list'],
+    queryFn: billingApi.getBillings,
   });
 };
 
-export const useGetBillingPreview = (dto: GenerateInvoiceRequest, enabled: boolean) => {
+export const useGetBillingById = (id: number) => {
+  return useQuery({
+    queryKey: ['billing', 'detail', id],
+    queryFn: () => billingApi.getBillingById(id),
+    enabled: !!id,
+  });
+};
+
+export const useGetBillingPreview = (dto: GenerateBillingRequest, enabled: boolean) => {
   return useQuery({
     queryKey: ['billing', 'preview', dto],
     queryFn: () => billingApi.getPreview(dto),
@@ -17,8 +25,8 @@ export const useGetBillingPreview = (dto: GenerateInvoiceRequest, enabled: boole
   });
 };
 
-export const useCreateInvoice = () => {
+export const useCreateBilling = () => {
   return useMutation({
-    mutationFn: (dto: GenerateInvoiceRequest) => billingApi.createInvoice(dto),
+    mutationFn: (dto: GenerateBillingRequest) => billingApi.createBilling(dto),
   });
 };

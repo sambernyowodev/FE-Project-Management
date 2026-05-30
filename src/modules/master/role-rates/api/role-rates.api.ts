@@ -21,4 +21,9 @@ export const roleRatesApi = {
     const response = await apiClient.put<{ data: RoleRate }>(`/role-rates/${id}`, data);
     return response.data.data;
   },
+
+  deleteRoleRate: async (id: number): Promise<any> => {
+    const response = await apiClient.delete<any>(`/role-rates/${id}`);
+    return response.data;
+  },
 };

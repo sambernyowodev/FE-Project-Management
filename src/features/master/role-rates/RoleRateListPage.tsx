@@ -5,7 +5,6 @@ import { useGetRoleRates } from '@/modules/master/role-rates/hooks/useRoleRates'
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { RoleRate } from '@/modules/master/role-rates/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
-import { formatDate } from '@/shared/lib/formatter';
 
 export function RoleRateListPage() {
   const navigate = useNavigate();
@@ -60,45 +59,21 @@ export function RoleRateListPage() {
       ),
     },
     {
-      id: 'project.project.name',
-      header: 'Project',
-      accessorKey: 'project.project.name',
-      cell: ({ row }) => (
-        <span className="text-secondary">{row.original.project?.project?.name || <span className="text-primary font-semibold">Global</span>}</span>
-      ),
-    },
-    {
-      id: 'ratePerManday',
-      header: 'Rate / Manday',
-      accessorKey: 'ratePerManday',
+      id: 'ratePerMandayProject',
+      header: 'Rate / Manday (Project)',
+      accessorKey: 'ratePerMandayProject',
       meta: { className: 'text-right' },
       cell: ({ row }) => (
-        <span className="font-medium text-on-background">{formatCurrency(Number(row.original.ratePerManday || 0), row.original.currency)}</span>
+        <span className="font-medium text-on-background">{formatCurrency(Number(row.original.ratePerMandayProject || 0), row.original.currency)}</span>
       ),
     },
     {
-      id: 'ratePerHour',
-      header: 'Rate / Hour',
-      accessorKey: 'ratePerHour',
+      id: 'ratePerMandaySupport',
+      header: 'Rate / Manday (Support)',
+      accessorKey: 'ratePerMandaySupport',
       meta: { className: 'text-right' },
       cell: ({ row }) => (
-        <span className="text-secondary">{formatCurrency(Number(row.original.ratePerHour || 0), row.original.currency)}</span>
-      ),
-    },
-    {
-      id: 'effectiveFrom',
-      header: 'Effective From',
-      accessorKey: 'effectiveFrom',
-      cell: ({ row }) => (
-        <span className="text-secondary">{formatDate(row.original.effectiveFrom, 'short')}</span>
-      ),
-    },
-    {
-      id: 'effectiveUntil',
-      header: 'Effective Until',
-      accessorKey: 'effectiveUntil',
-      cell: ({ row }) => (
-        <span className="text-secondary">{formatDate(row.original.effectiveUntil, 'short')}</span>
+        <span className="font-medium text-on-background">{formatCurrency(Number(row.original.ratePerMandaySupport || 0), row.original.currency)}</span>
       ),
     },
     {
@@ -141,7 +116,7 @@ export function RoleRateListPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-on-background mb-1">Role Rates</h1>
-          <p className="text-secondary text-sm">Configure global and project-specific rates.</p>
+          <p className="text-secondary text-sm">Configure general role rates for project and support work.</p>
         </div>
       </div>
 

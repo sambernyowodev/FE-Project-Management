@@ -48,10 +48,8 @@ export const SupportTicketStatus = {
     CANCELLED: 'CANCELLED',
 } as const;
 
-export const InvoiceStatus = {
+export const BillingStatus = {
     DRAFT: 'DRAFT',
-    SENT: 'SENT',
-    PAID: 'PAID',
-    OVERDUE: 'OVERDUE',
+    FINALIZED: 'FINALIZED',
     CANCELLED: 'CANCELLED',
 } as const;
