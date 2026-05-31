@@ -2,10 +2,10 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { billingApi } from '../api/billing.api';
 import type { GenerateBillingRequest } from '../types';
 
-export const useGetBillings = () => {
+export const useGetBillings = (params?: any) => {
   return useQuery({
-    queryKey: ['billing', 'list'],
-    queryFn: billingApi.getBillings,
+    queryKey: ['billing', 'list', params],
+    queryFn: () => billingApi.getBillings(params),
   });
 };
 

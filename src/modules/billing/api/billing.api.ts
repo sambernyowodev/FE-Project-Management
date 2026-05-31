@@ -2,8 +2,8 @@ import { apiClient } from '@/shared/api/api-client';
 import type { Billing, GenerateBillingRequest } from '../types';
 
 export const billingApi = {
-  getBillings: async (): Promise<Billing[]> => {
-    const response = await apiClient.get<{ data: Billing[] }>('/billing');
+  getBillings: async (params?: any): Promise<Billing[]> => {
+    const response = await apiClient.get<{ data: Billing[] }>('/billing', { params });
     return response.data.data;
   },
 

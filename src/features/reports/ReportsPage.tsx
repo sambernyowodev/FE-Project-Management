@@ -12,6 +12,7 @@ import {
   Check
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { StatusBadge } from '@/shared/components/common/StatusBadge';
 
 // Custom Searchable Dropdown
 function SearchableSelect({
@@ -688,9 +689,7 @@ export function ReportsPage() {
                                     <td className="px-6 py-4 text-secondary">{p.platform}</td>
                                     <td className="px-6 py-4 text-secondary">{p.customer}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">
-                                        {p.status}
-                                      </span>
+                                      <StatusBadge status={p.status || 'PLANNING'} />
                                     </td>
                                     <td className="px-6 py-4 text-center font-mono text-secondary">{p.memberCount} orang</td>
                                     <td className="px-6 py-4 text-right font-mono font-bold text-primary">{p.totalMandays.toFixed(1)} md</td>
@@ -1019,9 +1018,7 @@ export function ReportsPage() {
                                     <td className="px-6 py-4 font-bold text-on-background">{t.issueTitle}</td>
                                     <td className="px-6 py-4 text-secondary">{t.customer}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-primary/20 uppercase tracking-wider">
-                                        {t.status}
-                                      </span>
+                                      <StatusBadge status={t.status || 'OPEN'} />
                                     </td>
                                     <td className="px-6 py-4 text-center font-mono text-secondary">{t.assigneeCount} orang</td>
                                     <td className="px-6 py-4 text-right font-mono text-secondary">{t.hoursSpent.toFixed(1)} jam</td>
@@ -1176,15 +1173,7 @@ export function ReportsPage() {
                                       </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${
-                                        a.status === 'DONE'
-                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                          : a.status === 'IN PROGRESS'
-                                            ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                            : 'bg-surface text-secondary border-outline-variant'
-                                      }`}>
-                                        {a.status || 'OPEN'}
-                                      </span>
+                                      <StatusBadge status={a.status || 'OPEN'} />
                                     </td>
                                     <td className="px-6 py-4 text-right font-mono text-secondary">
                                       {(a.hoursSpent || 0).toFixed(1)} jam
