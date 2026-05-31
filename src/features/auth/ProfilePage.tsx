@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   Building2,
   Clock,
-  ArrowLeft
+  ArrowLeft,
+  KeyRound
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -122,6 +123,16 @@ export function ProfilePage() {
                 </span>
               </div>
             )}
+
+            <div className="mt-5 pt-5 border-t border-outline-variant/50 w-full">
+              <button
+                onClick={() => navigate('/profile/change-password')}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-xl font-bold hover:bg-primary/20 transition-all text-xs cursor-pointer"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>Ubah Password</span>
+              </button>
+            </div>
           </div>
         </div>
 

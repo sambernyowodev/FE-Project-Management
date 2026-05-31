@@ -603,7 +603,8 @@ export interface paths {
         get: operations["BillingController_findOne"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete a billing record */
+        delete: operations["BillingController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -654,6 +655,23 @@ export interface paths {
         get: operations["AuthController_getProfile"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change user password */
+        post: operations["AuthController_changePassword"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1204,6 +1222,12 @@ export interface components {
             email: string;
             /** @example password123 */
             password: string;
+        };
+        ChangePasswordDto: {
+            /** @example OldPassword123 */
+            oldPassword: string;
+            /** @example NewPassword123 */
+            newPassword: string;
         };
     };
     responses: never;
@@ -2707,6 +2731,29 @@ export interface operations {
             };
         };
     };
+    BillingController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["BaseResponseDto"];
+                    };
+                };
+            };
+        };
+    };
     AuthController_register: {
         parameters: {
             query?: never;
@@ -2773,6 +2820,31 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BaseResponseDto"] & {
                         data?: components["schemas"]["UserResponseDto"];
+                    };
+                };
+            };
+        };
+    };
+    AuthController_changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseResponseDto"] & {
+                        data?: components["schemas"]["BaseResponseDto"];
                     };
                 };
             };

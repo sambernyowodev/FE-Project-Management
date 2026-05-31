@@ -135,3 +135,10 @@ export function useLogout() {
   return { logout };
 }
 
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: authApi.changePassword,
+  });
+}
+
+

@@ -25,6 +25,7 @@ import { RoleFormPage } from '@/features/master/roles/RoleFormPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { ProfilePage } from '@/features/auth/ProfilePage';
+import { ChangePasswordPage } from '@/features/auth/ChangePasswordPage';
 
 
 export const router = createBrowserRouter([
@@ -156,6 +157,10 @@ export const router = createBrowserRouter([
       {
         path: 'profile',
         element: <ProfilePage />
+      },
+      {
+        path: 'profile/change-password',
+        element: <ChangePasswordPage />
       }
     ]
   },

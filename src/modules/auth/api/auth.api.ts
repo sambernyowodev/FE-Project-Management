@@ -1,5 +1,5 @@
 import { apiClient } from '@/shared/api/api-client';
-import type { AuthResponse, LoginRequest, RegisterRequest, BaseResponse, UserResponse } from '../types';
+import type { AuthResponse, LoginRequest, RegisterRequest, BaseResponse, UserResponse, ChangePasswordRequest } from '../types';
 
 export const authApi = {
   login: async (data: LoginRequest) => {
@@ -12,6 +12,10 @@ export const authApi = {
   },
   getProfile: async () => {
     const response = await apiClient.get<BaseResponse<UserResponse>>('/auth/me');
+    return response.data;
+  },
+  changePassword: async (data: ChangePasswordRequest) => {
+    const response = await apiClient.post<BaseResponse<null>>('/auth/change-password', data);
     return response.data;
   }
 };

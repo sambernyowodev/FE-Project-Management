@@ -30,3 +30,9 @@ export const useCreateBilling = () => {
     mutationFn: (dto: GenerateBillingRequest) => billingApi.createBilling(dto),
   });
 };
+
+export const useDeleteBilling = () => {
+  return useMutation({
+    mutationFn: (id: number) => billingApi.deleteBilling(id),
+  });
+};

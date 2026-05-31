@@ -14,6 +14,19 @@ import {
 import * as XLSX from 'xlsx';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 
+const getTodayString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getStartOfYearString = () => {
+  const year = new Date().getFullYear();
+  return `${year}-01-01`;
+};
+
 // Custom Searchable Dropdown
 function SearchableSelect({
   options,
@@ -118,13 +131,13 @@ export function ReportsPage() {
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
 
   // Project Overview Filters
-  const [projectStartDate, setProjectStartDate] = useState('');
-  const [projectEndDate, setProjectEndDate] = useState('');
+  const [projectStartDate, setProjectStartDate] = useState(getStartOfYearString());
+  const [projectEndDate, setProjectEndDate] = useState(getTodayString());
   const [projectStatusFilter, setProjectStatusFilter] = useState('ALL');
 
   // Support Overview Filters
-  const [supportStartDate, setSupportStartDate] = useState('');
-  const [supportEndDate, setSupportEndDate] = useState('');
+  const [supportStartDate, setSupportStartDate] = useState(getStartOfYearString());
+  const [supportEndDate, setSupportEndDate] = useState(getTodayString());
   const [supportStatusFilter, setSupportStatusFilter] = useState('ALL');
 
   const {
@@ -624,8 +637,8 @@ export function ReportsPage() {
                     <div className="flex justify-between items-center border-t border-outline-variant/60 pt-4 mt-2">
                       <button
                         onClick={() => {
-                          setProjectStartDate('');
-                          setProjectEndDate('');
+                          setProjectStartDate(getStartOfYearString());
+                          setProjectEndDate(getTodayString());
                           setProjectStatusFilter('ALL');
                         }}
                         className="px-4 py-2 border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors text-xs font-bold cursor-pointer"
@@ -952,8 +965,8 @@ export function ReportsPage() {
                     <div className="flex justify-between items-center border-t border-outline-variant/60 pt-4 mt-2">
                       <button
                         onClick={() => {
-                          setSupportStartDate('');
-                          setSupportEndDate('');
+                          setSupportStartDate(getStartOfYearString());
+                          setSupportEndDate(getTodayString());
                           setSupportStatusFilter('ALL');
                         }}
                         className="px-4 py-2 border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors text-xs font-bold cursor-pointer"

@@ -20,5 +20,9 @@ export const billingApi = {
   createBilling: async (dto: GenerateBillingRequest): Promise<Billing> => {
     const response = await apiClient.post<{ data: Billing }>('/billing', dto);
     return response.data.data;
+  },
+
+  deleteBilling: async (id: number): Promise<void> => {
+    await apiClient.delete(`/billing/${id}`);
   }
 };

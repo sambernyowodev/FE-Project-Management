@@ -10,11 +10,12 @@ import {
   AlertCircle,
   Search,
   Ticket,
-  FileText
+  FileText,
+  Trash2
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { exportBillingToExcel } from '@/shared/lib/excel';
-import { useGetBillings, useGetBillingById } from '@/modules/billing/hooks/useBilling';
+import { useGetBillings, useGetBillingById, useDeleteBilling } from '@/modules/billing/hooks/useBilling';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 
 export function BillingHubPage() {
@@ -24,9 +25,11 @@ export function BillingHubPage() {
   const [selectedBillingId, setSelectedBillingId] = useState<number | null>(null);
   const [listSearch, setListSearch] = useState('');
   const [listTypeFilter, setListTypeFilter] = useState<'ALL' | 'PROJECT' | 'SUPPORT'>('ALL');
+  
+  const deleteMutation = useDeleteBilling();
 
   // Queries
-  const { data: billingsList = [], isLoading: isListLoading } = useGetBillings();
+  const { data: billingsList = [], isLoading: isListLoading, refetch: refetchBillings } = useGetBillings();
   const { data: billingDetailRes, isLoading: isDetailLoading } = useGetBillingById(selectedBillingId!);
   const billingDetail = billingDetailRes;
 
@@ -37,6 +40,17 @@ export function BillingHubPage() {
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
+  };
+
+  const handleDelete = async (id: number, billingNumber: string) => {
+    if (window.confirm(`Are you sure you want to delete billing "${billingNumber}"? This action cannot be undone.`)) {
+      try {
+        await deleteMutation.mutateAsync(id);
+        refetchBillings();
+      } catch (err: any) {
+        alert(err?.response?.data?.message || err.message || 'Failed to delete billing');
+      }
+    }
   };
 
   // Filter existing billings list
@@ -198,6 +212,13 @@ export function BillingHubPage() {
                               className="p-1.5 border border-outline-variant hover:border-green-600 text-secondary hover:text-green-600 rounded-lg transition-colors cursor-pointer"
                             >
                               <Download className="w-4 h-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(b.id, b.billingNumber)}
+                              title="Delete Billing"
+                              className="p-1.5 border border-outline-variant hover:border-error text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
