@@ -89,8 +89,9 @@ async function clearDatabase() {
       { name: 'project_members', filterCol: 'id' },
       { name: 'projects', filterCol: 'id' },
       { name: 'master_projects', filterCol: 'id' },
-      { name: 'user_roles', filterCol: 'id' },
+      { name: 'member_roles', filterCol: 'id' },
       { name: 'members', filterCol: 'id' },
+      { name: 'app_users', filterCol: 'id' },
       { name: 'role_rates', filterCol: 'id' },
       { name: 'roles', filterCol: 'id' }
     ];
@@ -166,9 +167,9 @@ async function seed() {
     }
   });
 
-  console.log(`Gathered ${userNames.size} unique user names. Syncing with Supabase Auth...`);
+  console.log(`Gathered ${userNames.size} unique user names.`);
   
-  // List current auth users to prevent duplicates
+  // List current auth users to clear them
   const { data: { users: existingAuthUsers }, error: listErr } = await supabase.auth.admin.listUsers({
     perPage: 1000
   });
@@ -177,68 +178,78 @@ async function seed() {
     process.exit(1);
   }
 
+  // Delete all existing auth users
+  console.log(`Clearing existing ${existingAuthUsers.length} auth users...`);
+  for (const u of existingAuthUsers) {
+    const { error: delErr } = await supabase.auth.admin.deleteUser(u.id);
+    if (delErr) {
+      console.warn(`Warning: Failed to delete user ${u.email}:`, delErr.message);
+    }
+  }
+
+  // Create Portal Admins
+  const adminsToCreate = [
+    { email: 'admin@mii.co.id', fullName: 'Admin', role: 'ADMIN' },
+    { email: 'Edy.Maradona@mii.co.id', fullName: 'Edy Maradona', role: 'ADMIN' },
+    { email: 'Cerah.Prawastiyo@mii.co.id', fullName: 'Cerah Prawastiyo', role: 'ADMIN' },
+    { email: 'rayo.wijaya@mii.co.id', fullName: 'Rayo Wijaya', role: 'ADMIN' }
+  ];
+
+  console.log('Registering portal administrators in Supabase Auth...');
+  for (const adm of adminsToCreate) {
+    const { data: newAuth, error: createErr } = await supabase.auth.admin.createUser({
+      email: adm.email,
+      password: 'Password123',
+      email_confirm: true,
+      user_metadata: { 
+        full_name: adm.fullName,
+        role: adm.role
+      },
+    });
+
+    if (createErr) {
+      console.error(`Failed to create admin user ${adm.fullName} (${adm.email}):`, createErr.message);
+    } else {
+      console.log(`Created admin user: ${adm.fullName} (${adm.email})`);
+    }
+  }
+
   const memberMap = new Map<string, string>(); // name -> memberUUID
 
+  console.log(`Seeding ${userNames.size} members directly to database...`);
   for (const name of userNames) {
     if (!name || name.trim() === '' || name.toLowerCase() === 'tsel' || name.toLowerCase() === 'internship') continue;
     const cleanName = name.trim();
     const email = `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '')}@mii.co.id`;
-    
-    // Find existing auth user
-    let authUser = existingAuthUsers.find((u) => u.email === email);
+    const employeeId = `EMP-${cleanName.toUpperCase().replace(/[^A-Z0-9]/g, '')}`.slice(0, 50);
 
-    if (!authUser) {
-      // Create new Auth User
-      const { data: newAuth, error: createErr } = await supabase.auth.admin.createUser({
-        email,
-        password: 'Password123',
-        email_confirm: true,
-        user_metadata: { full_name: cleanName },
-      });
+    const { data: memberRecord, error: memberErr } = await supabase.from('members').insert({
+      email,
+      full_name: cleanName,
+      employee_id: employeeId,
+      is_active: true,
+    }).select().single();
 
-      if (createErr) {
-        console.error(`Failed to create auth user for ${cleanName} (${email}):`, createErr.message);
-        continue;
-      }
-      authUser = newAuth.user;
-      console.log(`Created auth user: ${cleanName} (${email})`);
-    } else {
-      console.log(`Auth user already exists: ${cleanName} (${email})`);
+    if (memberErr) {
+      console.error(`Failed to seed member resource for ${cleanName}:`, memberErr.message);
+      continue;
     }
 
-    if (authUser) {
-      // Create profile in members table (trigger handles insertion on auth signup, but let's make sure it's upserted/updated)
-      const employeeId = `EMP-${cleanName.toUpperCase().replace(/[^A-Z0-9]/g, '')}`.slice(0, 50);
-      
-      const { error: memberErr } = await supabase.from('members').upsert({
-        id: authUser.id,
-        email,
-        full_name: cleanName,
-        employee_id: employeeId,
-        is_active: true,
+    memberMap.set(cleanName, memberRecord.id);
+
+    // Assign default role based on where they appear in member_roles (formerly user_roles)
+    let assignedRole = 'DEV_BE'; // Default role
+    if (cleanName === 'Admin') assignedRole = 'ADMIN';
+    else if (rawProjects.some((p) => p.ba.includes(cleanName))) assignedRole = 'BA';
+    else if (rawProjects.some((p) => p.uiux.includes(cleanName))) assignedRole = 'UIUX';
+    else if (rawProjects.some((p) => p.fe.includes(cleanName))) assignedRole = 'DEV_FE';
+
+    const roleId = roleMap.get(assignedRole);
+    if (roleId) {
+      await supabase.from('member_roles').insert({
+        member_id: memberRecord.id,
+        role_id: roleId,
       });
-
-      if (memberErr) {
-        console.error(`Failed to create/update member profile for ${cleanName}:`, memberErr.message);
-        continue;
-      }
-
-      memberMap.set(cleanName, authUser.id);
-
-      // Assign default role based on where they appear
-      let assignedRole = 'DEV_BE'; // Default role
-      if (cleanName === 'Admin') assignedRole = 'ADMIN';
-      else if (rawProjects.some((p) => p.ba.includes(cleanName))) assignedRole = 'BA';
-      else if (rawProjects.some((p) => p.uiux.includes(cleanName))) assignedRole = 'UIUX';
-      else if (rawProjects.some((p) => p.fe.includes(cleanName))) assignedRole = 'DEV_FE';
-
-      const roleId = roleMap.get(assignedRole);
-      if (roleId) {
-        await supabase.from('user_roles').upsert({
-          member_id: authUser.id,
-          role_id: roleId,
-        });
-      }
     }
   }
 

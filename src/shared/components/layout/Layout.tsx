@@ -1,20 +1,26 @@
 import { useEffect } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { useProfile, useLogout } from '@/modules/auth/hooks/useAuth';
 
 export function Layout() {
-  const navigate = useNavigate();
   const token = localStorage.getItem('token');
+  const { isLoading, isError } = useProfile();
+  const { logout } = useLogout();
 
   useEffect(() => {
-    if (!token) {
-      navigate('/login');
+    if (!token || isError) {
+      logout();
     }
-  }, [token, navigate]);
+  }, [token, isError, logout]);
 
-  if (!token) {
-    return null;
+  if (!token || isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (

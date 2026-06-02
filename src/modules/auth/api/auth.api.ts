@@ -5,35 +5,29 @@ export const authApi = {
   login: async (data: LoginRequest): Promise<BaseResponse<AuthResponse>> => {
     const { data: resData, error } = await supabase.auth.signInWithPassword({
       email: data.email,
-      password: data.password,
+      password: data.password || '',
     });
     if (error) throw error;
 
-    // Get user details from members table
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('id, full_name, email, employee_id, avatar_url, is_active')
+    // Get user details from app_users table
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_users')
+      .select('id, full_name, email, role, created_at, updated_at')
       .eq('id', resData.user.id)
       .single();
 
-    if (memberError) throw memberError;
-
-    // Fetch user roles
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role:roles(code, name)')
-      .eq('member_id', resData.user.id);
-
-    const rolesList = userRoles ? (userRoles as any[]).map((ur: any) => ur.role) : [];
+    if (appUserError) throw appUserError;
 
     const userResponse: UserResponse = {
-      id: member.id,
-      email: member.email,
-      fullName: member.full_name,
-      employeeId: member.employee_id || '',
-      avatarUrl: member.avatar_url || '',
-      isActive: member.is_active,
-      roles: rolesList,
+      id: appUser.id,
+      email: appUser.email,
+      fullName: appUser.full_name,
+      employeeId: '',
+      avatarUrl: '',
+      isActive: true,
+      roles: [{ code: appUser.role, name: appUser.role === 'ADMIN' ? 'Administrator' : appUser.role }],
+      createdAt: appUser.created_at,
+      updatedAt: appUser.updated_at,
     } as any;
 
     return {
@@ -48,57 +42,58 @@ export const authApi = {
   register: async (data: RegisterRequest): Promise<BaseResponse<AuthResponse>> => {
     const { data: resData, error } = await supabase.auth.signUp({
       email: data.email,
-      password: data.password,
+      password: data.password || '',
       options: {
         data: {
           full_name: data.fullName,
+          role: 'ADMIN',
         }
       }
     });
     if (error) throw error;
 
     // Fetch profile (may need a slight retry to wait for trigger execution)
-    let member = null;
+    let appUser = null;
     let retries = 3;
-    while (retries > 0 && !member) {
-      const { data: m } = await supabase
-        .from('members')
+    while (retries > 0 && !appUser) {
+      const { data: au } = await supabase
+        .from('app_users')
         .select('*')
         .eq('id', resData.user?.id)
         .maybeSingle();
-      if (m) {
-        member = m;
+      if (au) {
+        appUser = au;
       } else {
         await new Promise((resolve) => setTimeout(resolve, 500));
         retries--;
       }
     }
 
-    if (!member && resData.user) {
+    if (!appUser && resData.user) {
       // Manual fallback if trigger was delayed
-      const employeeId = `EMP-${data.fullName.toUpperCase().replace(/[^A-Z0-9]/g, '')}`.slice(0, 50);
-      const { data: newMember } = await supabase
-        .from('members')
+      const { data: newAppUser } = await supabase
+        .from('app_users')
         .insert({
           id: resData.user.id,
           email: data.email,
           full_name: data.fullName,
-          employee_id: employeeId,
-          is_active: true,
+          role: 'ADMIN',
         })
         .select()
         .single();
-      member = newMember;
+      appUser = newAppUser;
     }
 
     const userResponse: UserResponse = {
-      id: member?.id || resData.user?.id,
-      email: member?.email || data.email,
-      fullName: member?.full_name || data.fullName,
-      employeeId: member?.employee_id || '',
-      avatarUrl: member?.avatar_url || '',
+      id: appUser?.id || resData.user?.id,
+      email: appUser?.email || data.email,
+      fullName: appUser?.full_name || data.fullName,
+      employeeId: '',
+      avatarUrl: '',
       isActive: true,
-      roles: [],
+      roles: [{ code: appUser?.role || 'ADMIN', name: (appUser?.role || 'ADMIN') === 'ADMIN' ? 'Administrator' : (appUser?.role || 'ADMIN') }],
+      createdAt: appUser?.created_at || new Date().toISOString(),
+      updatedAt: appUser?.updated_at || new Date().toISOString(),
     } as any;
 
     return {
@@ -114,30 +109,24 @@ export const authApi = {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) throw new Error('Not authenticated');
 
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('id, full_name, email, employee_id, avatar_url, is_active')
+    const { data: appUser, error: appUserError } = await supabase
+      .from('app_users')
+      .select('id, full_name, email, role, created_at, updated_at')
       .eq('id', user.id)
       .single();
 
-    if (memberError) throw memberError;
-
-    // Fetch user roles
-    const { data: userRoles } = await supabase
-      .from('user_roles')
-      .select('role:roles(code, name)')
-      .eq('member_id', user.id);
-
-    const rolesList = userRoles ? (userRoles as any[]).map((ur: any) => ur.role) : [];
+    if (appUserError) throw appUserError;
 
     const userResponse: UserResponse = {
-      id: member.id,
-      email: member.email,
-      fullName: member.full_name,
-      employeeId: member.employee_id || '',
-      avatarUrl: member.avatar_url || '',
-      isActive: member.is_active,
-      roles: rolesList,
+      id: appUser.id,
+      email: appUser.email,
+      fullName: appUser.full_name,
+      employeeId: '',
+      avatarUrl: '',
+      isActive: true,
+      roles: [{ code: appUser.role, name: appUser.role === 'ADMIN' ? 'Administrator' : appUser.role }],
+      createdAt: appUser.created_at,
+      updatedAt: appUser.updated_at,
     } as any;
 
     return {

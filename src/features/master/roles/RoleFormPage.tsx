@@ -59,7 +59,7 @@ export function RoleFormPage() {
     const payload = {
       code: formData.code.toUpperCase().trim(),
       name: formData.name.trim(),
-      description: formData.description.trim() || undefined,
+      description: formData.description.trim() || null,
     };
 
     if (isEditing) {

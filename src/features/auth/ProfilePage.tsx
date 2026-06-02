@@ -3,7 +3,6 @@ import { formatDate } from '@/shared/lib/formatter';
 import {
   User,
   Mail,
-  IdCard,
   Calendar,
   ShieldCheck,
   Building2,
@@ -86,7 +85,7 @@ export function ProfilePage() {
         <div className="md:col-span-1 flex flex-col gap-6">
           <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 shadow-sm flex flex-col items-center text-center relative overflow-hidden group">
             <div className="absolute top-0 left-0 w-full h-2 bg-primary"></div>
-            
+
             {/* Avatar */}
             <div className="mt-4 mb-4 relative">
               {profile.avatarUrl ? (
@@ -109,17 +108,17 @@ export function ProfilePage() {
 
             <h2 className="text-xl font-bold text-on-background line-clamp-1">{profile.fullName}</h2>
             <p className="text-secondary text-sm mt-0.5 break-all">{profile.email}</p>
-            
+
             <div className="mt-4 flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 rounded-full text-xs font-semibold border border-emerald-200/50">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Status: {profile.isActive ? 'Aktif' : 'Nonaktif'}</span>
             </div>
 
-            {profile.employeeId && (
+            {profile.roles && profile.roles.length > 0 && (
               <div className="mt-5 pt-5 border-t border-outline-variant/50 w-full flex flex-col gap-1.5">
-                <span className="text-secondary text-xs uppercase tracking-wider font-semibold">ID Karyawan</span>
-                <span className="text-on-background font-mono font-bold text-sm bg-surface-container py-1.5 px-3 rounded-lg border border-outline-variant/30">
-                  {profile.employeeId}
+                <span className="text-secondary text-xs uppercase tracking-wider font-semibold">Role Akun</span>
+                <span className="text-on-background font-bold text-sm bg-surface-container py-1.5 px-3 rounded-lg border border-outline-variant/30">
+                  {profile.roles[0]?.name || profile.roles[0]?.code}
                 </span>
               </div>
             )}
@@ -167,14 +166,18 @@ export function ProfilePage() {
                 </div>
               </div>
 
-              {/* Employee ID */}
+              {/* Role */}
               <div className="flex gap-3.5 items-start">
                 <div className="p-2.5 rounded-xl bg-primary/10 text-primary mt-0.5 shrink-0">
-                  <IdCard className="w-5 h-5" />
+                  <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-secondary text-xs font-semibold uppercase tracking-wider">ID Karyawan</h4>
-                  <p className="text-on-background text-base font-bold mt-0.5">{profile.employeeId || '-'}</p>
+                  <h4 className="text-secondary text-xs font-semibold uppercase tracking-wider">Role Akun</h4>
+                  <p className="text-on-background text-base font-bold mt-0.5">
+                    {profile.roles && profile.roles.length > 0
+                      ? (profile.roles[0]?.name || profile.roles[0]?.code)
+                      : '-'}
+                  </p>
                 </div>
               </div>
 

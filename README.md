@@ -1,14 +1,15 @@
-# HCM Project Management - Frontend Portal
+# HCM Project Management - Frontend Portal (Backendless)
 
-This is the React 19 + Vite + TypeScript frontend repository for the **HCM Project Management Application**.
+This is the React 19 + Vite + TypeScript frontend repository for the **HCM Project Management Application**, utilizing a fully **backendless architecture** powered directly by **Supabase**.
 
 ---
 
 ## 🚀 Current Project Status
 
-The frontend application is **fully implemented** and production-ready.
-- **Code Cleanliness**: 100% clean linter (`eslint`) and compilation (`tsc`). All unused files, imports, and variables have been pruned.
-- **Key Modules**: Dashboard, Projects, Gantt Timeline, Support Tickets, Purchase Orders, Billing/Invoice Wizard, Role Rates, and Reports.
+The application is **fully migrated and production-ready**. 
+- **Backendless Architecture**: The project communicates directly with Supabase via `@supabase/supabase-js` for authentication, database actions, and security policies.
+- **Code Cleanliness**: 100% clean compilation (`tsc`) and linter (`eslint`). All unused modules and legacy Axios client codes have been pruned.
+- **Completed Modules**: Dashboard, Projects, Gantt Timeline, Support Tickets, Purchase Orders, Billing/Invoice Wizard, Role Rates, and Reports.
 
 ---
 
@@ -16,8 +17,9 @@ The frontend application is **fully implemented** and production-ready.
 
 - **Framework**: React 19 + Vite
 - **Language**: TypeScript
+- **Database & Auth**: Supabase (PostgreSQL, Supabase Auth, Row Level Security)
+- **State & Data Fetching**: TanStack React Query v5 & `@supabase/supabase-js` client
 - **Styling**: Tailwind CSS v4 (using CSS-based configuration in `index.css`)
-- **State & Data Fetching**: TanStack React Query v5 & Axios (with authorization interceptors)
 - **Routing**: React Router v7
 - **Icons**: Lucide React
 - **Charts**: Recharts
@@ -32,6 +34,12 @@ The frontend application is **fully implemented** and production-ready.
 FE Project Management/
 ├── dist/                   # Production build outputs
 ├── public/                 # Static assets (favicon.svg)
+├── scripts/                # Database seed and generation scripts
+│   ├── data.ts             # Raw data for seeding
+│   └── seed-supabase.ts    # Node.js seed script for Supabase
+├── supabase/               # Supabase CLI and database schema migrations
+│   ├── config.toml         # Supabase configuration
+│   └── migrations/         # PostgreSQL schema files
 ├── src/
 │   ├── app/                # Application initialization (providers, router)
 │   │   ├── providers/      # React Query Provider, etc.
@@ -40,11 +48,11 @@ FE Project Management/
 │   ├── features/           # Feature pages (Auth, Billing, Dashboard, Master, Projects, POs, Reports, Support)
 │   ├── modules/            # Hooks, API calls, and types scoped by feature
 │   ├── shared/             # Reusable global components, helpers, constants, and types
-│   │   ├── api/            # API client config (Axios client)
+│   │   ├── api/            # API client config (Supabase client initialization)
 │   │   ├── components/     # Shared UI (DataTable, Layout, Sidebar, Topbar, StatusBadge)
-│   │   ├── constants/      # Shared constants
+│   │   ├── constants/      # Shared constants & enums
 │   │   ├── lib/            # Shared utilities (formatters, excel helpers)
-│   │   └── types/          # Shared type definitions (API types)
+│   │   └── types/          # Shared type definitions
 │   ├── index.css           # Global styling and custom scrollbars
 │   └── main.tsx            # App entry point
 ├── eslint.config.js        # Linter configuration
@@ -60,8 +68,13 @@ FE Project Management/
 Create a `.env` file in the root directory:
 
 ```env
-VITE_API_URL=http://localhost:3000/api
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
+SUPABASE_SECRET_KEY=your-service-role-key-here
 ```
+> [!IMPORTANT]
+> - `VITE_SUPABASE_PUBLISHABLE_KEY` is used by the client for regular operations.
+> - `SUPABASE_SECRET_KEY` is a service role key. It is **only** required locally for running the database seeder to bypass Row Level Security (RLS) and programmatically provision authentication users. Keep it safe and never expose it in production!
 
 ---
 
@@ -72,16 +85,24 @@ VITE_API_URL=http://localhost:3000/api
 npm install
 ```
 
-### 2. Run Development Server
+### 2. Set Up Database Schema & Seeder
+If you are linking a remote Supabase project, execute the following commands:
+```bash
+# Link the local CLI with your Supabase remote project
+npx supabase link --project-ref <your-project-ref>
+
+# Push the database schema & migrations (RLS, Triggers, Tables)
+npx supabase db push
+
+# Seed the initial project data
+npx tsx scripts/seed-supabase.ts
+```
+
+### 3. Run Development Server
 ```bash
 npm run dev
 ```
 The application will run locally at `http://localhost:5173`.
-
-### 3. Run Linter
-```bash
-npm run lint
-```
 
 ### 4. Build for Production
 ```bash
@@ -91,266 +112,179 @@ This builds and checks for TypeScript compilation errors, outputting production-
 
 ---
 
-## 📝 Full-Stack System Context (Reference)
+## 📝 Supabase Database Schema Context (Reference)
 
-*Below is the original full-stack specification, database schema, and NestJS backend architecture for the HCM Project Management App.*
+*Below is the database schema, Postgres ENUMs, triggers, and Row Level Security (RLS) setup for the backendless Supabase architecture.*
 
 <details>
-<summary><b>Click to expand Database Schema & NestJS Backend Reference</b></summary>
+<summary><b>Click to expand PostgreSQL Schema, Policies & Triggers</b></summary>
 
-### 1. Database Schema
-
+### 1. Custom Postgres ENUMs
 ```sql
--- Users & Authentication
-CREATE TABLE users (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
-    employee_id VARCHAR(50) UNIQUE,
-    avatar_url VARCHAR(500),
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+CREATE TYPE project_status AS ENUM ('PLANNING', 'IN PROGRESS', 'SIT', 'UAT', 'CLOSED', 'ON HOLD', 'CANCELLED', 'FUT');
+CREATE TYPE project_phase AS ENUM ('FCAB', 'REQUIREMENT', 'ANALYSIS', 'DESIGN', 'SRS', 'CRQ', 'DEVELOPMENT', 'UT SIT', 'TRA TC', 'REVIEW', 'SIT', 'UAT', 'NFT', 'SECURITY', 'RFS', 'FUT');
+CREATE TYPE purchase_order_status AS ENUM ('DRAFT', 'ACTIVE', 'IN PROGRESS', 'COMPLETED', 'CLOSED', 'CANCELLED');
+CREATE TYPE support_ticket_status AS ENUM ('OPEN', 'IN PROGRESS', 'DEV DONE', 'SIT DONE', 'UAT DONE', 'DONE', 'ON HOLD', 'CANCELLED');
+CREATE TYPE support_ticket_detail_status AS ENUM ('OPEN', 'IN PROGRESS', 'DONE', 'ON HOLD');
+CREATE TYPE invoice_status AS ENUM ('DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED');
+CREATE TYPE billing_status AS ENUM ('DRAFT', 'FINALIZED', 'CANCELLED');
+```
 
+### 2. Main Tables & Relations
+```sql
 -- Roles
-CREATE TABLE roles (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(50) NOT NULL UNIQUE,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.roles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(50) UNIQUE NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- User Roles (Many-to-Many)
-CREATE TABLE user_roles (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT UNSIGNED NOT NULL,
-    role_id BIGINT UNSIGNED NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
-    UNIQUE KEY uk_user_role (user_id, role_id)
+-- Members (Project Resources / Staff profiles)
+CREATE TABLE public.members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  employee_id VARCHAR(50) UNIQUE,
+  avatar_url VARCHAR(500),
+  is_active BOOLEAN DEFAULT TRUE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Role Rates
-CREATE TABLE role_rates (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    role_id BIGINT UNSIGNED NOT NULL,
-    project_id BIGINT UNSIGNED NULL,
-    rate_per_manday DECIMAL(12,2) NOT NULL DEFAULT 0,
-    rate_per_hour DECIMAL(12,2) DEFAULT 0,
-    currency VARCHAR(3) DEFAULT 'IDR',
-    effective_from DATE NOT NULL,
-    effective_until DATE NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (role_id) REFERENCES roles(id),
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    UNIQUE KEY uk_role_project_effective (role_id, project_id, effective_from)
+-- Member Roles Junction
+CREATE TABLE public.member_roles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  member_id UUID NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+  role_id UUID NOT NULL REFERENCES public.roles(id) ON DELETE CASCADE,
+  CONSTRAINT uk_member_role UNIQUE (member_id, role_id)
+);
+
+-- App Users (Portal logins / Admins - Linked 1-to-1 with auth.users)
+CREATE TABLE public.app_users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  role VARCHAR(50) DEFAULT 'ADMIN' NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Master Projects
+CREATE TABLE public.master_projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_code VARCHAR(50) UNIQUE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  platform VARCHAR(100),
+  is_active BOOLEAN DEFAULT TRUE NOT NULL
 );
 
 -- Projects
-CREATE TABLE projects (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    project_code VARCHAR(50) NOT NULL UNIQUE,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    pic_client VARCHAR(255),
-    platform VARCHAR(100),
-    status ENUM('PLANNING','IN_PROGRESS','SIT','UAT','CLOSED','ON_HOLD','CANCELLED') DEFAULT 'PLANNING',
-    total_mandays DECIMAL(8,2) DEFAULT 0,
-    start_date DATE, end_date DATE,
-    actual_start DATE, actual_end DATE,
-    progress_pct DECIMAL(5,2) DEFAULT 0,
-    customer VARCHAR(255),
-    repository_link VARCHAR(500),
-    timeline_link VARCHAR(500),
-    remarks TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_by BIGINT UNSIGNED,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users(id)
+CREATE TABLE public.projects (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.master_projects(id) ON DELETE CASCADE,
+  pic_client VARCHAR(255),
+  customer VARCHAR(255),
+  status project_status DEFAULT 'PLANNING'::project_status NOT NULL,
+  total_mandays DECIMAL(8, 2) DEFAULT 0 NOT NULL,
+  start_date DATE,
+  end_date DATE,
+  repository_link VARCHAR(500),
+  timeline_link VARCHAR(500),
+  remarks TEXT,
+  is_active BOOLEAN DEFAULT TRUE NOT NULL
 );
 
--- Project Members (MULTI-ROLE: primary + secondary)
-CREATE TABLE project_members (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    project_id BIGINT UNSIGNED NOT NULL,
-    user_id BIGINT UNSIGNED NOT NULL,
-    role_id BIGINT UNSIGNED NOT NULL,
-    secondary_role_id BIGINT UNSIGNED NULL,
-    assigned_mandays DECIMAL(8,2) DEFAULT 0,
-    actual_mandays DECIMAL(8,2) DEFAULT 0,
-    is_active BOOLEAN DEFAULT TRUE,
-    joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (role_id) REFERENCES roles(id),
-    FOREIGN KEY (secondary_role_id) REFERENCES roles(id)
+-- Project Members
+CREATE TABLE public.project_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  member_id UUID NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+  role_id UUID NOT NULL REFERENCES public.roles(id),
+  assigned_mandays DECIMAL(8, 2) DEFAULT 0 NOT NULL,
+  actual_mandays DECIMAL(8, 2) DEFAULT 0 NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE NOT NULL,
+  CONSTRAINT uk_project_member_role UNIQUE (project_id, member_id, role_id)
 );
 
--- Project Activities (Timeline/Gantt)
-CREATE TABLE project_activities (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    project_id BIGINT UNSIGNED NOT NULL,
-    parent_id BIGINT UNSIGNED NULL,
-    activity_name VARCHAR(255) NOT NULL,
-    description TEXT,
-    feature VARCHAR(255), sub_feature VARCHAR(255), details TEXT,
-    duration_days INT DEFAULT 0, mandays DECIMAL(8,2) DEFAULT 0,
-    start_date DATE, end_date DATE,
-    actual_start DATE, actual_end DATE,
-    progress_pct DECIMAL(5,2) DEFAULT 0,
-    phase ENUM('FCAB','REQUIREMENT','ANALYSIS','DESIGN','SRS','CRQ','DEVELOPMENT','UT_SIT','TRA_TC','REVIEW','SIT','UAT','NFT','SECURITY','RFS','FUT') DEFAULT 'DEVELOPMENT',
-    assigned_to BIGINT UNSIGNED NULL,
-    sort_order INT DEFAULT 0,
-    is_milestone BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-    FOREIGN KEY (parent_id) REFERENCES project_activities(id) ON DELETE SET NULL,
-    FOREIGN KEY (assigned_to) REFERENCES users(id)
+-- Project Activities (Tasks)
+CREATE TABLE public.project_activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id UUID NOT NULL REFERENCES public.projects(id) ON DELETE CASCADE,
+  parent_id UUID REFERENCES public.project_activities(id) ON DELETE SET NULL,
+  activity_name VARCHAR(255) NOT NULL,
+  duration_days INTEGER DEFAULT 0 NOT NULL,
+  mandays DECIMAL(8, 2) DEFAULT 0 NOT NULL,
+  start_date DATE,
+  end_date DATE,
+  progress_pct DECIMAL(5, 2) DEFAULT 0 NOT NULL,
+  phase project_phase DEFAULT 'DEVELOPMENT'::project_phase NOT NULL,
+  assigned_to UUID REFERENCES public.members(id),
+  sort_order INTEGER DEFAULT 0 NOT NULL,
+  is_milestone BOOLEAN DEFAULT FALSE NOT NULL
 );
 
--- Purchase Orders (PO)
-CREATE TABLE purchase_orders (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    po_number VARCHAR(100) NOT NULL UNIQUE,
-    po_name VARCHAR(255) NOT NULL,
-    project_id BIGINT UNSIGNED NOT NULL,
-    customer VARCHAR(255) NOT NULL,
-    description TEXT,
-    total_mandays DECIMAL(8,2) DEFAULT 0,
-    total_amount DECIMAL(15,2) DEFAULT 0,
-    status ENUM('DRAFT','ACTIVE','IN_PROGRESS','COMPLETED','CLOSED','CANCELLED') DEFAULT 'DRAFT',
-    start_date DATE, end_date DATE,
-    signed_date DATE,
-    document_url VARCHAR(500),
-    remarks TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_by BIGINT UNSIGNED,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES projects(id),
-    FOREIGN KEY (created_by) REFERENCES users(id)
-);
-
--- Sales Orders (SO - child of PO)
-CREATE TABLE sales_orders (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    so_number VARCHAR(100) NOT NULL UNIQUE,
-    so_name VARCHAR(255) NOT NULL,
-    po_id BIGINT UNSIGNED NOT NULL,
-    project_id BIGINT UNSIGNED NOT NULL,
-    description TEXT,
-    total_mandays DECIMAL(8,2) DEFAULT 0,
-    total_amount DECIMAL(15,2) DEFAULT 0,
-    status ENUM('DRAFT','ACTIVE','IN_PROGRESS','DELIVERED','INVOICED','PAID','CLOSED','CANCELLED') DEFAULT 'DRAFT',
-    start_date DATE, end_date DATE,
-    delivery_date DATE, invoice_date DATE, payment_date DATE,
-    document_url VARCHAR(500),
-    remarks TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (po_id) REFERENCES purchase_orders(id),
-    FOREIGN KEY (project_id) REFERENCES projects(id)
+-- Purchase Orders
+CREATE TABLE public.purchase_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  po_number VARCHAR(100) UNIQUE NOT NULL,
+  po_name VARCHAR(255) NOT NULL,
+  customer VARCHAR(255) NOT NULL,
+  description TEXT,
+  total_mandays DECIMAL(8, 2) DEFAULT 0 NOT NULL,
+  status purchase_order_status DEFAULT 'DRAFT'::purchase_order_status NOT NULL,
+  start_date DATE,
+  end_date DATE,
+  is_active BOOLEAN DEFAULT TRUE NOT NULL
 );
 
 -- Support Tickets
-CREATE TABLE support_tickets (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    ticket_code VARCHAR(50) NOT NULL UNIQUE,
-    project_id BIGINT UNSIGNED NULL,
-    project_name VARCHAR(255) NOT NULL,
-    pic_client VARCHAR(255),
-    issue_title VARCHAR(500) NOT NULL,
-    issue_description TEXT,
-    hours_spent DECIMAL(6,2) DEFAULT 0,
-    mandays_spent DECIMAL(6,2) DEFAULT 0,
-    status ENUM('OPEN','IN_PROGRESS','DEV_DONE','SIT_DONE','UAT_DONE','DONE','ON_HOLD','CANCELLED') DEFAULT 'OPEN',
-    platform VARCHAR(100),
-    start_date DATE, end_date DATE,
-    business_analyst_id BIGINT UNSIGNED NULL,
-    ui_ux_id BIGINT UNSIGNED NULL,
-    dev_fe_id BIGINT UNSIGNED NULL,
-    dev_be_id BIGINT UNSIGNED NULL,
-    folder_attachment VARCHAR(500),
-    notes TEXT,
-    update_date DATE,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (project_id) REFERENCES projects(id),
-    FOREIGN KEY (business_analyst_id) REFERENCES users(id),
-    FOREIGN KEY (ui_ux_id) REFERENCES users(id),
-    FOREIGN KEY (dev_fe_id) REFERENCES users(id),
-    FOREIGN KEY (dev_be_id) REFERENCES users(id)
-);
-
--- Billing Invoices
-CREATE TABLE billing_invoices (
-    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    invoice_number VARCHAR(100) NOT NULL UNIQUE,
-    po_id BIGINT UNSIGNED NOT NULL,
-    project_id BIGINT UNSIGNED NOT NULL,
-    billing_period_start DATE NOT NULL,
-    billing_period_end DATE NOT NULL,
-    total_mandays DECIMAL(8,2) DEFAULT 0,
-    total_amount DECIMAL(15,2) DEFAULT 0,
-    tax_amount DECIMAL(15,2) DEFAULT 0,
-    grand_total DECIMAL(15,2) DEFAULT 0,
-    status ENUM('DRAFT','SENT','PAID','OVERDUE','CANCELLED') DEFAULT 'DRAFT',
-    invoice_date DATE, due_date DATE, paid_date DATE,
-    document_url VARCHAR(500),
-    remarks TEXT,
-    created_by BIGINT UNSIGNED,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (po_id) REFERENCES purchase_orders(id),
-    FOREIGN KEY (project_id) REFERENCES projects(id),
-    FOREIGN KEY (created_by) REFERENCES users(id)
+CREATE TABLE public.support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_code VARCHAR(50) UNIQUE NOT NULL,
+  master_project_id UUID REFERENCES public.master_projects(id) ON DELETE SET NULL,
+  customer VARCHAR(255),
+  issue_title VARCHAR(500) NOT NULL,
+  hours_spent DECIMAL(6, 2) DEFAULT 0 NOT NULL,
+  status support_ticket_status DEFAULT 'OPEN'::support_ticket_status NOT NULL,
+  start_date DATE,
+  end_date DATE,
+  is_active BOOLEAN DEFAULT TRUE NOT NULL
 );
 ```
 
-### 2. NestJS Backend Structure
-
-```
-src/
-├── app.module.ts
-├── main.ts
-├── config/
-│   ├── database.config.ts
-│   └── app.config.ts
-├── modules/
-│   ├── auth/            # JWT Auth, Login, Register, Profile
-│   ├── users/           # User management
-│   ├── roles/           # System roles
-│   ├── role-rates/      # Global & Project-Specific Rates override
-│   ├── projects/        # Projects CRUD & Members (multi-role)
-│   ├── purchase-orders/ # PO workflow & auto-numbering
-│   ├── sales-orders/    # SO workflow & PO references
-│   ├── support-tickets/ # Support ticket log and sub-issues
-│   └── billing/         # Automated invoice calculations & exports
+### 3. Row Level Security & Policies
+All tables have RLS enabled. Since only portal administrators/authorized users can log in to the Supabase Auth system, any authenticated session is granted select and write capabilities:
+```sql
+CREATE POLICY "Allow read for authenticated" ON public.projects FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Allow write for authenticated" ON public.projects FOR ALL TO authenticated USING (true) WITH CHECK (true);
 ```
 
-### 3. Planned Backend API Endpoints
+### 4. Admin Auth Sync Trigger
+A PostgreSQL trigger runs automatically on new user registration in Supabase Auth to provision their administrator profile into `public.app_users` with a default role of `'ADMIN'`:
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_app_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.app_users (id, email, full_name, role)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    COALESCE(new.raw_user_meta_data->>'role', 'ADMIN')
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET email = EXCLUDED.email,
+      full_name = EXCLUDED.full_name,
+      role = EXCLUDED.role;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-```
-Auth:
-  POST /api/auth/login
-  POST /api/auth/register
-  GET  /api/auth/me
-
-Role Rates:
-  GET    /api/role-rates
-  GET    /api/role-rates/project/:projectId
-  POST   /api/role-rates
-
-Projects:
-  GET    /api/projects
-  POST   /api/projects
-  PUT    /api/projects/:id
-  GET    /api/projects/:id/members
-
-Billing:
-  POST   /api/billing/generate-preview
-  POST   /api/billing/create-invoice
-  GET    /api/billing/invoices
-  GET    /api/billing/invoices/:id/download
+CREATE OR REPLACE TRIGGER on_app_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_app_user();
 ```
 
 </details>

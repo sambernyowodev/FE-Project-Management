@@ -309,8 +309,8 @@ export function ProjectTimelinePage() {
                 <GanttChart
                   project={{
                     name: project.name,
-                    startDate: project.startDate,
-                    endDate: project.endDate
+                    startDate: project.startDate || undefined,
+                    endDate: project.endDate || undefined
                   }}
                   activities={activities}
                   members={members}

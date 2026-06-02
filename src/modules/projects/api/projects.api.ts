@@ -30,7 +30,7 @@ const mapProject = (p: any): Project => ({
 
 export const projectsApi = {
   getProjects: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: Project[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
-    let query = supabase.from('projects').select('*, project:master_projects(*)', { count: 'exact' });
+    let query = supabase.from('projects').select('*, project:master_projects!inner(*)', { count: 'exact' });
 
     if (params?.search) {
       query = query.ilike('project.name', `%${params.search}%`);

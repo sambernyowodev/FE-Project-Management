@@ -23,7 +23,6 @@ export function MemberFormPage() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
-    password: '',
     employeeId: '',
     isActive: true,
   });
@@ -35,7 +34,6 @@ export function MemberFormPage() {
       setFormData({
         fullName: user.fullName || '',
         email: user.email || '',
-        password: '',
         employeeId: user.employeeId || '',
         isActive: user.isActive !== undefined ? user.isActive : true,
       });
@@ -65,16 +63,6 @@ export function MemberFormPage() {
       return;
     }
 
-    if (!isEditing && !formData.password.trim()) {
-      setError('Password wajib diisi');
-      return;
-    }
-
-    if (!isEditing && formData.password.length < 6) {
-      setError('Password minimal 6 karakter');
-      return;
-    }
-
     if (isEditing) {
       const payload: any = {
         fullName: formData.fullName,
@@ -97,7 +85,6 @@ export function MemberFormPage() {
       const payload = {
         fullName: formData.fullName,
         email: formData.email,
-        password: formData.password,
         employeeId: formData.employeeId || undefined,
       };
 
@@ -221,24 +208,7 @@ export function MemberFormPage() {
                 )}
               </div>
 
-              {/* Password - Only for create */}
-              {!isEditing && (
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="password" className="text-sm font-semibold text-on-background">
-                    Password *
-                  </label>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                    placeholder="Minimal 6 karakter"
-                  />
-                </div>
-              )}
+              {/* No password field required since members are only project resources */}
 
               {/* Employee ID */}
               <div className="flex flex-col gap-2">

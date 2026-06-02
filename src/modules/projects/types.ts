@@ -16,6 +16,12 @@ export type ProjectMember = Omit<Entity<'ProjectMemberResponseDto'>, 'projectId'
     fullName: string;
     avatarUrl?: string;
   } | null;
+  role?: {
+    id: string;
+    code: string;
+    name: string;
+    description?: string | null;
+  } | null;
 };
 
 export type ProjectActivity = Omit<Entity<'ProjectActivityResponseDto'>, 'projectId' | 'parentId' | 'assignedToId'> & {

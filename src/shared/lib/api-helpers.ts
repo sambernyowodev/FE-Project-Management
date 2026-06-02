@@ -15,6 +15,7 @@ export type BaseEntity = {
   updatedAt?: string;
   createdBy?: string;
   updatedBy?: string;
+  deletedAt?: string | null;
 };
 
 /**

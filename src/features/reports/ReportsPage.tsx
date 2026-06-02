@@ -401,7 +401,7 @@ export function ReportsPage() {
       { key: 'Report Date', value: new Date().toLocaleDateString() }
     ];
 
-    const assigneeRows = assignees.map(a => ({
+    const assigneeRows = assignees.map((a: any) => ({
       'Nama Member': a.user?.fullName || `User ID: ${a.userId}`,
       'Email': a.user?.email || '',
       'Role': a.role?.name || 'Resource',
