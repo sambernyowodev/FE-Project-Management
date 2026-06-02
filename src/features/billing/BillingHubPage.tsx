@@ -308,10 +308,10 @@ export function BillingHubPage() {
                   </div>
 
                   {/* Details Table */}
-                  <div className="border border-outline-variant rounded-xl overflow-hidden">
+                  <div className="border border-outline-variant rounded-xl overflow-auto max-h-80">
                     <table className="w-full text-left border-collapse text-sm">
-                      <thead>
-                        <tr className="bg-surface-container-low border-b border-outline-variant">
+                      <thead className="sticky top-0 z-10 bg-surface-container-low border-b border-outline-variant">
+                        <tr>
                           <th className="px-4 py-3 font-semibold text-secondary uppercase text-xs">Breakdown Item</th>
                           <th className="px-4 py-3 font-semibold text-secondary uppercase text-xs">Role</th>
                           <th className="px-4 py-3 font-semibold text-secondary uppercase text-xs text-right">Mandays</th>

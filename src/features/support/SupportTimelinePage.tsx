@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useGetSupportTicket } from '@/modules/support/hooks/useSupportTickets';
+import { useGetSupportTicket, useGetTicketAssignees } from '@/modules/support/hooks/useSupportTickets';
 import { ManageSupportMembersModal } from './components/ManageSupportMembersModal';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import { SupportTicketStatus } from '@/shared/constants/enums';
@@ -21,8 +21,11 @@ export function SupportTimelinePage() {
   const navigate = useNavigate();
   const ticketId = id || '';
 
-  const { data: ticket, isLoading, refetch } = useGetSupportTicket(ticketId);
+  const { data: ticket, isLoading: isTicketLoading, refetch: refetchTicket } = useGetSupportTicket(ticketId);
+  const { data: assignees = [], isLoading: isAssigneesLoading, refetch: refetchAssignees } = useGetTicketAssignees(ticketId);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+
+  const isLoading = isTicketLoading || isAssigneesLoading;
 
   if (isLoading) {
     return (
@@ -41,7 +44,6 @@ export function SupportTimelinePage() {
     );
   }
 
-  const assignees = ticket.assignees || [];
   const totalHoursAssigned = assignees.reduce((acc: number, curr: any) => acc + Number(curr.hoursSpent || 0), 0);
 
   const getInitials = (name: string) => {
@@ -49,7 +51,7 @@ export function SupportTimelinePage() {
     return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
   };
 
-  const getAvatarBg = (id: number) => {
+  const getAvatarBg = (id: any) => {
     const gradients = [
       'from-blue-500 to-indigo-600',
       'from-emerald-500 to-teal-600',
@@ -58,7 +60,10 @@ export function SupportTimelinePage() {
       'from-rose-500 to-red-600',
       'from-cyan-500 to-sky-600'
     ];
-    return gradients[id % gradients.length];
+    const index = typeof id === 'string'
+      ? id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      : Number(id || 0);
+    return gradients[index % gradients.length];
   };
 
   return (
@@ -228,7 +233,7 @@ export function SupportTimelinePage() {
                 </thead>
                 <tbody className="divide-y divide-outline-variant/60 text-xs">
                   {assignees.map((assignee: any) => {
-                    const userName = assignee.user?.fullName || `User ID: ${assignee.userId}`;
+                    const userName = assignee.user?.fullName || `Member ID: ${assignee.memberId}`;
                     const userEmail = assignee.user?.email || '';
 
                     return (
@@ -236,7 +241,7 @@ export function SupportTimelinePage() {
                         {/* Member Name */}
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3 min-w-[200px]">
-                            <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(assignee.userId)} text-white text-[10px] font-bold flex items-center justify-center shadow-inner shrink-0`}>
+                            <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(assignee.memberId)} text-white text-[10px] font-bold flex items-center justify-center shadow-inner shrink-0`}>
                               {getInitials(userName)}
                             </div>
                             <div className="flex flex-col min-w-0">
@@ -321,7 +326,8 @@ export function SupportTimelinePage() {
         isOpen={isManageModalOpen}
         onClose={() => {
           setIsManageModalOpen(false);
-          refetch();
+          refetchTicket();
+          refetchAssignees();
         }}
         ticketId={ticketId}
         assignees={assignees}

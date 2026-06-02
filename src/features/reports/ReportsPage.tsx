@@ -149,6 +149,7 @@ export function ReportsPage() {
     assignees,
     allProjectActivities,
     allProjectMembers,
+    allTicketAssignees,
     isLoadingList,
     isLoadingProjectDetails,
     isLoadingTicketDetails,
@@ -294,7 +295,7 @@ export function ReportsPage() {
 
   const getOverallSupportData = () => {
     return tickets.map((t: any) => {
-      const ticketAssignees = t.assignees || [];
+      const ticketAssignees = allTicketAssignees[t.id] || [];
 
       const filteredAssignees = ticketAssignees.filter((a: any) => {
         if (!supportStartDate && !supportEndDate) return true;

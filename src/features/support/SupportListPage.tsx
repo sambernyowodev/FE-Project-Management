@@ -75,7 +75,7 @@ export function SupportListPage() {
       header: 'Project Name',
       accessorKey: 'projectName',
       cell: ({ row }) => (
-        <span className="font-semibold text-on-background">{row.original.masterProject?.name || '-'}</span>
+        <span className="font-semibold text-on-background">{row.original.projectName || '-'}</span>
       ),
     },
     {

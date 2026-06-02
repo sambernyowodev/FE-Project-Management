@@ -212,8 +212,29 @@ export const billingApi = {
         const rate = roleRate ? Number(roleRate.rate_per_manday_support) : 0;
         const subtotal = mandays * rate;
 
+        let projId = null;
+        if (assignee.support_tickets?.master_project_id) {
+          const mId = assignee.support_tickets.master_project_id;
+          let projectEntity = projects.find((p) => p.project_id === mId);
+          if (!projectEntity) {
+            const { data: pEntity } = await supabase
+              .from('projects')
+              .select('*, master_projects(name)')
+              .eq('project_id', mId)
+              .maybeSingle();
+
+            if (pEntity) {
+              projectEntity = pEntity;
+              projects.push(pEntity);
+            }
+          }
+          if (projectEntity) {
+            projId = projectEntity.id;
+          }
+        }
+
         detailItems.push({
-          projectId: assignee.support_tickets?.master_project_id || null,
+          projectId: projId,
           projectName: `[SUP] ${assignee.support_tickets?.master_projects?.name || 'Unknown Project'} - ${assignee.support_tickets?.ticket_code} (${assignee.support_tickets?.issue_title})`,
           roleId: assignee.role_id,
           roleName: assignee.roles?.name || 'Unknown Role',
@@ -222,22 +243,6 @@ export const billingApi = {
           ratePerManday: rate,
           subtotal,
         });
-
-        // Link ticket's corresponding Project to the billing header
-        if (assignee.support_tickets?.master_project_id) {
-          const mId = assignee.support_tickets.master_project_id;
-          if (!projects.some((p) => p.id === mId)) {
-            const { data: pEntity } = await supabase
-              .from('projects')
-              .select('*, master_projects(name)')
-              .eq('id', mId)
-              .maybeSingle();
-
-            if (pEntity) {
-              projects.push(pEntity);
-            }
-          }
-        }
       }
     }
 
