@@ -12,7 +12,7 @@ import { SupportTicketStatus } from '@/shared/constants/enums';
 interface ManageSupportMembersModalProps {
   isOpen: boolean;
   onClose: () => void;
-  ticketId: number;
+  ticketId: string;
   assignees: any[];
 }
 
@@ -34,7 +34,7 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
   const [error, setError] = useState('');
 
   // Editing state
-  const [editingAssigneeId, setEditingAssigneeId] = useState<number | null>(null);
+  const [editingAssigneeId, setEditingAssigneeId] = useState<string | null>(null);
 
   // Searchable dropdown state
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -112,8 +112,8 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
     }
 
     const payload: any = {
-      userId: Number(selectedUserId),
-      roleId: selectedRoleId ? Number(selectedRoleId) : undefined,
+      userId: selectedUserId,
+      roleId: selectedRoleId || undefined,
       hoursSpent: Number(hoursSpent) || 0,
       status,
       startDate: startDate ? new Date(startDate).toISOString() : undefined,
@@ -145,7 +145,7 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
     }
   };
 
-  const handleRemoveAssignee = (id: number, userName: string) => {
+  const handleRemoveAssignee = (id: string, userName: string) => {
     if (window.confirm(`Apakah Anda yakin ingin mengeluarkan ${userName} dari ticket support ini?`)) {
       removeAssigneeMutation.mutate(id, {
         onError: (err: any) => {
@@ -160,7 +160,7 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
     return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
   };
 
-  const getAvatarBg = (id: number) => {
+  const getAvatarBg = (id: string) => {
     const gradients = [
       'from-blue-500 to-indigo-600',
       'from-emerald-500 to-teal-600',
@@ -169,7 +169,13 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
       'from-rose-500 to-red-600',
       'from-cyan-500 to-sky-600'
     ];
-    return gradients[id % gradients.length];
+    let hash = 0;
+    if (id) {
+      for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+      }
+    }
+    return gradients[Math.abs(hash) % gradients.length];
   };
 
   return (

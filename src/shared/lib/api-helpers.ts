@@ -10,18 +10,18 @@ export type Schema<T extends keyof components['schemas']> = components['schemas'
  * Common fields from backend BaseDto
  */
 export type BaseEntity = {
-  id: number;
+  id: string;
   createdAt?: string;
   updatedAt?: string;
-  createdBy?: number;
-  updatedBy?: number;
+  createdBy?: string;
+  updatedBy?: string;
 };
 
 /**
  * Utility type to extract a Schema and merge it with BaseEntity.
  * Usage: type Project = Entity<'ProjectResponseDto'>;
  */
-export type Entity<T extends keyof components['schemas']> = Schema<T> & BaseEntity;
+export type Entity<T extends keyof components['schemas']> = Omit<Schema<T>, keyof BaseEntity> & BaseEntity;
 
 /**
  * Build a query string from PaginationParams

@@ -6,11 +6,11 @@ import { formatDate } from '@/shared/lib/formatter';
 import type { ProjectActivity, ProjectMember } from '@/modules/projects/types';
 
 interface TaskTableProps {
-  projectId: number;
+  projectId: string;
   activities: ProjectActivity[];
   members: ProjectMember[];
   onEditActivity: (activity: ProjectActivity) => void;
-  onAddSubActivity: (parentId: number) => void;
+  onAddSubActivity: (parentId: string) => void;
 }
 
 export function TaskTable({ 
@@ -24,7 +24,7 @@ export function TaskTable({
   const progressMutation = useUpdateActivityProgress(projectId);
 
   // Keep track of which activity progress is being edited inline
-  const [editingProgressId, setEditingProgressId] = useState<number | null>(null);
+  const [editingProgressId, setEditingProgressId] = useState<string | null>(null);
   const [tempProgress, setTempProgress] = useState<string>('0');
 
   // Flatten and sort activities so children appear directly under their parents
@@ -41,7 +41,7 @@ export function TaskTable({
     sortedActivities.push(...children);
   });
 
-  const handleDelete = (id: number, name: string) => {
+  const handleDelete = (id: string, name: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus aktivitas "${name}"?`)) {
       deleteMutation.mutate(id);
     }
@@ -52,7 +52,7 @@ export function TaskTable({
     setTempProgress(String(activity.progressPct || 0));
   };
 
-  const saveInlineProgress = (id: number) => {
+  const saveInlineProgress = (id: string) => {
     const val = Math.min(100, Math.max(0, Number(tempProgress) || 0));
     progressMutation.mutate(
       { id, progressPct: val },
@@ -64,9 +64,9 @@ export function TaskTable({
     );
   };
 
-  const getMemberName = (userId?: number) => {
+  const getMemberName = (userId?: string) => {
     if (!userId) return '-';
-    const member = members.find(m => m.userId === userId);
+    const member = members.find(m => m.memberId === userId || m.user?.id === userId);
     return member?.user?.fullName || `ID: ${userId}`;
   };
 

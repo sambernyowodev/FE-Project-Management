@@ -22,7 +22,7 @@ export function BillingHubPage() {
   const navigate = useNavigate();
   
   // Navigation & Listing States
-  const [selectedBillingId, setSelectedBillingId] = useState<number | null>(null);
+  const [selectedBillingId, setSelectedBillingId] = useState<string | null>(null);
   const [listSearch, setListSearch] = useState('');
   const [listTypeFilter, setListTypeFilter] = useState<'ALL' | 'PROJECT' | 'SUPPORT'>('ALL');
   
@@ -42,7 +42,7 @@ export function BillingHubPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
   };
 
-  const handleDelete = async (id: number, billingNumber: string) => {
+  const handleDelete = async (id: string, billingNumber: string) => {
     if (window.confirm(`Are you sure you want to delete billing "${billingNumber}"? This action cannot be undone.`)) {
       try {
         await deleteMutation.mutateAsync(id);

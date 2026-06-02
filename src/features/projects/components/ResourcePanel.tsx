@@ -20,21 +20,21 @@ const ROLE_MAPPINGS: Record<string, { label: string; color: string }> = {
 
 export function ResourcePanel({ members = [], activities = [], onManageTeam }: ResourcePanelProps) {
   // Count tasks per user ID
-  const taskCounts: Record<number, number> = {};
+  const taskCounts: Record<string, number> = {};
   activities.forEach(act => {
     if (act.assignedToId) {
       taskCounts[act.assignedToId] = (taskCounts[act.assignedToId] || 0) + 1;
     }
   });
 
-  const getUserCalculatedMandays = (userId: number) => {
+  const getUserCalculatedMandays = (userId: string) => {
     return activities
       .filter(act => act.assignedToId === userId)
       .reduce((sum, act) => sum + (act.mandays || 0), 0);
   };
 
   const getRoleCalculatedMandays = (roleMembers: ProjectMember[]) => {
-    const uniqueUserIds = Array.from(new Set(roleMembers.map(m => m.userId)));
+    const uniqueUserIds = Array.from(new Set(roleMembers.map(m => m.memberId)));
     return uniqueUserIds.reduce((sum, userId) => sum + getUserCalculatedMandays(userId), 0);
   };
 
@@ -62,9 +62,9 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
   });
 
   const totalResources = members.length;
-  const activeResources = members.filter(m => (taskCounts[m.userId] || 0) > 0).length;
+  const activeResources = members.filter(m => (taskCounts[m.memberId] || 0) > 0).length;
 
-  const totalAktual = Array.from(new Set(members.map(m => m.userId)))
+  const totalAktual = Array.from(new Set(members.map(m => m.memberId)))
     .reduce((sum, userId) => sum + getUserCalculatedMandays(userId), 0);
 
   const getInitials = (name: string) => {
@@ -73,7 +73,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
   };
 
   // Avatar colors based on user ID to keep it consistent
-  const getAvatarBg = (id: number) => {
+  const getAvatarBg = (id?: string) => {
     const gradients = [
       'from-blue-500 to-indigo-600',
       'from-emerald-500 to-teal-600',
@@ -82,7 +82,13 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
       'from-rose-500 to-red-600',
       'from-cyan-500 to-sky-600 font-semibold'
     ];
-    return gradients[id % gradients.length];
+    if (!id) return gradients[0];
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % gradients.length;
+    return gradients[index];
   };
 
   return (
@@ -147,15 +153,15 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
               
               <div className="flex flex-col gap-2">
                 {roleMembers.map(member => {
-                  const tasks = taskCounts[member.userId] || 0;
-                  const userName = member.user?.fullName || `User ID: ${member.userId}`;
+                  const tasks = taskCounts[member.memberId] || 0;
+                  const userName = member.user?.fullName || `User ID: ${member.memberId}`;
                   const userEmail = member.user?.email || '';
                   
                   return (
                     <div key={member.id} className="flex items-center justify-between p-2 rounded-lg bg-surface hover:bg-surface-container-low/50 border border-outline-variant/60 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Avatar */}
-                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(member.userId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
+                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(member.memberId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
                           {getInitials(userName)}
                         </div>
                         {/* Details */}
@@ -179,7 +185,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                           </span>
                         )}
                         <span className="text-[10px] font-mono text-primary font-bold">
-                          {getUserCalculatedMandays(member.userId).toFixed(1)} md
+                          {getUserCalculatedMandays(member.memberId).toFixed(1)} md
                         </span>
                       </div>
                     </div>
@@ -204,14 +210,14 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
             
             <div className="flex flex-col gap-2">
               {otherMembers.map(member => {
-                const tasks = taskCounts[member.userId] || 0;
-                const userName = member.user?.fullName || `User ID: ${member.userId}`;
+                const tasks = taskCounts[member.memberId] || 0;
+                const userName = member.user?.fullName || `User ID: ${member.memberId}`;
                 const roleName = member.role?.name || 'Resource';
                 
                 return (
                   <div key={member.id} className="flex items-center justify-between p-2 rounded-lg bg-surface hover:bg-surface-container-low/50 border border-outline-variant/60 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(member.userId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
+                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(member.memberId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
                         {getInitials(userName)}
                       </div>
                       <div className="flex flex-col min-w-0">
@@ -233,7 +239,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                         </span>
                       )}
                       <span className="text-[10px] font-mono text-primary font-bold">
-                        {getUserCalculatedMandays(member.userId).toFixed(1)} md
+                        {getUserCalculatedMandays(member.memberId).toFixed(1)} md
                       </span>
                     </div>
                   </div>

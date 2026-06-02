@@ -45,7 +45,7 @@ export function MemberListPage() {
     setFilters(nextFilters);
   };
 
-  const handleDeactivate = (id: number, name: string) => {
+  const handleDeactivate = (id: string, name: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menonaktifkan member "${name}"?`)) {
       deleteMutation.mutate(id, {
         onSuccess: () => {

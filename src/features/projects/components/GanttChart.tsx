@@ -77,9 +77,9 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
     return result;
   }, [activities]);
 
-  const getMemberName = (userId?: number) => {
+  const getMemberName = (userId?: string) => {
     if (!userId) return 'Unassigned';
-    const member = members.find(m => m.userId === userId);
+    const member = members.find(m => m.memberId === userId || m.user?.id === userId);
     return member?.user?.fullName || `User ID: ${userId}`;
   };
 
@@ -325,7 +325,7 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
                               </div>
                               <div className="flex items-center gap-1.5 mt-1 border-t border-outline-variant/30 pt-1.5">
                                 <User className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">Assignee: <strong>{getMemberName(act.assignedToId)}</strong></span>
+                                <span className="truncate">Assignee: <strong>{getMemberName(act.assignedToId || undefined)}</strong></span>
                               </div>
                             </div>
                             

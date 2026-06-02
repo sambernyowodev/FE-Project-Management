@@ -45,7 +45,7 @@ export function MasterProjectListPage() {
     setFilters(nextFilters);
   };
 
-  const handleDelete = (id: number, name: string) => {
+  const handleDelete = (id: string, name: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus master project "${name}"?`)) {
       deleteMutation.mutate(id, {
         onSuccess: () => {

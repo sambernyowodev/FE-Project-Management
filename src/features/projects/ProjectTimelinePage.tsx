@@ -42,23 +42,23 @@ export function ProjectTimelinePage() {
   const projects = projectsRes?.data || [];
 
   // Selected Project State
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   // Set initial selected project ID based on route param or first project in list
   useEffect(() => {
     if (hasRouteId) {
-      setSelectedProjectId(Number(id));
+      setSelectedProjectId(id || null);
     } else if (projects.length > 0 && selectedProjectId === null) {
       setSelectedProjectId(projects[0].id);
     }
   }, [id, hasRouteId, projects, selectedProjectId]);
 
   // 2. Fetch Details for Selected Project
-  const { data: project, isLoading: isProjectLoading } = useGetProject(selectedProjectId || 0);
+  const { data: project, isLoading: isProjectLoading } = useGetProject(selectedProjectId || '');
 
   // 3. Fetch Activities & Members
-  const { data: activities = [], isLoading: isActivitiesLoading } = useGetProjectActivities(selectedProjectId || 0);
-  const { data: members = [], isLoading: isMembersLoading } = useGetProjectMembers(selectedProjectId || 0);
+  const { data: activities = [], isLoading: isActivitiesLoading } = useGetProjectActivities(selectedProjectId || '');
+  const { data: members = [], isLoading: isMembersLoading } = useGetProjectMembers(selectedProjectId || '');
 
   // 4. View Modes (Gantt vs Table List)
   const [activeTab, setActiveTab] = useState<'gantt' | 'list'>('gantt');
@@ -66,7 +66,7 @@ export function ProjectTimelinePage() {
   // 5. Activity Form Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<ProjectActivity | null>(null);
-  const [subActivityParentId, setSubActivityParentId] = useState<number | null>(null);
+  const [subActivityParentId, setSubActivityParentId] = useState<string | null>(null);
 
   // 6. Manage Team Modal State
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
@@ -83,7 +83,7 @@ export function ProjectTimelinePage() {
     setIsModalOpen(true);
   };
 
-  const handleOpenAddSubModal = (parentId: number) => {
+  const handleOpenAddSubModal = (parentId: string) => {
     setEditingActivity(null);
     setSubActivityParentId(parentId);
     setIsModalOpen(true);

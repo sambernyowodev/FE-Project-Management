@@ -49,7 +49,7 @@ export function ProjectListPage() {
     setFilters(nextFilters);
   };
 
-  const handleDelete = (id: number, projectCode: string) => {
+  const handleDelete = (id: string, projectCode: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus project ${projectCode}?`)) {
       deleteMutation.mutate(id, {
         onSuccess: () => {

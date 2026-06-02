@@ -50,8 +50,8 @@ export function BillingFormPage() {
   const [endDate, setEndDate] = useState<string>(localToday);
   const [remarks, setRemarks] = useState<string>('');
   const [taxRate, setTaxRate] = useState<number>(11);
-  const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
-  const [selectedTickets, setSelectedTickets] = useState<number[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [createdBilling, setCreatedBilling] = useState<any>(null);
 
   // Search filters
@@ -107,13 +107,13 @@ export function BillingFormPage() {
   const createBillingMutation = useCreateBilling();
 
   // Handlers
-  const handleToggleProject = (id: number) => {
+  const handleToggleProject = (id: string) => {
     setSelectedProjects(prev => 
       prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
     );
   };
 
-  const handleToggleTicket = (id: number) => {
+  const handleToggleTicket = (id: string) => {
     setSelectedTickets(prev => 
       prev.includes(id) ? prev.filter(tId => tId !== id) : [...prev, id]
     );

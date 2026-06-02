@@ -14,9 +14,9 @@ const PHASE_OPTIONS = [
 interface ActivityFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  projectId: number;
+  projectId: string;
   activity?: ProjectActivity | null; // If provided, edit mode
-  parentId?: number | null; // If provided, create sub-activity
+  parentId?: string | null; // If provided, create sub-activity
   members: any[];
   activities: ProjectActivity[];
 }
@@ -130,8 +130,8 @@ export function ActivityFormModal({
       endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
       progressPct: Number(formData.progressPct),
       phase: formData.phase,
-      assignedToId: formData.assignedToId ? Number(formData.assignedToId) : null,
-      parentId: formData.parentId ? Number(formData.parentId) : null,
+      assignedToId: formData.assignedToId || null,
+      parentId: formData.parentId || null,
       isMilestone: formData.isMilestone,
       sortOrder: Number(formData.sortOrder)
     };

@@ -14,7 +14,7 @@ export function RoleRateFormPage() {
   const navigate = useNavigate();
   const isEditing = Boolean(id);
 
-  const { data: roleRate, isLoading: isRoleRateLoading } = useGetRoleRate(Number(id));
+  const { data: roleRate, isLoading: isRoleRateLoading } = useGetRoleRate(id || '');
   const { data: roles = [], isLoading: isRolesLoading } = useGetRoles();
 
   const createMutation = useCreateRoleRate();
@@ -68,7 +68,7 @@ export function RoleRateFormPage() {
     }
 
     const payload = {
-      roleId: Number(formData.roleId),
+      roleId: formData.roleId,
       ratePerMandayProject: Number(formData.ratePerMandayProject),
       ratePerMandaySupport: Number(formData.ratePerMandaySupport),
       currency: formData.currency,
@@ -77,7 +77,7 @@ export function RoleRateFormPage() {
 
     if (isEditing) {
       updateMutation.mutate(
-        { id: Number(id), data: payload },
+        { id: id!, data: payload },
         {
           onSuccess: () => {
             navigate('/master/role-rates');
@@ -101,7 +101,7 @@ export function RoleRateFormPage() {
 
   const handleDelete = () => {
     if (window.confirm('Apakah Anda yakin ingin menghapus rate ini?')) {
-      deleteMutation.mutate(Number(id), {
+      deleteMutation.mutate(id!, {
         onSuccess: () => {
           navigate('/master/role-rates');
         },

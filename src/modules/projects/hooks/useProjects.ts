@@ -8,7 +8,7 @@ export const useGetProjects = (params?: { page?: number; perPage?: number; sort?
   });
 };
 
-export const useGetProject = (id: number) => {
+export const useGetProject = (id: string) => {
   return useQuery({
     queryKey: ['projects', id],
     queryFn: () => projectsApi.getProjectById(id),
@@ -29,7 +29,7 @@ export const useCreateProject = () => {
 export const useUpdateProject = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => projectsApi.updateProject(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => projectsApi.updateProject(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['projects', variables.id] });
@@ -47,7 +47,7 @@ export const useDeleteProject = () => {
   });
 };
 
-export const useGetProjectMembers = (projectId: number) => {
+export const useGetProjectMembers = (projectId: string) => {
   return useQuery({
     queryKey: ['project-members', projectId],
     queryFn: () => projectsApi.getProjectMembers(projectId),
@@ -55,7 +55,7 @@ export const useGetProjectMembers = (projectId: number) => {
   });
 };
 
-export const useAddProjectMember = (projectId: number) => {
+export const useAddProjectMember = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: any) => projectsApi.addProjectMember(projectId, data),
@@ -65,10 +65,10 @@ export const useAddProjectMember = (projectId: number) => {
   });
 };
 
-export const useRemoveProjectMember = (projectId: number) => {
+export const useRemoveProjectMember = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (memberId: number) => projectsApi.removeProjectMember(projectId, memberId),
+    mutationFn: (memberId: string) => projectsApi.removeProjectMember(projectId, memberId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
     },

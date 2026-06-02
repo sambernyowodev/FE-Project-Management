@@ -9,7 +9,7 @@ export const useGetBillings = (params?: any) => {
   });
 };
 
-export const useGetBillingById = (id: number) => {
+export const useGetBillingById = (id: string) => {
   return useQuery({
     queryKey: ['billing', 'detail', id],
     queryFn: () => billingApi.getBillingById(id),
@@ -33,6 +33,7 @@ export const useCreateBilling = () => {
 
 export const useDeleteBilling = () => {
   return useMutation({
-    mutationFn: (id: number) => billingApi.deleteBilling(id),
+    mutationFn: (id: string) => billingApi.deleteBilling(id),
   });
 };
+

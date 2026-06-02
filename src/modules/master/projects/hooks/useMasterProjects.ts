@@ -14,7 +14,7 @@ export const useGetMasterProjects = (params?: {
   });
 };
 
-export const useGetMasterProject = (id: number) => {
+export const useGetMasterProject = (id: string) => {
   return useQuery({
     queryKey: ['master-projects', id],
     queryFn: () => masterProjectsApi.getMasterProjectById(id),
@@ -35,7 +35,7 @@ export const useCreateMasterProject = () => {
 export const useUpdateMasterProject = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
       masterProjectsApi.updateMasterProject(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['master-projects'] });
@@ -53,3 +53,4 @@ export const useDeleteMasterProject = () => {
     },
   });
 };
+

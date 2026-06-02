@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectActivitiesApi } from '../api/project-activities.api';
 import type { CreateProjectActivity, UpdateProjectActivity } from '../types';
 
-export const useGetProjectActivities = (projectId: number) => {
+export const useGetProjectActivities = (projectId: string) => {
   return useQuery({
     queryKey: ['project-activities', projectId],
     queryFn: () => projectActivitiesApi.getActivitiesByProject(projectId),
@@ -10,7 +10,7 @@ export const useGetProjectActivities = (projectId: number) => {
   });
 };
 
-export const useCreateProjectActivity = (projectId: number) => {
+export const useCreateProjectActivity = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateProjectActivity) => projectActivitiesApi.createActivity(data),
@@ -22,10 +22,10 @@ export const useCreateProjectActivity = (projectId: number) => {
   });
 };
 
-export const useUpdateProjectActivity = (projectId: number) => {
+export const useUpdateProjectActivity = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateProjectActivity }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateProjectActivity }) =>
       projectActivitiesApi.updateActivity(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-activities', projectId] });
@@ -35,10 +35,10 @@ export const useUpdateProjectActivity = (projectId: number) => {
   });
 };
 
-export const useDeleteProjectActivity = (projectId: number) => {
+export const useDeleteProjectActivity = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => projectActivitiesApi.deleteActivity(id),
+    mutationFn: (id: string) => projectActivitiesApi.deleteActivity(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-activities', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projects', projectId] });
@@ -47,10 +47,10 @@ export const useDeleteProjectActivity = (projectId: number) => {
   });
 };
 
-export const useUpdateActivityProgress = (projectId: number) => {
+export const useUpdateActivityProgress = (projectId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, progressPct }: { id: number; progressPct: number }) =>
+    mutationFn: ({ id, progressPct }: { id: string; progressPct: number }) =>
       projectActivitiesApi.updateActivityProgress(id, progressPct),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-activities', projectId] });

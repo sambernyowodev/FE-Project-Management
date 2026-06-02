@@ -7,7 +7,7 @@ import { useAddProjectMember, useRemoveProjectMember } from '@/modules/projects/
 interface ManageMembersModalProps {
   isOpen: boolean;
   onClose: () => void;
-  projectId: number;
+  projectId: string;
   members: any[];
   activities?: any[];
 }
@@ -23,7 +23,7 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [error, setError] = useState('');
 
-  const getCalculatedMandays = (userId: number) => {
+  const getCalculatedMandays = (userId: string) => {
     return activities
       .filter((act: any) => act.assignedToId === userId)
       .reduce((sum: number, act: any) => sum + (act.mandays || 0), 0);
@@ -56,8 +56,8 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
 
     addMemberMutation.mutate(
       {
-        userId: Number(selectedUserId),
-        roleId: Number(selectedRoleId),
+        userId: selectedUserId,
+        roleId: selectedRoleId,
         assignedMandays: 0,
       },
       {
@@ -72,7 +72,7 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
     );
   };
 
-  const handleRemoveMember = (memberId: number) => {
+  const handleRemoveMember = (memberId: string) => {
     if (window.confirm('Apakah Anda yakin ingin mengeluarkan member ini dari project?')) {
       removeMemberMutation.mutate(memberId, {
         onError: (err: any) => {
@@ -87,7 +87,7 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
     return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
   };
 
-  const getAvatarBg = (id: number) => {
+  const getAvatarBg = (id: string) => {
     const gradients = [
       'from-blue-500 to-indigo-600',
       'from-emerald-500 to-teal-600',
@@ -96,7 +96,13 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
       'from-rose-500 to-red-600',
       'from-cyan-500 to-sky-600'
     ];
-    return gradients[id % gradients.length];
+    let hash = 0;
+    if (id) {
+      for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+      }
+    }
+    return gradients[Math.abs(hash) % gradients.length];
   };
 
   return (

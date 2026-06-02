@@ -13,7 +13,7 @@ export function RoleFormPage() {
   const navigate = useNavigate();
   const isEditing = Boolean(id);
 
-  const { data: role, isLoading: isRoleLoading } = useGetRole(Number(id));
+  const { data: role, isLoading: isRoleLoading } = useGetRole(id || '');
 
   const createMutation = useCreateRole();
   const updateMutation = useUpdateRole();
@@ -64,7 +64,7 @@ export function RoleFormPage() {
 
     if (isEditing) {
       updateMutation.mutate(
-        { id: Number(id), data: payload },
+        { id: id!, data: payload },
         {
           onSuccess: () => {
             navigate('/master/roles');
@@ -88,7 +88,7 @@ export function RoleFormPage() {
 
   const handleDelete = () => {
     if (window.confirm('Apakah Anda yakin ingin menghapus role ini?')) {
-      deleteMutation.mutate(Number(id), {
+      deleteMutation.mutate(id!, {
         onSuccess: () => {
           navigate('/master/roles');
         },

@@ -35,9 +35,9 @@ function SearchableSelect({
   placeholder,
   label
 }: {
-  options: { id: number; label: string }[];
-  value: number | null;
-  onChange: (id: number) => void;
+  options: { id: string; label: string }[];
+  value: string | null;
+  onChange: (id: string) => void;
   placeholder: string;
   label: string;
 }) {
@@ -127,8 +127,8 @@ export function ReportsPage() {
   const [projectSubTab, setProjectSubTab] = useState<'overview' | 'detail'>('overview');
   const [supportSubTab, setSupportSubTab] = useState<'overview' | 'detail'>('overview');
 
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
   // Project Overview Filters
   const [projectStartDate, setProjectStartDate] = useState(getStartOfYearString());
@@ -172,13 +172,13 @@ export function ReportsPage() {
   const getProjectMemberDetails = () => {
     return members.map((m: any) => {
       const actualMandays = activities
-        .filter((act: any) => act.assignedToId === m.userId)
+        .filter((act: any) => act.assignedToId === m.memberId)
         .reduce((sum: number, act: any) => sum + (act.mandays || 0), 0);
-      const activityCount = activities.filter((act: any) => act.assignedToId === m.userId).length;
+      const activityCount = activities.filter((act: any) => act.assignedToId === m.memberId).length;
       return {
         id: m.id,
-        userId: m.userId,
-        userName: m.user?.fullName || `User ID: ${m.userId}`,
+        userId: m.memberId,
+        userName: m.user?.fullName || `User ID: ${m.memberId}`,
         userEmail: m.user?.email || '',
         roleName: m.role?.name || 'Resource',
         activityCount,
@@ -188,23 +188,23 @@ export function ReportsPage() {
   };
 
   const getProjectRoleSummaries = () => {
-    const rolesMap = new Map<number, { roleName: string; count: number; userIds: Set<number> }>();
+    const rolesMap = new Map<string, { roleName: string; count: number; userIds: Set<string> }>();
     members.forEach((m: any) => {
       const roleId = m.roleId;
       const roleName = m.role?.name || 'Resource';
 
       if (!rolesMap.has(roleId)) {
-        rolesMap.set(roleId, { roleName, count: 0, userIds: new Set<number>() });
+        rolesMap.set(roleId, { roleName, count: 0, userIds: new Set<string>() });
       }
       const item = rolesMap.get(roleId);
       if (item) {
         item.count += 1;
-        item.userIds.add(m.userId);
+        item.userIds.add(m.memberId);
       }
     });
 
     return Array.from(rolesMap.values()).map(r => {
-      const actual = Array.from(r.userIds).reduce((sum: number, userId: number) => {
+      const actual = Array.from(r.userIds).reduce((sum: number, userId: string) => {
         return sum + activities
           .filter((act: any) => act.assignedToId === userId)
           .reduce((s: number, act: any) => s + (act.mandays || 0), 0);
@@ -219,9 +219,9 @@ export function ReportsPage() {
 
   // Support Helpers
   const getSupportRoleSummaries = () => {
-    const rolesMap = new Map<number, { roleName: string; count: number; hours: number }>();
+    const rolesMap = new Map<string, { roleName: string; count: number; hours: number }>();
     assignees.forEach((a: any) => {
-      const roleId = a.roleId || 0;
+      const roleId = a.roleId || '';
       const roleName = a.role?.name || 'Resource';
       const hours = a.hoursSpent || 0;
 
@@ -500,7 +500,7 @@ export function ReportsPage() {
   const supportRoleSummaries = getSupportRoleSummaries();
 
   // Project Metrics
-  const projectTotalAktual = Array.from(new Set(members.map((m: any) => m.userId)))
+  const projectTotalAktual = Array.from(new Set(members.map((m: any) => m.memberId)))
     .reduce((sum, userId) => {
       return sum + activities
         .filter((act: any) => act.assignedToId === userId)

@@ -1,3 +1,4 @@
-import type { Schema } from '@/shared/lib/api-helpers';
+import type { Entity } from '@/shared/lib/api-helpers';
 
-export type PurchaseOrder = Schema<'PurchaseOrderResponseDto'>
+export type PurchaseOrder = Entity<'PurchaseOrderResponseDto'>
+

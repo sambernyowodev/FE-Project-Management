@@ -10,7 +10,7 @@ import {
 export function POFormPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const poId = id ? Number(id) : undefined;
+  const poId = id ? id : undefined;
   const isEditMode = !!poId;
 
   const createMutation = useCreatePurchaseOrder();

@@ -9,7 +9,7 @@ export const useGetSupportTickets = (params?: { page?: number; perPage?: number;
   });
 };
 
-export const useGetSupportTicket = (id: number) => {
+export const useGetSupportTicket = (id: string) => {
   return useQuery({
     queryKey: ['support-tickets', id],
     queryFn: () => supportApi.getTicketById(id),
@@ -30,7 +30,7 @@ export const useCreateSupportTicket = () => {
 export const useUpdateSupportTicket = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateSupportTicket }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateSupportTicket }) => 
       supportApi.updateTicket(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
@@ -42,7 +42,7 @@ export const useUpdateSupportTicket = () => {
 export const useDeleteSupportTicket = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => supportApi.deleteTicket(id),
+    mutationFn: (id: string) => supportApi.deleteTicket(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['support-tickets'] });
     },
@@ -50,7 +50,7 @@ export const useDeleteSupportTicket = () => {
 };
 
 // Assignee Hooks
-export const useGetTicketAssignees = (ticketId: number) => {
+export const useGetTicketAssignees = (ticketId: string) => {
   return useQuery({
     queryKey: ['support-ticket-assignees', ticketId],
     queryFn: () => supportApi.getTicketAssignees(ticketId),
@@ -58,7 +58,7 @@ export const useGetTicketAssignees = (ticketId: number) => {
   });
 };
 
-export const useAddTicketAssignee = (ticketId: number) => {
+export const useAddTicketAssignee = (ticketId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: CreateSupportTicketAssignee) => supportApi.addTicketAssignee(ticketId, data),
@@ -70,10 +70,10 @@ export const useAddTicketAssignee = (ticketId: number) => {
   });
 };
 
-export const useUpdateTicketAssignee = (ticketId: number) => {
+export const useUpdateTicketAssignee = (ticketId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ assigneeId, data }: { assigneeId: number; data: UpdateSupportTicketAssignee }) =>
+    mutationFn: ({ assigneeId, data }: { assigneeId: string; data: UpdateSupportTicketAssignee }) =>
       supportApi.updateTicketAssignee(ticketId, assigneeId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['support-ticket-assignees', ticketId] });
@@ -83,10 +83,10 @@ export const useUpdateTicketAssignee = (ticketId: number) => {
   });
 };
 
-export const useRemoveTicketAssignee = (ticketId: number) => {
+export const useRemoveTicketAssignee = (ticketId: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (assigneeId: number) => supportApi.removeTicketAssignee(ticketId, assigneeId),
+    mutationFn: (assigneeId: string) => supportApi.removeTicketAssignee(ticketId, assigneeId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['support-ticket-assignees', ticketId] });
       queryClient.invalidateQueries({ queryKey: ['support-tickets', ticketId] });

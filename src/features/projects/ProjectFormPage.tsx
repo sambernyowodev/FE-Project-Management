@@ -19,7 +19,7 @@ export function ProjectFormPage() {
   const navigate = useNavigate();
   const isEditing = Boolean(id);
 
-  const { data: project, isLoading: isProjectLoading } = useGetProject(Number(id));
+  const { data: project, isLoading: isProjectLoading } = useGetProject(id || '');
   const { data: masterProjectsRes } = useGetMasterProjects({ perPage: 100 });
   const masterProjects = masterProjectsRes?.data || [];
 
@@ -150,7 +150,7 @@ export function ProjectFormPage() {
     }
 
     try {
-      let targetProjectId = Number(selectedMasterId);
+      let targetProjectId = selectedMasterId;
 
       // 1. If it's a new master project, create it first
       if (selectedMasterId === 'new') {
@@ -183,7 +183,7 @@ export function ProjectFormPage() {
 
       if (isEditing) {
         updateMutation.mutate(
-          { id: Number(id), data: dataToSend },
+          { id: id!, data: dataToSend },
           {
             onSuccess: () => {
               navigate('/projects');
@@ -204,7 +204,7 @@ export function ProjectFormPage() {
 
   const handleDelete = () => {
     if (window.confirm('Are you sure you want to delete this project?')) {
-      deleteMutation.mutate(Number(id), {
+      deleteMutation.mutate(id!, {
         onSuccess: () => {
           navigate('/projects');
         }

@@ -14,7 +14,7 @@ export function MasterProjectFormPage() {
   const navigate = useNavigate();
   const isEditing = Boolean(id);
 
-  const { data: project, isLoading: isProjectLoading } = useGetMasterProject(Number(id));
+  const { data: project, isLoading: isProjectLoading } = useGetMasterProject(id || '');
 
   const createMutation = useCreateMasterProject();
   const updateMutation = useUpdateMasterProject();
@@ -62,7 +62,7 @@ export function MasterProjectFormPage() {
 
     if (isEditing) {
       updateMutation.mutate(
-        { id: Number(id), data: payload },
+        { id: id!, data: payload },
         {
           onSuccess: () => {
             navigate('/master/projects');
@@ -86,7 +86,7 @@ export function MasterProjectFormPage() {
 
   const handleDelete = () => {
     if (window.confirm('Apakah Anda yakin ingin menghapus master project ini?')) {
-      deleteMutation.mutate(Number(id), {
+      deleteMutation.mutate(id!, {
         onSuccess: () => {
           navigate('/master/projects');
         },

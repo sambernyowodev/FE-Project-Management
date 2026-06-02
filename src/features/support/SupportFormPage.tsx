@@ -17,7 +17,7 @@ export function SupportFormPage() {
   const navigate = useNavigate();
   const isEditing = Boolean(id);
 
-  const { data: ticket, isLoading: isTicketLoading } = useGetSupportTicket(Number(id));
+  const { data: ticket, isLoading: isTicketLoading } = useGetSupportTicket(id || '');
   const { data: masterProjectsRes, isLoading: isMasterProjectsLoading } = useGetMasterProjects({ perPage: 200 });
   const masterProjects = masterProjectsRes?.data || [];
 
@@ -45,7 +45,7 @@ export function SupportFormPage() {
         next.projectName = prev.newProjectName || '';
         next.customer = '';
       } else if (value) {
-        const selectedProj = masterProjects.find(p => p.id === Number(value));
+        const selectedProj = masterProjects.find(p => p.id === value);
         if (selectedProj) {
           next.projectId = value;
           next.projectName = selectedProj.name;
@@ -122,7 +122,7 @@ export function SupportFormPage() {
           next.projectName = prev.newProjectName || '';
           next.customer = '';
         } else {
-          const selectedProj = masterProjects.find(p => p.id === Number(value));
+          const selectedProj = masterProjects.find(p => p.id === value);
           if (selectedProj) {
             next.projectId = value;
             next.projectName = selectedProj.name;
@@ -181,7 +181,7 @@ export function SupportFormPage() {
       };
 
       updateMutation.mutate(
-        { id: Number(id), data: updatePayload },
+        { id: id!, data: updatePayload },
         {
           onSuccess: () => {
             navigate('/support');
@@ -205,7 +205,7 @@ export function SupportFormPage() {
 
   const handleDelete = () => {
     if (window.confirm('Apakah Anda yakin ingin menghapus ticket ini?')) {
-      deleteMutation.mutate(Number(id), {
+      deleteMutation.mutate(id!, {
         onSuccess: () => {
           navigate('/support');
         }

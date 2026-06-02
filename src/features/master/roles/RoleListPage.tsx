@@ -28,7 +28,7 @@ export function RoleListPage() {
     );
   });
 
-  const handleDeactivate = (id: number, name: string) => {
+  const handleDeactivate = (id: string, name: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus role "${name}"?`)) {
       deleteMutation.mutate(id, {
         onSuccess: () => {

@@ -8,7 +8,7 @@ export const useGetPurchaseOrders = (params?: { page?: number; perPage?: number;
   });
 };
 
-export const useGetPurchaseOrder = (id: number | undefined) => {
+export const useGetPurchaseOrder = (id: string | undefined) => {
   return useQuery({
     queryKey: ['purchase-orders', id],
     queryFn: () => poApi.getPurchaseOrder(id!),
@@ -23,7 +23,7 @@ export const useGetProjectsWithoutPO = () => {
   });
 };
 
-export const useGetPurchaseOrdersByProject = (projectId: number | undefined) => {
+export const useGetPurchaseOrdersByProject = (projectId: string | undefined) => {
   return useQuery({
     queryKey: ['purchase-orders', 'project', projectId],
     queryFn: () => poApi.getPurchaseOrdersByProject(projectId!),
@@ -44,7 +44,7 @@ export const useCreatePurchaseOrder = () => {
 export const useUpdatePurchaseOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<{ poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<{ poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }> }) =>
       poApi.updatePurchaseOrder(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', variables.id] });
@@ -67,7 +67,7 @@ export const useDeletePurchaseOrder = () => {
 export const useAddProjectToPO = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ poId, data }: { poId: number; data: { projectId: number; allocatedMandays: number; remarks?: string } }) =>
+    mutationFn: ({ poId, data }: { poId: string; data: { projectId: string; allocatedMandays: number; remarks?: string } }) =>
       poApi.addProjectToPO(poId, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', variables.poId] });
@@ -80,7 +80,7 @@ export const useAddProjectToPO = () => {
 export const useRemoveProjectFromPO = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ poId, projectId }: { poId: number; projectId: number }) =>
+    mutationFn: ({ poId, projectId }: { poId: string; projectId: string }) =>
       poApi.removeProjectFromPO(poId, projectId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', variables.poId] });
@@ -90,7 +90,7 @@ export const useRemoveProjectFromPO = () => {
   });
 };
 
-export const useGetPOMembers = (poId: number | undefined) => {
+export const useGetPOMembers = (poId: string | undefined) => {
   return useQuery({
     queryKey: ['po-members', poId],
     queryFn: () => poApi.getPOMembers(poId!),
@@ -112,7 +112,7 @@ export const useAssignPOMember = () => {
 export const useUpdatePOMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any; poId: number }) => poApi.updatePOMember(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any; poId: string }) => poApi.updatePOMember(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['po-members', variables.poId] });
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', variables.poId] });
@@ -123,10 +123,11 @@ export const useUpdatePOMember = () => {
 export const useRemovePOMember = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, poId }: { id: number; poId: number }) => poApi.removePOMember(id).then(() => poId),
+    mutationFn: ({ id, poId }: { id: string; poId: string }) => poApi.removePOMember(id).then(() => poId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['po-members', variables.poId] });
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', variables.poId] });
     },
   });
 };
+

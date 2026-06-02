@@ -23,7 +23,7 @@ import {
 export function PODetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const poId = Number(id);
+  const poId = id || '';
 
   const { data: po, isLoading: isPoLoading, refetch } = useGetPurchaseOrder(poId);
   const { data: projectsWithoutPo = [], isLoading: isProjectsLoading } = useGetProjectsWithoutPO();
@@ -82,7 +82,7 @@ export function PODetailPage() {
       return;
     }
 
-    const selectedProj = projectsWithoutPo.find((p: any) => p.id === Number(selectedProjectId));
+    const selectedProj = projectsWithoutPo.find((p: any) => p.id === selectedProjectId);
     if (!selectedProj) {
       alert('Selected project not found');
       return;
@@ -92,7 +92,7 @@ export function PODetailPage() {
       await addProjectMutation.mutateAsync({
         poId,
         data: {
-          projectId: Number(selectedProjectId),
+          projectId: selectedProjectId,
           allocatedMandays: Number(selectedProj.totalMandays || 0),
           remarks: remarks || undefined
         }
@@ -106,7 +106,7 @@ export function PODetailPage() {
     }
   };
 
-  const handleRemoveProject = async (projectId: number, projectName: string) => {
+  const handleRemoveProject = async (projectId: string, projectName: string) => {
     if (window.confirm(`Are you sure you want to remove project "${projectName}" from this PO?`)) {
       try {
         await removeProjectMutation.mutateAsync({ poId, projectId });

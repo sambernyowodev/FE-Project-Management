@@ -54,7 +54,7 @@ export function POListPage() {
     setFilters(nextFilters);
   };
 
-  const handleDelete = async (id: number, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to delete purchase order "${name}"? This action cannot be undone.`)) {
       try {
         await deleteMutation.mutateAsync(id);

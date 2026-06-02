@@ -1,3 +1,6 @@
-import type { Schema } from '@/shared/lib/api-helpers';
+import type { Entity } from '@/shared/lib/api-helpers';
 
-export type RoleRate = Schema<'RoleRateResponseDto'>;
+export type RoleRate = Omit<Entity<'RoleRateResponseDto'>, 'roleId'> & {
+  roleId: string;
+};
+

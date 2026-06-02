@@ -8,7 +8,7 @@ export const useGetUsers = (params?: { page?: number; perPage?: number; sort?: s
   });
 };
 
-export const useGetUser = (id: number) => {
+export const useGetUser = (id: string) => {
   return useQuery({
     queryKey: ['users', id],
     queryFn: () => usersApi.getUserById(id),
@@ -29,7 +29,7 @@ export const useCreateUser = () => {
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => usersApi.updateUser(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => usersApi.updateUser(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       queryClient.invalidateQueries({ queryKey: ['users', variables.id] });
@@ -46,3 +46,4 @@ export const useDeleteUser = () => {
     },
   });
 };
+

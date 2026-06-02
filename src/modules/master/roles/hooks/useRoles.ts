@@ -8,7 +8,7 @@ export const useGetRoles = () => {
   });
 };
 
-export const useGetRole = (id: number) => {
+export const useGetRole = (id: string) => {
   return useQuery({
     queryKey: ['roles', id],
     queryFn: () => rolesApi.getRoleById(id),
@@ -29,7 +29,7 @@ export const useCreateRole = () => {
 export const useUpdateRole = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => rolesApi.updateRole(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => rolesApi.updateRole(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
       queryClient.invalidateQueries({ queryKey: ['roles', variables.id] });
@@ -46,3 +46,4 @@ export const useDeleteRole = () => {
     },
   });
 };
+

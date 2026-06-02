@@ -8,7 +8,7 @@ export const useGetRoleRates = (params?: { page?: number; perPage?: number; sort
   });
 };
 
-export const useGetRoleRate = (id: number) => {
+export const useGetRoleRate = (id: string) => {
   return useQuery({
     queryKey: ['role-rates', id],
     queryFn: () => roleRatesApi.getRoleRateById(id),
@@ -29,7 +29,7 @@ export const useCreateRoleRate = () => {
 export const useUpdateRoleRate = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) => roleRatesApi.updateRoleRate(id, data),
+    mutationFn: ({ id, data }: { id: string; data: any }) => roleRatesApi.updateRoleRate(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['role-rates'] });
       queryClient.invalidateQueries({ queryKey: ['role-rates', variables.id] });
@@ -40,9 +40,10 @@ export const useUpdateRoleRate = () => {
 export const useDeleteRoleRate = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => roleRatesApi.deleteRoleRate(id),
+    mutationFn: (id: string) => roleRatesApi.deleteRoleRate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['role-rates'] });
     },
   });
 };
+

@@ -19,7 +19,7 @@ import { formatDate } from '@/shared/lib/formatter';
 export function SupportTimelinePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const ticketId = Number(id);
+  const ticketId = id || '';
 
   const { data: ticket, isLoading, refetch } = useGetSupportTicket(ticketId);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);

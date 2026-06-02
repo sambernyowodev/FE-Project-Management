@@ -14,7 +14,7 @@ export function MemberFormPage() {
   const navigate = useNavigate();
   const isEditing = Boolean(id);
 
-  const { data: user, isLoading: isUserLoading } = useGetUser(Number(id));
+  const { data: user, isLoading: isUserLoading } = useGetUser(id || '');
 
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
@@ -83,7 +83,7 @@ export function MemberFormPage() {
       };
 
       updateMutation.mutate(
-        { id: Number(id), data: payload },
+        { id: id!, data: payload },
         {
           onSuccess: () => {
             navigate('/master/members');
@@ -114,7 +114,7 @@ export function MemberFormPage() {
 
   const handleDelete = () => {
     if (window.confirm('Apakah Anda yakin ingin menonaktifkan member ini?')) {
-      deleteMutation.mutate(Number(id), {
+      deleteMutation.mutate(id!, {
         onSuccess: () => {
           navigate('/master/members');
         },

@@ -5,7 +5,7 @@ import { useQueries } from '@tanstack/react-query';
 import { projectActivitiesApi } from '@/modules/projects/api/project-activities.api';
 import { projectsApi } from '@/modules/projects/api/projects.api';
 
-export function useReportData(selectedProjectId: number | null, selectedTicketId: number | null) {
+export function useReportData(selectedProjectId: string | null, selectedTicketId: string | null) {
   // Fetch lists for dropdowns
   const { data: projectsRes, isLoading: isLoadingProjects } = useGetProjects({ perPage: 200 });
   const { data: ticketsRes, isLoading: isLoadingTickets } = useGetSupportTickets({ perPage: 200 });
@@ -14,11 +14,11 @@ export function useReportData(selectedProjectId: number | null, selectedTicketId
   const tickets = ticketsRes?.data || [];
 
   // Fetch details for selected project
-  const { data: members = [], isLoading: isLoadingMembers } = useGetProjectMembers(selectedProjectId || 0);
-  const { data: activities = [], isLoading: isLoadingActivities } = useGetProjectActivities(selectedProjectId || 0);
+  const { data: members = [], isLoading: isLoadingMembers } = useGetProjectMembers(selectedProjectId || '');
+  const { data: activities = [], isLoading: isLoadingActivities } = useGetProjectActivities(selectedProjectId || '');
 
   // Fetch details for selected support ticket
-  const { data: ticket, isLoading: isLoadingTicket } = useGetSupportTicket(selectedTicketId || 0);
+  const { data: ticket, isLoading: isLoadingTicket } = useGetSupportTicket(selectedTicketId || '');
   const assignees = ticket?.assignees || [];
 
   // Parallel fetching of activities and members for ALL projects (for overall report)
@@ -38,8 +38,8 @@ export function useReportData(selectedProjectId: number | null, selectedTicketId
     }))
   });
 
-  const allProjectActivities: Record<number, any[]> = {};
-  const allProjectMembers: Record<number, any[]> = {};
+  const allProjectActivities: Record<string, any[]> = {};
+  const allProjectMembers: Record<string, any[]> = {};
 
   projects.forEach((p: any, idx: number) => {
     allProjectActivities[p.id] = activitiesQueries[idx]?.data || [];

@@ -51,7 +51,7 @@ export function SupportListPage() {
     setFilters(nextFilters);
   };
 
-  const handleDelete = (id: number, ticketCode: string) => {
+  const handleDelete = (id: string, ticketCode: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus ticket ${ticketCode}?`)) {
       deleteMutation.mutate(id, {
         onSuccess: () => {
