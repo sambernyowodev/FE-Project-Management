@@ -47,6 +47,29 @@ export const poApi = {
       query = query.or(`po_name.ilike.%${params.search}%,po_number.ilike.%${params.search}%`);
     }
 
+    if (params?.filter) {
+      try {
+        const filters = JSON.parse(params.filter);
+        Object.entries(filters).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== '') {
+            if (key === 'status') {
+              query = query.eq('status', val);
+            } else if (key === 'poNumber') {
+              query = query.ilike('po_number', `%${val}%`);
+            } else if (key === 'poName') {
+              query = query.ilike('po_name', `%${val}%`);
+            } else if (key === 'totalMandays') {
+              query = query.eq('total_mandays', Number(val));
+            } else if (key === 'totalAmount') {
+              query = query.eq('total_amount', Number(val));
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Error parsing filter params', e);
+      }
+    }
+
     if (params?.sort) {
       const isDesc = params.sort.startsWith('-');
       const col = isDesc ? params.sort.substring(1) : params.sort;

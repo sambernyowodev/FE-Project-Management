@@ -36,6 +36,29 @@ export const projectsApi = {
       query = query.ilike('project.name', `%${params.search}%`);
     }
 
+    if (params?.filter) {
+      try {
+        const filters = JSON.parse(params.filter);
+        Object.entries(filters).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== '') {
+            if (key === 'status') {
+              query = query.eq('status', val);
+            } else if (key === 'projectCode') {
+              query = query.ilike('project.project_code', `%${val}%`);
+            } else if (key === 'name') {
+              query = query.ilike('project.name', `%${val}%`);
+            } else if (key === 'startDate') {
+              query = query.eq('start_date', val);
+            } else if (key === 'progressPct') {
+              query = query.eq('progress_pct', Number(val));
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Error parsing filter params', e);
+      }
+    }
+
     if (params?.sort) {
       const isDesc = params.sort.startsWith('-');
       const column = isDesc ? params.sort.substring(1) : params.sort;

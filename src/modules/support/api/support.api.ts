@@ -25,10 +25,33 @@ const mapTicket = (t: any): SupportTicket => ({
 
 export const supportApi = {
   getTickets: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: SupportTicket[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
-    let query = supabase.from('support_tickets').select('*, master_project:master_projects(*)', { count: 'exact' });
+    let query = supabase.from('support_tickets').select('*, master_project:master_projects!inner(*)', { count: 'exact' });
 
     if (params?.search) {
       query = query.or(`issue_title.ilike.%${params.search}%,ticket_code.ilike.%${params.search}%`);
+    }
+
+    if (params?.filter) {
+      try {
+        const filters = JSON.parse(params.filter);
+        Object.entries(filters).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== '') {
+            if (key === 'status') {
+              query = query.eq('status', val);
+            } else if (key === 'ticketCode') {
+              query = query.ilike('ticket_code', `%${val}%`);
+            } else if (key === 'projectName') {
+              query = query.ilike('master_project.name', `%${val}%`);
+            } else if (key === 'startDate') {
+              query = query.eq('start_date', val);
+            } else if (key === 'hoursSpent') {
+              query = query.eq('hours_spent', Number(val));
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Error parsing filter params', e);
+      }
     }
 
     if (params?.sort) {

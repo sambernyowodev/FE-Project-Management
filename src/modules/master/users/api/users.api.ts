@@ -23,6 +23,27 @@ export const usersApi = {
       query = query.or(`full_name.ilike.%${params.search}%,email.ilike.%${params.search}%`);
     }
 
+    if (params?.filter) {
+      try {
+        const filters = JSON.parse(params.filter);
+        Object.entries(filters).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== '') {
+            if (key === 'isActive') {
+              query = query.eq('is_active', val === 'true' || val === true);
+            } else if (key === 'employeeId') {
+              query = query.ilike('employee_id', `%${val}%`);
+            } else if (key === 'fullName') {
+              query = query.ilike('full_name', `%${val}%`);
+            } else if (key === 'email') {
+              query = query.ilike('email', `%${val}%`);
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Error parsing filter params', e);
+      }
+    }
+
     if (params?.sort) {
       const isDesc = params.sort.startsWith('-');
       const col = isDesc ? params.sort.substring(1) : params.sort;

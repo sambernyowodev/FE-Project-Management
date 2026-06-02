@@ -33,6 +33,27 @@ export const masterProjectsApi = {
       query = query.or(`name.ilike.%${params.search}%,project_code.ilike.%${params.search}%`);
     }
 
+    if (params?.filter) {
+      try {
+        const filters = JSON.parse(params.filter);
+        Object.entries(filters).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== '') {
+            if (key === 'isActive') {
+              query = query.eq('is_active', val === 'true' || val === true);
+            } else if (key === 'projectCode') {
+              query = query.ilike('project_code', `%${val}%`);
+            } else if (key === 'name') {
+              query = query.ilike('name', `%${val}%`);
+            } else if (key === 'platform') {
+              query = query.ilike('platform', `%${val}%`);
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Error parsing filter params', e);
+      }
+    }
+
     if (params?.sort) {
       const isDesc = params.sort.startsWith('-');
       const col = isDesc ? params.sort.substring(1) : params.sort;

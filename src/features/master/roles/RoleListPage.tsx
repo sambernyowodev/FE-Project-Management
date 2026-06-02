@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2 } from 'lucide-react';
 import { useGetRoles, useDeleteRole } from '@/modules/master/roles/hooks/useRoles';
@@ -7,26 +6,12 @@ import type { Role } from '@/modules/master/roles/types';
 
 export function RoleListPage() {
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [search, setSearch] = useState('');
-
   const { data: rolesRes, isLoading, refetch } = useGetRoles();
-
   const deleteMutation = useDeleteRole();
 
   // Roles endpoint /roles does not have server-side pagination, sorting, or search.
-  // We can do simple client-side search/sort/filter if needed, but since DataTable handles rendering,
-  // let's pass the filtered data to DataTable.
+  // Passing only raw data to DataTable allows it to handle search/sort/filter/paging client-side.
   const rawRoles = rolesRes || [];
-
-  const filteredRoles = rawRoles.filter(role => {
-    const term = search.toLowerCase();
-    return (
-      role.name.toLowerCase().includes(term) ||
-      role.code.toLowerCase().includes(term) ||
-      (role.description || '').toLowerCase().includes(term)
-    );
-  });
 
   const handleDeactivate = (id: string, name: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus role "${name}"?`)) {
@@ -101,18 +86,12 @@ export function RoleListPage() {
       </div>
 
       <DataTable
-        data={filteredRoles}
+        data={rawRoles}
         columns={columns}
         isLoading={isLoading}
         searchPlaceholder="Search roles by name, code, or description..."
         onAdd={() => navigate('/master/roles/new')}
         addLabel="New Role"
-        totalItems={filteredRoles.length}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-        onSearchChange={setSearch}
-        onSortChange={() => {}}
-        onFilterChange={() => {}}
         onRefresh={refetch}
         exportFilename="roles-list"
       />

@@ -23,7 +23,28 @@ export const roleRatesApi = {
   getRoleRates: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: RoleRate[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
     let query = supabase
       .from('role_rates')
-      .select('*, roles(*)', { count: 'exact' });
+      .select('*, roles!inner(*)', { count: 'exact' });
+
+    if (params?.filter) {
+      try {
+        const filters = JSON.parse(params.filter);
+        Object.entries(filters).forEach(([key, val]) => {
+          if (val !== undefined && val !== null && val !== '') {
+            if (key === 'isActive') {
+              query = query.eq('is_active', val === 'true' || val === true);
+            } else if (key === 'role.name') {
+              query = query.ilike('roles.name', `%${val}%`);
+            } else if (key === 'ratePerMandayProject') {
+              query = query.eq('rate_per_manday_project', Number(val));
+            } else if (key === 'ratePerMandaySupport') {
+              query = query.eq('rate_per_manday_support', Number(val));
+            }
+          }
+        });
+      } catch (e) {
+        console.error('Error parsing filter params', e);
+      }
+    }
 
     if (params?.sort) {
       const isDesc = params.sort.startsWith('-');
