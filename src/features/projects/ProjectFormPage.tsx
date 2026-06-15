@@ -170,7 +170,7 @@ export function ProjectFormPage() {
         customer: formData.customer || undefined,
         startDate: formData.startDate || undefined,
         endDate: formData.endDate || undefined,
-        totalMandays: formData.totalMandays ? Number(formData.totalMandays) : undefined,
+        totalMandays: formData.totalMandays ? Number(String(formData.totalMandays).replace(',', '.')) : undefined,
         status: formData.status,
         timelineRemark: formData.timelineRemark || undefined,
         progressPct: formData.progressPct ? Number(formData.progressPct) : 0,
@@ -460,6 +460,7 @@ export function ProjectFormPage() {
                     id="totalMandays"
                     name="totalMandays"
                     type="number"
+                    step="any"
                     min="0"
                     value={formData.totalMandays}
                     onChange={handleChange}

@@ -175,7 +175,7 @@ export function SupportFormPage() {
       const updatePayload = {
         ...payload,
         picClient: formData.picClient || undefined,
-        hoursSpent: formData.hoursSpent ? Number(formData.hoursSpent) : 0,
+        hoursSpent: formData.hoursSpent ? Number(String(formData.hoursSpent).replace(',', '.')) : 0,
         status: formData.status,
         notes: formData.notes || undefined
       };
@@ -472,7 +472,7 @@ export function SupportFormPage() {
                       name="hoursSpent"
                       type="number"
                       min="0"
-                      step="0.1"
+                      step="any"
                       value={formData.hoursSpent}
                       onChange={handleChange}
                       className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
