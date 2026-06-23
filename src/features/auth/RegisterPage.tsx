@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom';
-import { User, Mail, Lock, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Mail, Lock, Loader2, CheckCircle2 } from 'lucide-react';
 import { useRegister } from '../../modules/auth/hooks/useAuth';
+import { useEffect, useState } from 'react';
 
 export function RegisterPage() {
   const {
@@ -10,8 +11,28 @@ export function RegisterPage() {
     confirmPassword, setConfirmPassword,
     error,
     isPending,
+    isSuccess,
     handleSubmit
   } = useRegister();
+
+  const navigate = useNavigate();
+  const [countdown, setCountdown] = useState(5);
+
+  useEffect(() => {
+    if (isSuccess) {
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            navigate('/login');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [isSuccess, navigate]);
 
   return (
     <div className="w-full">
@@ -110,6 +131,34 @@ export function RegisterPage() {
           Sign in
         </Link>
       </div>
+
+      {isSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-950 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-800 text-center animate-in zoom-in-95 duration-300">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-950/50 mb-6">
+              <CheckCircle2 className="h-10 w-10 text-emerald-600 dark:text-emerald-400 animate-bounce" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+              Registration Successful!
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">
+              Your account has been created successfully. You can now log in using your credentials.
+            </p>
+            
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full py-2.5 px-4 rounded-xl font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/20 dark:shadow-none"
+            >
+              Go to Login Page
+            </button>
+            
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-4">
+              Redirecting automatically in {countdown} seconds...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

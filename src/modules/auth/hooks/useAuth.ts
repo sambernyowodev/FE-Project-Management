@@ -48,15 +48,12 @@ export function useRegister() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const registerMutation = useMutation({
     mutationFn: authApi.register,
-    onSuccess: (data) => {
-      if (data.data?.accessToken) {
-        localStorage.setItem('token', data.data.accessToken);
-        navigate('/');
-      }
+    onSuccess: () => {
+      setIsSuccess(true);
     },
     onError: (err: any) => {
       setError(err.message || 'Registration failed. Please check your inputs.');
@@ -107,6 +104,7 @@ export function useRegister() {
     confirmPassword, setConfirmPassword,
     error,
     isPending: registerMutation.isPending,
+    isSuccess,
     handleSubmit
   };
 }
