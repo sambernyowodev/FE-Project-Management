@@ -148,6 +148,9 @@ export const supportApi = {
         issue_description: data.issueDescription,
         status: 'OPEN',
         is_active: true,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        folder_attachment: data.folderAttachment,
       })
       .select('*, master_project:master_projects(*)')
       .single();
@@ -202,6 +205,9 @@ export const supportApi = {
         status: data.status,
         notes: data.notes,
         update_date: new Date().toISOString().split('T')[0],
+        start_date: data.startDate,
+        end_date: data.endDate,
+        folder_attachment: data.folderAttachment,
       })
       .eq('id', id)
       .select('*, master_project:master_projects(*)')

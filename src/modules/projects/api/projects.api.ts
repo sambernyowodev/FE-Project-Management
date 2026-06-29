@@ -3,34 +3,55 @@ import type { Project, ProjectMember } from '../types';
 import type { components } from '@/shared/types/api';
 import type { CreateProject, UpdateProject } from '../types';
 
-const mapProject = (p: any): Project => ({
-  ...p,
-  id: p.id,
-  projectId: p.project_id,
-  picClient: p.pic_client,
-  customer: p.customer,
-  picInternal: p.pic_internal,
-  parentProjectId: p.parent_project_id,
-  totalMandays: Number(p.total_mandays),
-  startDate: p.start_date,
-  endDate: p.end_date,
-  actualStart: p.actual_start,
-  actualEnd: p.actual_end,
-  progressPct: Number(p.progress_pct),
-  repositoryLink: p.repository_link,
-  timelineLink: p.timeline_link,
-  remarks: p.remarks,
-  timelineRemark: p.timeline_remark,
-  isActive: p.is_active,
-  name: p.project?.name || '',
-  description: p.project?.description || '',
-  platform: p.project?.platform || '',
-  projectCode: p.project?.project_code || `PRJ-${p.id}`,
-});
+const mapProject = (p: any): Project => {
+  const poProject = p.po_projects && p.po_projects.length > 0 ? p.po_projects[0] : null;
+  return {
+    ...p,
+    id: p.id,
+    projectId: p.project_id,
+    picClient: p.pic_client,
+    customer: p.customer,
+    picInternal: p.pic_internal,
+    parentProjectId: p.parent_project_id,
+    totalMandays: Number(p.total_mandays),
+    startDate: p.start_date,
+    endDate: p.end_date,
+    actualStart: p.actual_start,
+    actualEnd: p.actual_end,
+    progressPct: Number(p.progress_pct),
+    repositoryLink: p.repository_link,
+    timelineLink: p.timeline_link,
+    remarks: p.remarks,
+    timelineRemark: p.timeline_remark,
+    isActive: p.is_active,
+    name: p.project?.name || '',
+    description: p.project?.description || '',
+    platform: p.project?.platform || '',
+    projectCode: p.project?.project_code || `PRJ-${p.id}`,
+    poId: poProject?.po_id || undefined,
+    poNumber: poProject?.purchase_orders ? (Array.isArray(poProject.purchase_orders) ? poProject.purchase_orders[0]?.po_number : poProject.purchase_orders.po_number) : undefined,
+  };
+};
 
 export const projectsApi = {
   getProjects: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: Project[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
-    let query = supabase.from('projects').select('*, project:master_projects!inner(*)', { count: 'exact' });
+    let selectQuery = '*, project:master_projects!inner(*)';
+    if (params?.filter) {
+      try {
+        const filters = JSON.parse(params.filter);
+        if (filters.poId) {
+          selectQuery = '*, project:master_projects!inner(*), po_projects!inner(po_id, purchase_orders(po_number))';
+        } else {
+          selectQuery = '*, project:master_projects!inner(*), po_projects(po_id, purchase_orders(po_number))';
+        }
+      } catch (e) {
+        selectQuery = '*, project:master_projects!inner(*), po_projects(po_id, purchase_orders(po_number))';
+      }
+    } else {
+      selectQuery = '*, project:master_projects!inner(*), po_projects(po_id, purchase_orders(po_number))';
+    }
+
+    let query = supabase.from('projects').select(selectQuery, { count: 'exact' });
 
     if (params?.search) {
       query = query.ilike('project.name', `%${params.search}%`);
@@ -51,6 +72,8 @@ export const projectsApi = {
               query = query.eq('start_date', val);
             } else if (key === 'progressPct') {
               query = query.eq('progress_pct', Number(val));
+            } else if (key === 'poId') {
+              query = query.eq('po_projects.po_id', val);
             }
           }
         });
@@ -96,14 +119,14 @@ export const projectsApi = {
   getProjectById: async (id: string): Promise<Project> => {
     const { data, error } = await supabase
       .from('projects')
-      .select('*, project:master_projects(*)')
+      .select('*, project:master_projects(*), po_projects(po_id, purchase_orders(po_number))')
       .eq('id', id)
       .single();
     if (error) throw error;
     return mapProject(data);
   },
 
-  createProject: async (data: CreateProject): Promise<Project> => {
+  createProject: async (data: CreateProject & { poId?: string }): Promise<Project> => {
     const { data: proj, error } = await supabase
       .from('projects')
       .insert({
@@ -124,13 +147,27 @@ export const projectsApi = {
         timeline_remark: data.timelineRemark,
         progress_pct: data.progressPct,
       })
-      .select('*, project:master_projects(*)')
+      .select('*, project:master_projects(*), po_projects(po_id, purchase_orders(po_number))')
       .single();
     if (error) throw error;
+
+    if (data.poId) {
+      const { error: poErr } = await supabase
+        .from('po_projects')
+        .insert({
+          po_id: data.poId,
+          project_id: proj.id,
+          allocated_mandays: proj.total_mandays || 0,
+        });
+      if (poErr) throw poErr;
+
+      return projectsApi.getProjectById(proj.id);
+    }
+
     return mapProject(proj);
   },
 
-  updateProject: async (id: string, data: UpdateProject): Promise<Project> => {
+  updateProject: async (id: string, data: UpdateProject & { poId?: string }): Promise<Project> => {
     const { data: proj, error } = await supabase
       .from('projects')
       .update({
@@ -152,9 +189,30 @@ export const projectsApi = {
         progress_pct: data.progressPct,
       })
       .eq('id', id)
-      .select('*, project:master_projects(*)')
+      .select('*, project:master_projects(*), po_projects(po_id, purchase_orders(po_number))')
       .single();
     if (error) throw error;
+
+    // Delete existing PO project relationship
+    const { error: delErr } = await supabase
+      .from('po_projects')
+      .delete()
+      .eq('project_id', id);
+    if (delErr) throw delErr;
+
+    if (data.poId) {
+      const { error: poErr } = await supabase
+        .from('po_projects')
+        .insert({
+          po_id: data.poId,
+          project_id: id,
+          allocated_mandays: proj.total_mandays || 0,
+        });
+      if (poErr) throw poErr;
+
+      return projectsApi.getProjectById(id);
+    }
+
     return mapProject(proj);
   },
 

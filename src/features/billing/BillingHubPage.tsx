@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  CalendarDays, 
-  Calculator, 
-  Eye, 
-  Download, 
-  X, 
+import {
+  CalendarDays,
+  Calculator,
+  Eye,
+  Download,
+  X,
   Briefcase,
   AlertCircle,
   Search,
@@ -20,12 +20,12 @@ import { StatusBadge } from '@/shared/components/common/StatusBadge';
 
 export function BillingHubPage() {
   const navigate = useNavigate();
-  
+
   // Navigation & Listing States
   const [selectedBillingId, setSelectedBillingId] = useState<string | null>(null);
   const [listSearch, setListSearch] = useState('');
   const [listTypeFilter, setListTypeFilter] = useState<'ALL' | 'PROJECT' | 'SUPPORT'>('ALL');
-  
+
   const deleteMutation = useDeleteBilling();
 
   // Queries
@@ -57,9 +57,9 @@ export function BillingHubPage() {
   const filteredBillings = billingsList.filter(b => {
     const matchesSearch = b.billingNumber.toLowerCase().includes(listSearch.toLowerCase()) ||
       (b.remarks && b.remarks.toLowerCase().includes(listSearch.toLowerCase()));
-    
+
     const matchesType = listTypeFilter === 'ALL' || b.billingType === listTypeFilter;
-    
+
     return matchesSearch && matchesType;
   });
 
@@ -71,16 +71,16 @@ export function BillingHubPage() {
           <h1 className="text-3xl font-bold text-on-background mb-1">Billing Hub</h1>
           <p className="text-secondary text-sm">Create and track billing support data based on actual project mandays and support ticket logs.</p>
         </div>
-        
+
         <div className="flex flex-wrap gap-3">
-          <button 
+          <button
             id="btn-create-project-billing"
             onClick={() => handleStartCreation('PROJECT')}
             className="flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary hover:bg-primary/95 transition-all text-sm font-semibold rounded-lg shadow-sm cursor-pointer"
           >
             <Briefcase className="w-4 h-4" /> Create Project Billing
           </button>
-          <button 
+          <button
             id="btn-create-support-billing"
             onClick={() => handleStartCreation('SUPPORT')}
             className="flex items-center gap-2 px-4 py-2.5 bg-secondary-container text-on-secondary-container hover:bg-secondary-container/90 transition-all text-sm font-semibold rounded-lg shadow-sm cursor-pointer"
@@ -95,34 +95,34 @@ export function BillingHubPage() {
         {/* Filters & Search */}
         <div className="bg-surface-container-lowest border border-outline-variant p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
           <div className="flex items-center gap-2 border-b md:border-b-0 pb-3 md:pb-0 overflow-x-auto">
-            <button 
+            <button
               onClick={() => setListTypeFilter('ALL')}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap",
-                listTypeFilter === 'ALL' 
-                  ? "bg-primary text-on-primary" 
+                listTypeFilter === 'ALL'
+                  ? "bg-primary text-on-primary"
                   : "text-secondary hover:bg-surface-container-low"
               )}
             >
               All Billings
             </button>
-            <button 
+            <button
               onClick={() => setListTypeFilter('PROJECT')}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap",
-                listTypeFilter === 'PROJECT' 
-                  ? "bg-primary text-on-primary" 
+                listTypeFilter === 'PROJECT'
+                  ? "bg-primary text-on-primary"
                   : "text-secondary hover:bg-surface-container-low"
               )}
             >
               Project Billings
             </button>
-            <button 
+            <button
               onClick={() => setListTypeFilter('SUPPORT')}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap",
-                listTypeFilter === 'SUPPORT' 
-                  ? "bg-primary text-on-primary" 
+                listTypeFilter === 'SUPPORT'
+                  ? "bg-primary text-on-primary"
                   : "text-secondary hover:bg-surface-container-low"
               )}
             >
@@ -132,7 +132,7 @@ export function BillingHubPage() {
 
           <div className="relative w-full md:w-80">
             <Search className="w-4 h-4 text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
+            <input
               type="text"
               placeholder="Search billing number or remarks..."
               value={listSearch}
@@ -153,7 +153,6 @@ export function BillingHubPage() {
                   <th className="px-5 py-4">Period</th>
                   <th className="px-5 py-4 text-right">Mandays</th>
                   <th className="px-5 py-4 text-right">Total Amount</th>
-                  <th className="px-5 py-4">Status</th>
                   <th className="px-5 py-4 text-center">Actions</th>
                 </tr>
               </thead>
@@ -171,7 +170,7 @@ export function BillingHubPage() {
                     const isSupport = b.billingType === 'SUPPORT';
                     const startStr = new Date(b.billingPeriodStart).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
                     const endStr = new Date(b.billingPeriodEnd).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-                    
+
                     return (
                       <tr key={b.id} className="hover:bg-surface-container-lowest/50 text-sm transition-colors">
                         <td className="px-5 py-4 font-mono font-bold text-primary">{b.billingNumber}</td>
@@ -195,25 +194,22 @@ export function BillingHubPage() {
                         <td className="px-5 py-4 text-right font-medium text-secondary">{Number(b.totalMandays).toFixed(2)}</td>
                         <td className="px-5 py-4 text-right font-bold text-on-background">{formatCurrency(Number(b.totalAmount))}</td>
                         <td className="px-5 py-4">
-                          <StatusBadge status={b.status} />
-                        </td>
-                        <td className="px-5 py-4">
                           <div className="flex items-center justify-center gap-2">
-                            <button 
+                            <button
                               onClick={() => setSelectedBillingId(b.id)}
                               title="View Details"
                               className="p-1.5 border border-outline-variant hover:border-primary text-secondary hover:text-primary rounded-lg transition-colors cursor-pointer"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => exportBillingToExcel(b)}
                               title="Export to Excel"
                               className="p-1.5 border border-outline-variant hover:border-green-600 text-secondary hover:text-green-600 rounded-lg transition-colors cursor-pointer"
                             >
                               <Download className="w-4 h-4" />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDelete(b.id, b.billingNumber)}
                               title="Delete Billing"
                               className="p-1.5 border border-outline-variant hover:border-error text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors cursor-pointer"
@@ -247,7 +243,7 @@ export function BillingHubPage() {
                   <p className="text-secondary text-xs">Created on {billingDetail?.createdAt ? new Date(billingDetail.createdAt).toLocaleString('id-ID') : '-'}</p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedBillingId(null)}
                 className="text-secondary hover:text-on-background transition-colors p-1 hover:bg-surface-container-high rounded-full cursor-pointer"
               >
@@ -293,12 +289,6 @@ export function BillingHubPage() {
                         {Number(billingDetail.totalMandays).toFixed(2)} md
                       </span>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-secondary text-xs">Status</span>
-                      <span>
-                        <StatusBadge status={billingDetail.status} />
-                      </span>
-                    </div>
                     {billingDetail.remarks && (
                       <div className="col-span-1 md:col-span-4 mt-2 pt-2 border-t border-outline-variant flex flex-col gap-0.5">
                         <span className="text-secondary text-xs">Remarks / Notes</span>
@@ -323,7 +313,7 @@ export function BillingHubPage() {
                         {(billingDetail.details || []).map((detail: any) => {
                           const isSupport = billingDetail.billingType === 'SUPPORT';
                           const itemName = detail.project?.project?.name || detail.project?.name || 'Unknown Project/Ticket';
-                          
+
                           return (
                             <tr key={detail.id} className="hover:bg-surface-container-lowest/50">
                               <td className="px-4 py-3 font-medium text-on-background max-w-[320px]">
@@ -374,14 +364,14 @@ export function BillingHubPage() {
 
             {/* Modal Footer */}
             <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex justify-end gap-3">
-              <button 
+              <button
                 onClick={() => setSelectedBillingId(null)}
                 className="px-4 py-2 border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-background transition-colors text-sm font-semibold rounded-lg cursor-pointer"
               >
                 Close
               </button>
               {billingDetail && (
-                <button 
+                <button
                   onClick={() => exportBillingToExcel(billingDetail)}
                   className="px-4 py-2 bg-green-700 hover:bg-green-800 text-white transition-colors text-sm font-semibold rounded-lg flex items-center gap-2 cursor-pointer shadow-sm"
                 >

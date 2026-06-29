@@ -9,6 +9,7 @@ import {
 } from '@/modules/projects/hooks/useProjects';
 import { useGetMasterProjects, useCreateMasterProject } from '@/modules/master/projects/hooks/useMasterProjects';
 import { useGetUsers } from '@/modules/master/users/hooks/useUsers';
+import { useGetPurchaseOrders } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
 import { ProjectStatus } from '@/shared/constants/enums';
 
 
@@ -27,6 +28,9 @@ export function ProjectFormPage() {
   const updateMutation = useUpdateProject();
   const deleteMutation = useDeleteProject();
   const createMasterMutation = useCreateMasterProject();
+
+  const { data: poRes } = useGetPurchaseOrders({ perPage: 100 });
+  const purchaseOrders = poRes?.data || [];
 
   const [selectedMasterId, setSelectedMasterId] = useState<string>('');
   const [isPicDropdownOpen, setIsPicDropdownOpen] = useState(false);
@@ -54,7 +58,8 @@ export function ProjectFormPage() {
     progressPct: '0',
     repositoryLink: '',
     timelineLink: '',
-    remarks: ''
+    remarks: '',
+    poId: ''
   });
 
   useEffect(() => {
@@ -76,7 +81,8 @@ export function ProjectFormPage() {
         progressPct: project.progressPct !== undefined && project.progressPct !== null ? String(project.progressPct) : '0',
         repositoryLink: project.repositoryLink || '',
         timelineLink: project.timelineLink || '',
-        remarks: project.remarks || ''
+        remarks: project.remarks || '',
+        poId: project.poId || ''
       });
       setSelectedMasterId(project.projectId ? String(project.projectId) : '');
     }
@@ -179,6 +185,7 @@ export function ProjectFormPage() {
         remarks: formData.remarks || undefined,
         actualStart: formData.actualStart || undefined,
         actualEnd: formData.actualEnd || undefined,
+        poId: formData.poId || undefined,
       };
 
       if (isEditing) {
@@ -467,6 +474,26 @@ export function ProjectFormPage() {
                     className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
                     placeholder="e.g. 120"
                   />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="poId" className="text-sm font-semibold text-on-background">
+                    Purchase Order
+                  </label>
+                  <select
+                    id="poId"
+                    name="poId"
+                    value={formData.poId}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold"
+                  >
+                    <option value="">-- Select Purchase Order (Optional) --</option>
+                    {purchaseOrders.map(po => (
+                      <option key={po.id} value={po.id}>
+                        {po.poNumber} {po.poName ? `- ${po.poName}` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

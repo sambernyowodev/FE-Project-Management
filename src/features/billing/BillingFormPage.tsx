@@ -1,17 +1,17 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  Building2, 
-  CalendarDays, 
-  Calculator, 
-  CheckCircle2, 
-  ArrowRight, 
-  ArrowLeft, 
-  FileText, 
-  Check, 
-  Search, 
-  Ticket, 
+import {
+  Building2,
+  CalendarDays,
+  Calculator,
+  CheckCircle2,
+  ArrowRight,
+  ArrowLeft,
+  FileText,
+  Check,
+  Search,
+  Ticket,
   X
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -19,7 +19,6 @@ import { exportBillingToExcel } from '@/shared/lib/excel';
 import { useGetProjects } from '@/modules/projects/hooks/useProjects';
 import { useGetSupportTickets } from '@/modules/support/hooks/useSupportTickets';
 import { useGetBillingPreview, useCreateBilling } from '@/modules/billing/hooks/useBilling';
-import { StatusBadge } from '@/shared/components/common/StatusBadge';
 
 const steps = [
   { id: 1, name: 'Set Period & Remarks', icon: CalendarDays },
@@ -108,13 +107,13 @@ export function BillingFormPage() {
 
   // Handlers
   const handleToggleProject = (id: string) => {
-    setSelectedProjects(prev => 
+    setSelectedProjects(prev =>
       prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
     );
   };
 
   const handleToggleTicket = (id: string) => {
-    setSelectedTickets(prev => 
+    setSelectedTickets(prev =>
       prev.includes(id) ? prev.filter(tId => tId !== id) : [...prev, id]
     );
   };
@@ -149,13 +148,13 @@ export function BillingFormPage() {
   const grandTotal = subtotal + taxAmount;
 
   // Filter projects by search
-  const searchedProjects = filteredProjects.filter(p => 
+  const searchedProjects = filteredProjects.filter(p =>
     p.name.toLowerCase().includes(projectSearch.toLowerCase()) ||
     (p.projectCode && p.projectCode.toLowerCase().includes(projectSearch.toLowerCase()))
   );
 
   // Filter tickets by search
-  const searchedTickets = filteredTickets.filter(t => 
+  const searchedTickets = filteredTickets.filter(t =>
     t.issueTitle.toLowerCase().includes(ticketSearch.toLowerCase()) ||
     (t.ticketCode && t.ticketCode.toLowerCase().includes(ticketSearch.toLowerCase()))
   );
@@ -175,17 +174,17 @@ export function BillingFormPage() {
             <span className="text-xs font-bold text-primary tracking-widest uppercase">
               New {billingType === 'PROJECT' ? 'Project' : 'Support'} Billing Creation
             </span>
-            <button 
+            <button
               onClick={handleCancelCreation}
               className="text-secondary hover:text-on-background transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer"
             >
               <X className="w-4 h-4" /> Cancel & Back
             </button>
           </div>
-          
+
           <div className="flex items-center justify-between relative max-w-3xl mx-auto mt-2">
             <div className="absolute top-1/2 left-0 w-full h-1 bg-outline-variant -translate-y-1/2 z-0 hidden sm:block"></div>
-            <div 
+            <div
               className="absolute top-1/2 left-0 h-1 bg-primary -translate-y-1/2 z-0 hidden sm:block transition-all duration-300"
               style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
             ></div>
@@ -199,9 +198,9 @@ export function BillingFormPage() {
                 <div key={step.id} className="relative z-10 flex flex-col items-center gap-2">
                   <div className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors duration-300",
-                    isActive ? "bg-primary text-on-primary border-primary" : 
-                    isCompleted ? "bg-primary text-on-primary border-primary" : 
-                    "bg-surface-container-lowest text-secondary border-outline-variant"
+                    isActive ? "bg-primary text-on-primary border-primary" :
+                      isCompleted ? "bg-primary text-on-primary border-primary" :
+                        "bg-surface-container-lowest text-secondary border-outline-variant"
                   )}>
                     <Icon className="w-5 h-5" />
                   </div>
@@ -221,48 +220,48 @@ export function BillingFormPage() {
           {currentStep === 1 && (
             <div className="flex flex-col gap-6 max-w-xl mx-auto animate-in fade-in duration-300">
               <h2 className="text-xl font-bold text-on-background text-center mb-2">Set Billing Period & Remarks</h2>
-              
+
               <div className="flex flex-col gap-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-semibold text-on-background">Start Date</label>
-                    <input 
-                      type="date" 
-                      value={startDate} 
-                      onChange={e => setStartDate(e.target.value)} 
-                      className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background" 
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={e => setStartDate(e.target.value)}
+                      className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background"
                     />
                   </div>
-                  
+
                   <div className="flex flex-col gap-1.5">
                     <label className="text-sm font-semibold text-on-background">End Date</label>
-                    <input 
-                      type="date" 
-                      value={endDate} 
-                      onChange={e => setEndDate(e.target.value)} 
-                      className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background" 
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                      className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background"
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-semibold text-on-background">Remarks / Notes</label>
-                  <textarea 
-                    value={remarks} 
-                    onChange={e => setRemarks(e.target.value)} 
+                  <textarea
+                    value={remarks}
+                    onChange={e => setRemarks(e.target.value)}
                     placeholder="Enter any additional remarks or invoice notes..."
                     rows={3}
-                    className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none bg-background text-on-background" 
+                    className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none bg-background text-on-background"
                   />
                 </div>
 
                 <div className="flex flex-col gap-1.5 mt-1">
                   <label className="text-sm font-semibold text-on-background">Estimated Tax Rate (%)</label>
-                  <input 
-                    type="number" 
-                    value={taxRate} 
-                    onChange={e => setTaxRate(Number(e.target.value))} 
-                    className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background" 
+                  <input
+                    type="number"
+                    value={taxRate}
+                    onChange={e => setTaxRate(Number(e.target.value))}
+                    className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background"
                   />
                 </div>
               </div>
@@ -289,10 +288,10 @@ export function BillingFormPage() {
                       <Building2 className="w-5 h-5 text-primary" />
                       <span>Projects ({selectedProjects.length} selected)</span>
                     </h3>
-                    
+
                     {searchedProjects.length > 0 && (
                       <div className="flex items-center gap-2 text-xs">
-                        <button 
+                        <button
                           type="button"
                           onClick={() => {
                             const allIds = searchedProjects.map(p => p.id);
@@ -303,7 +302,7 @@ export function BillingFormPage() {
                           Select All
                         </button>
                         <span className="text-outline-variant">|</span>
-                        <button 
+                        <button
                           type="button"
                           onClick={() => {
                             const allIds = searchedProjects.map(p => p.id);
@@ -319,7 +318,7 @@ export function BillingFormPage() {
 
                   <div className="relative">
                     <Search className="w-4 h-4 text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input 
+                    <input
                       type="text"
                       placeholder="Search active projects..."
                       value={projectSearch}
@@ -341,13 +340,13 @@ export function BillingFormPage() {
                         const dateRangeText = startDateStr && endDateStr ? `${startDateStr} - ${endDateStr}` : startDateStr || '';
 
                         return (
-                          <div 
+                          <div
                             key={project.id}
                             onClick={() => handleToggleProject(project.id)}
                             className={cn(
                               "p-3 rounded-lg border cursor-pointer transition-all hover:bg-surface-container-low select-none relative flex justify-between items-center gap-3",
-                              isSelected 
-                                ? "border-primary bg-primary/5 ring-1 ring-primary" 
+                              isSelected
+                                ? "border-primary bg-primary/5 ring-1 ring-primary"
                                 : "border-outline-variant bg-surface-container-lowest"
                             )}
                           >
@@ -390,10 +389,10 @@ export function BillingFormPage() {
                       <Ticket className="w-5 h-5 text-primary" />
                       <span>Support Tickets ({selectedTickets.length} selected)</span>
                     </h3>
-                    
+
                     {searchedTickets.length > 0 && (
                       <div className="flex items-center gap-2 text-xs">
-                        <button 
+                        <button
                           type="button"
                           onClick={() => {
                             const allIds = searchedTickets.map(t => t.id);
@@ -404,7 +403,7 @@ export function BillingFormPage() {
                           Select All
                         </button>
                         <span className="text-outline-variant">|</span>
-                        <button 
+                        <button
                           type="button"
                           onClick={() => {
                             const allIds = searchedTickets.map(t => t.id);
@@ -420,7 +419,7 @@ export function BillingFormPage() {
 
                   <div className="relative">
                     <Search className="w-4 h-4 text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input 
+                    <input
                       type="text"
                       placeholder="Search support tickets..."
                       value={ticketSearch}
@@ -445,15 +444,15 @@ export function BillingFormPage() {
                         const startDateStr = ticket.startDate ? new Date(ticket.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : '';
                         const endDateStr = ticket.endDate ? new Date(ticket.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : '';
                         const dateRangeText = startDateStr && endDateStr ? `${startDateStr} - ${endDateStr}` : '';
-                        
+
                         return (
-                          <div 
+                          <div
                             key={ticket.id}
                             onClick={() => handleToggleTicket(ticket.id)}
                             className={cn(
                               "p-3 rounded-lg border cursor-pointer transition-all hover:bg-surface-container-low select-none relative flex justify-between items-center gap-3",
-                              isSelected 
-                                ? "border-primary bg-primary/5 ring-1 ring-primary" 
+                              isSelected
+                                ? "border-primary bg-primary/5 ring-1 ring-primary"
                                 : "border-outline-variant bg-surface-container-lowest"
                             )}
                           >
@@ -462,7 +461,6 @@ export function BillingFormPage() {
                                 <span className="text-[10px] font-mono text-secondary bg-surface-container-high px-1.5 py-0.5 rounded truncate">
                                   {ticket.ticketCode}
                                 </span>
-                                <StatusBadge status={ticket.status} className="scale-90 origin-left" />
                                 {dateRangeText && (
                                   <span className="text-[9px] text-secondary font-medium">
                                     {dateRangeText}
@@ -497,76 +495,76 @@ export function BillingFormPage() {
           {currentStep === 3 && (
             <div className="flex flex-col gap-6 w-full animate-in fade-in duration-300">
               <h2 className="text-xl font-bold text-on-background mb-2">Billing Calculation Preview</h2>
-              
+
               <div className="w-full overflow-x-auto border border-outline-variant rounded-xl">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-surface-container-low border-b border-outline-variant">
-                        <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase">Item/Breakdown</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase">Role</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase">Members</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase text-right">Mandays</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase text-right">Rate/Manday</th>
-                        <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase text-right">Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-outline-variant">
-                      {isPreviewLoading ? (
-                        <tr><td colSpan={6} className="px-4 py-8 text-center text-secondary">Loading preview calculations...</td></tr>
-                      ) : breakdownData.length === 0 ? (
-                        <tr><td colSpan={6} className="px-4 py-8 text-center text-secondary">No matching activities, members or tickets found for the selected period.</td></tr>
-                      ) : (
-                        breakdownData.map((row: any, i: number) => {
-                          const isSupport = row.projectName?.startsWith('[SUP]');
-                          const cleanProjectName = isSupport ? row.projectName.replace(/^\[SUP\]\s*/, '') : row.projectName;
-                          return (
-                            <tr key={i} className="hover:bg-surface-container-lowest/50">
-                              <td className="px-4 py-3 text-sm font-semibold text-on-background max-w-[280px]">
-                                <div className="flex flex-col gap-1">
-                                  <span className="truncate block font-semibold" title={cleanProjectName}>{cleanProjectName}</span>
-                                  <div>
-                                    {isSupport ? (
-                                      <span className="text-[9px] font-bold px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full inline-block">
-                                        Support Ticket
-                                      </span>
-                                    ) : (
-                                      <span className="text-[9px] font-bold px-2 py-0.5 bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 rounded-full inline-block">
-                                        Project Mandays
-                                      </span>
-                                    )}
-                                  </div>
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-surface-container-low border-b border-outline-variant">
+                      <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase">Item/Breakdown</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase">Role</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase">Members</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase text-right">Mandays</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase text-right">Rate/Manday</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-secondary uppercase text-right">Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant">
+                    {isPreviewLoading ? (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-secondary">Loading preview calculations...</td></tr>
+                    ) : breakdownData.length === 0 ? (
+                      <tr><td colSpan={6} className="px-4 py-8 text-center text-secondary">No matching activities, members or tickets found for the selected period.</td></tr>
+                    ) : (
+                      breakdownData.map((row: any, i: number) => {
+                        const isSupport = row.projectName?.startsWith('[SUP]');
+                        const cleanProjectName = isSupport ? row.projectName.replace(/^\[SUP\]\s*/, '') : row.projectName;
+                        return (
+                          <tr key={i} className="hover:bg-surface-container-lowest/50">
+                            <td className="px-4 py-3 text-sm font-semibold text-on-background max-w-[280px]">
+                              <div className="flex flex-col gap-1">
+                                <span className="truncate block font-semibold" title={cleanProjectName}>{cleanProjectName}</span>
+                                <div>
+                                  {isSupport ? (
+                                    <span className="text-[9px] font-bold px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full inline-block">
+                                      Support Ticket
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-bold px-2 py-0.5 bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 rounded-full inline-block">
+                                      Project Mandays
+                                    </span>
+                                  )}
                                 </div>
-                              </td>
-                              <td className="px-4 py-3 text-sm font-bold text-primary">{row.roleName}</td>
-                              <td className="px-4 py-3 text-sm text-secondary truncate max-w-[200px]" title={row.memberNames}>{row.memberNames}</td>
-                              <td className="px-4 py-3 text-sm text-secondary text-right">{Number(row.mandays).toFixed(2)}</td>
-                              <td className="px-4 py-3 text-sm text-secondary text-right">{formatCurrency(row.ratePerManday)}</td>
-                              <td className="px-4 py-3 text-sm font-semibold text-on-background text-right">{formatCurrency(row.subtotal)}</td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                    {!isPreviewLoading && breakdownData.length > 0 && (
-                      <tfoot className="bg-surface-container-low border-t border-outline-variant font-semibold">
-                        <tr>
-                          <td colSpan={3} className="px-4 py-3 text-right">Subtotal</td>
-                          <td className="px-4 py-3 text-right">{Number(previewData?.totalMandays).toFixed(2)}</td>
-                          <td className="px-4 py-3 text-right"></td>
-                          <td className="px-4 py-3 text-right text-primary">{formatCurrency(subtotal)}</td>
-                        </tr>
-                        <tr>
-                          <td colSpan={5} className="px-4 py-3 text-right text-secondary text-sm">Estimated Tax ({taxRate}%)</td>
-                          <td className="px-4 py-3 text-right text-error text-sm">{formatCurrency(taxAmount)}</td>
-                        </tr>
-                        <tr className="text-lg border-t-2 border-primary">
-                          <td colSpan={5} className="px-4 py-4 text-right">Grand Total</td>
-                          <td className="px-4 py-4 text-right text-green-700 font-bold">{formatCurrency(grandTotal)}</td>
-                        </tr>
-                      </tfoot>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-bold text-primary">{row.roleName}</td>
+                            <td className="px-4 py-3 text-sm text-secondary truncate max-w-[200px]" title={row.memberNames}>{row.memberNames}</td>
+                            <td className="px-4 py-3 text-sm text-secondary text-right">{Number(row.mandays).toFixed(2)}</td>
+                            <td className="px-4 py-3 text-sm text-secondary text-right">{formatCurrency(row.ratePerManday)}</td>
+                            <td className="px-4 py-3 text-sm font-semibold text-on-background text-right">{formatCurrency(row.subtotal)}</td>
+                          </tr>
+                        );
+                      })
                     )}
-                  </table>
-                </div>
+                  </tbody>
+                  {!isPreviewLoading && breakdownData.length > 0 && (
+                    <tfoot className="bg-surface-container-low border-t border-outline-variant font-semibold">
+                      <tr>
+                        <td colSpan={3} className="px-4 py-3 text-right">Subtotal</td>
+                        <td className="px-4 py-3 text-right">{Number(previewData?.totalMandays).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right"></td>
+                        <td className="px-4 py-3 text-right text-primary">{formatCurrency(subtotal)}</td>
+                      </tr>
+                      <tr>
+                        <td colSpan={5} className="px-4 py-3 text-right text-secondary text-sm">Estimated Tax ({taxRate}%)</td>
+                        <td className="px-4 py-3 text-right text-error text-sm">{formatCurrency(taxAmount)}</td>
+                      </tr>
+                      <tr className="text-lg border-t-2 border-primary">
+                        <td colSpan={5} className="px-4 py-4 text-right">Grand Total</td>
+                        <td className="px-4 py-4 text-right text-green-700 font-bold">{formatCurrency(grandTotal)}</td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
             </div>
           )}
 
@@ -583,13 +581,13 @@ export function BillingFormPage() {
                 </p>
               </div>
               <div className="flex gap-4 w-full mt-4">
-                <button 
+                <button
                   onClick={() => exportBillingToExcel(createdBilling)}
                   className="flex-1 px-4 py-2.5 bg-green-700 hover:bg-green-800 text-white font-semibold rounded-lg transition-colors cursor-pointer flex justify-center items-center gap-2 shadow-sm"
                 >
                   <FileText className="w-4 h-4" /> Export to Excel
                 </button>
-                <button 
+                <button
                   onClick={handleCancelCreation}
                   className="flex-1 px-4 py-2.5 border border-outline-variant hover:bg-surface-container-low text-secondary hover:text-on-background font-semibold rounded-lg transition-colors cursor-pointer text-center"
                 >
@@ -602,7 +600,7 @@ export function BillingFormPage() {
 
         {/* Stepper Footer Actions */}
         <div className="p-4 border-t border-outline-variant bg-surface-container-lowest flex justify-between items-center mt-auto">
-          <button 
+          <button
             onClick={() => {
               if (currentStep === 3) {
                 setCurrentStep(2);
@@ -615,9 +613,9 @@ export function BillingFormPage() {
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
-          
+
           {currentStep === 1 && (
-            <button 
+            <button
               onClick={() => setCurrentStep(2)}
               disabled={!startDate || !endDate}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold cursor-pointer shadow-sm"
@@ -627,7 +625,7 @@ export function BillingFormPage() {
           )}
 
           {currentStep === 2 && (
-            <button 
+            <button
               onClick={() => setCurrentStep(3)}
               disabled={
                 (billingType === 'PROJECT' && selectedProjects.length === 0) ||
@@ -640,7 +638,7 @@ export function BillingFormPage() {
           )}
 
           {currentStep === 3 && (
-            <button 
+            <button
               onClick={handleGenerateBilling}
               disabled={createBillingMutation.isPending || breakdownData.length === 0}
               className="flex items-center gap-2 px-6 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-bold shadow-sm cursor-pointer"
@@ -650,7 +648,7 @@ export function BillingFormPage() {
           )}
 
           {currentStep === 4 && (
-            <button 
+            <button
               onClick={() => {
                 setSelectedProjects([]);
                 setSelectedTickets([]);

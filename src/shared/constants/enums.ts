@@ -28,15 +28,6 @@ export const ProjectPhase = {
     FUT: 'FUT',
 } as const;
 
-export const PurchaseOrderStatus = {
-    DRAFT: 'DRAFT',
-    ACTIVE: 'ACTIVE',
-    IN_PROGRESS: 'IN PROGRESS',
-    COMPLETED: 'COMPLETED',
-    CLOSED: 'CLOSED',
-    CANCELLED: 'CANCELLED',
-} as const;
-
 export const SupportTicketStatus = {
     OPEN: 'OPEN',
     IN_PROGRESS: 'IN PROGRESS',
@@ -45,11 +36,5 @@ export const SupportTicketStatus = {
     UAT_DONE: 'UAT DONE',
     DONE: 'DONE',
     ON_HOLD: 'ON HOLD',
-    CANCELLED: 'CANCELLED',
-} as const;
-
-export const BillingStatus = {
-    DRAFT: 'DRAFT',
-    FINALIZED: 'FINALIZED',
     CANCELLED: 'CANCELLED',
 } as const;

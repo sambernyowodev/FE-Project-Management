@@ -83,6 +83,9 @@ export function SupportFormPage() {
     hoursSpent: '0',
     status: SupportTicketStatus.OPEN as string,
     notes: '',
+    startDate: '',
+    endDate: '',
+    folderAttachment: '',
   });
 
   const [error, setError] = useState('');
@@ -105,6 +108,9 @@ export function SupportFormPage() {
           hoursSpent: String(ticket.hoursSpent || 0),
           status: ticket.status || SupportTicketStatus.OPEN,
           notes: ticket.notes || '',
+          startDate: ticket.startDate || '',
+          endDate: ticket.endDate || '',
+          folderAttachment: ticket.folderAttachment || '',
         });
         hasInitialized.current = true;
       }
@@ -168,16 +174,20 @@ export function SupportFormPage() {
       masterProjectId,
       masterProjectName,
       issueTitle: formData.issueTitle,
-      issueDescription: formData.issueDescription || undefined,
+      issueDescription: formData.issueDescription || null,
+      customer: formData.customer || null,
+      picClient: formData.picClient || null,
+      startDate: formData.startDate || null,
+      endDate: formData.endDate || null,
+      folderAttachment: formData.folderAttachment || null,
     };
 
     if (isEditing) {
       const updatePayload = {
         ...payload,
-        picClient: formData.picClient || undefined,
         hoursSpent: formData.hoursSpent ? Number(String(formData.hoursSpent).replace(',', '.')) : 0,
         status: formData.status,
-        notes: formData.notes || undefined
+        notes: formData.notes || null
       };
 
       updateMutation.mutate(
@@ -383,6 +393,46 @@ export function SupportFormPage() {
                     placeholder="e.g. Mba Isti"
                   />
                 </div>
+              </div>
+
+              {/* Start Date & End Date */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="startDate" className="text-sm font-semibold text-on-background">Start Date</label>
+                  <input
+                    id="startDate"
+                    name="startDate"
+                    type="date"
+                    value={formData.startDate}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="endDate" className="text-sm font-semibold text-on-background">End Date</label>
+                  <input
+                    id="endDate"
+                    name="endDate"
+                    type="date"
+                    value={formData.endDate}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  />
+                </div>
+              </div>
+
+              {/* Folder Attachment */}
+              <div className="flex flex-col gap-2">
+                <label htmlFor="folderAttachment" className="text-sm font-semibold text-on-background">Folder Attachment</label>
+                <input
+                  id="folderAttachment"
+                  name="folderAttachment"
+                  type="text"
+                  value={formData.folderAttachment}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="e.g. Google Drive / Sharepoint folder link"
+                />
               </div>
 
               {/* Issue Title */}

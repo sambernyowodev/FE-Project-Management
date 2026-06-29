@@ -4,11 +4,9 @@ import {
   useGetPurchaseOrders,
   useDeletePurchaseOrder
 } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
-import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { PurchaseOrder } from '@/modules/purchase-orders/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
-import { PurchaseOrderStatus } from '@/shared/constants/enums';
 import { Eye, Edit2, Trash2 } from 'lucide-react';
 
 export function POListPage() {
@@ -118,24 +116,6 @@ export function POListPage() {
       meta: { className: 'text-right', filterType: 'number' },
       cell: ({ row }) => (
         <span className="font-medium text-on-background">{formatCurrency(row.original.totalAmount || 0)}</span>
-      ),
-    },
-    {
-      id: 'status',
-      header: 'Status',
-      accessorKey: 'status',
-      meta: {
-        filterOptions: [
-          { label: 'Draft', value: PurchaseOrderStatus.DRAFT },
-          { label: 'Active', value: PurchaseOrderStatus.ACTIVE },
-          { label: 'In Progress', value: PurchaseOrderStatus.IN_PROGRESS },
-          { label: 'Completed', value: PurchaseOrderStatus.COMPLETED },
-          { label: 'Closed', value: PurchaseOrderStatus.CLOSED },
-          { label: 'Cancelled', value: PurchaseOrderStatus.CANCELLED },
-        ],
-      },
-      cell: ({ row }) => (
-        <StatusBadge status={row.original.status || PurchaseOrderStatus.DRAFT} />
       ),
     },
     {

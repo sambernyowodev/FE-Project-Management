@@ -5,6 +5,8 @@ export type Project = Entity<'ProjectResponseDto'> & {
   description?: string;
   platform?: string;
   projectCode: string;
+  poId?: string;
+  poNumber?: string;
 };
 export type ProjectMember = Omit<Entity<'ProjectMemberResponseDto'>, 'projectId' | 'userId' | 'roleId'> & {
   projectId: string;

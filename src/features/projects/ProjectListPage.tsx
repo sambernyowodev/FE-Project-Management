@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Edit, Trash2 } from 'lucide-react';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import { useDeleteProject, useGetProjects } from '@/modules/projects/hooks/useProjects';
+import { useGetPurchaseOrders } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { Project } from '@/modules/projects/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
@@ -28,6 +29,13 @@ export function ProjectListPage() {
   });
 
   const deleteMutation = useDeleteProject();
+
+  const { data: poRes } = useGetPurchaseOrders({ perPage: 100 });
+  const purchaseOrders = poRes?.data || [];
+  const poFilterOptions = purchaseOrders.map(po => ({
+    label: po.poNumber || '-',
+    value: po.id,
+  }));
 
   const projects = data?.data || [];
   const totalItems = data?.meta?.total || 0;
@@ -61,19 +69,22 @@ export function ProjectListPage() {
 
   const columns: ColumnDef<Project, any>[] = [
     {
-      id: 'projectCode',
-      header: 'Project Code',
-      accessorKey: 'projectCode',
-      cell: ({ row }) => (
-        <span className="font-mono text-xs text-secondary">{row.original.projectCode || `PRJ-${row.original.id}`}</span>
-      ),
-    },
-    {
       id: 'name',
-      header: 'Name',
+      header: 'Project Name',
       accessorKey: 'name',
       cell: ({ row }) => (
         <span className="font-semibold text-on-background">{row.original.name}</span>
+      ),
+    },
+    {
+      id: 'poId',
+      header: 'PO Number',
+      accessorKey: 'poNumber',
+      meta: {
+        filterOptions: poFilterOptions,
+      },
+      cell: ({ row }) => (
+        <span className="font-semibold text-secondary">{row.original.poNumber || '-'}</span>
       ),
     },
     {
