@@ -16,7 +16,6 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { exportBillingToExcel } from '@/shared/lib/excel';
 import { useGetBillings, useGetBillingById, useDeleteBilling } from '@/modules/billing/hooks/useBilling';
-import { StatusBadge } from '@/shared/components/common/StatusBadge';
 
 export function BillingHubPage() {
   const navigate = useNavigate();
