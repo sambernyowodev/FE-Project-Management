@@ -8,7 +8,6 @@ const mapBilling = (b: any): Billing => ({
   billingPeriodEnd: b.billing_period_end,
   totalMandays: Number(b.total_mandays || 0),
   totalAmount: Number(b.total_amount || 0),
-  status: b.status,
   remarks: b.remarks || '',
   billingType: b.billing_type,
   createdAt: b.created_at,
@@ -265,7 +264,7 @@ export const billingApi = {
     // Generate billing number
     const now = new Date();
     const prefix = `BILL-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}-`;
-    
+
     const { data: lastBill } = await supabase
       .from('billings')
       .select('billing_number')
@@ -295,7 +294,6 @@ export const billingApi = {
         total_mandays: preview.totalMandays,
         total_amount: preview.totalAmount,
         remarks: dto.remarks || null,
-        status: 'DRAFT',
         created_by: user?.id || null,
       })
       .select()
@@ -333,7 +331,7 @@ export const billingApi = {
     // Delete in sequence to avoid constraint issues, although cascade is set
     await supabase.from('billing_details').delete().eq('billing_id', id);
     await supabase.from('billing_projects').delete().eq('billing_id', id);
-    
+
     const { error } = await supabase
       .from('billings')
       .delete()

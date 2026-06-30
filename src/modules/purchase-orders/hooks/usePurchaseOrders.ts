@@ -44,7 +44,7 @@ export const useCreatePurchaseOrder = () => {
 export const useUpdatePurchaseOrder = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<{ poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<{ poNumber?: string; poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }> }) =>
       poApi.updatePurchaseOrder(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders', variables.id] });

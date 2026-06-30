@@ -12,7 +12,6 @@ const mapPO = (p: any): PurchaseOrder => {
     description: p.description || '',
     totalMandays: totalMandays,
     totalAmount: Number(p.total_amount || 0),
-    status: p.status,
     startDate: p.start_date,
     endDate: p.end_date,
     remarks: p.remarks || '',
@@ -52,9 +51,7 @@ export const poApi = {
         const filters = JSON.parse(params.filter);
         Object.entries(filters).forEach(([key, val]) => {
           if (val !== undefined && val !== null && val !== '') {
-            if (key === 'status') {
-              query = query.eq('status', val);
-            } else if (key === 'poNumber') {
+            if (key === 'poNumber') {
               query = query.ilike('po_number', `%${val}%`);
             } else if (key === 'poName') {
               query = query.ilike('po_name', `%${val}%`);
@@ -81,7 +78,7 @@ export const poApi = {
 
     const page = params?.page || 1;
     const perPage = params?.perPage || 10;
-    
+
     const from = (page - 1) * perPage;
     const to = from + perPage - 1;
     query = query.range(from, to);
@@ -114,21 +111,23 @@ export const poApi = {
     return mapPO(data);
   },
 
-  createPurchaseOrder: async (data: { poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }): Promise<PurchaseOrder> => {
-    let poNumber = '';
-    const { data: latestPO } = await supabase
-      .from('purchase_orders')
-      .select('po_number')
-      .order('po_number', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+  createPurchaseOrder: async (data: { poNumber?: string; poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }): Promise<PurchaseOrder> => {
+    let poNumber = data.poNumber || '';
+    if (!poNumber) {
+      const { data: latestPO } = await supabase
+        .from('purchase_orders')
+        .select('po_number')
+        .order('po_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (latestPO && /^\d+$/.test(latestPO.po_number)) {
-      poNumber = String(Number(latestPO.po_number) + 1);
-    } else {
-      const countRes = await supabase.from('purchase_orders').select('id', { count: 'exact', head: true });
-      const count = countRes.count || 0;
-      poNumber = String(4200000000 + count + 1);
+      if (latestPO && /^\d+$/.test(latestPO.po_number)) {
+        poNumber = String(Number(latestPO.po_number) + 1);
+      } else {
+        const countRes = await supabase.from('purchase_orders').select('id', { count: 'exact', head: true });
+        const count = countRes.count || 0;
+        poNumber = String(4200000000 + count + 1);
+      }
     }
 
     const { data: newPo, error } = await supabase
@@ -142,7 +141,6 @@ export const poApi = {
         description: data.description,
         start_date: data.startDate || null,
         end_date: data.endDate || null,
-        status: 'DRAFT',
         is_active: true,
       })
       .select('*, po_projects(*, projects(*, master_projects(name)))')
@@ -152,10 +150,11 @@ export const poApi = {
     return mapPO(newPo);
   },
 
-  updatePurchaseOrder: async (id: string, data: Partial<{ poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }>): Promise<PurchaseOrder> => {
+  updatePurchaseOrder: async (id: string, data: Partial<{ poNumber?: string; poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }>): Promise<PurchaseOrder> => {
     const { data: updatedPo, error } = await supabase
       .from('purchase_orders')
       .update({
+        po_number: data.poNumber,
         po_name: data.poName,
         customer: data.customer,
         total_mandays: data.totalMandays,
@@ -218,7 +217,7 @@ export const poApi = {
     const { data: allProjects, error: err1 } = await supabase
       .from('projects')
       .select('id, total_mandays, master_projects(name)');
-    
+
     const { data: assignedProjects, error: err2 } = await supabase
       .from('po_projects')
       .select('project_id');
@@ -227,7 +226,7 @@ export const poApi = {
     if (err2) throw err2;
 
     const assignedIds = new Set((assignedProjects || []).map(ap => ap.project_id));
-    
+
     return (allProjects || [])
       .filter(p => !assignedIds.has(p.id))
       .map(p => ({

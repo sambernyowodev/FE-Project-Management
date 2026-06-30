@@ -67,6 +67,41 @@
     --ring: var(--color-primary);
     --radius: 0.5rem;
   }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --color-background: #0b0f19;
+      --color-on-background: #f1f5f9;
+      --color-primary: #3b82f6;
+      --color-primary-container: #1d4ed8;
+      --color-on-primary: #ffffff;
+      --color-on-primary-container: #eff6ff;
+      --color-secondary: #94a3b8;
+      --color-on-secondary: #ffffff;
+      --color-secondary-container: #334155;
+      --color-on-secondary-container: #cbd5e1;
+      --color-surface: #111827;
+      --color-on-surface: #f3f4f6;
+      --color-on-surface-variant: #9ca3af;
+      --color-surface-bright: #1f2937;
+      --color-surface-dim: #0e1420;
+      --color-surface-container-lowest: #030712;
+      --color-surface-container-low: #111827;
+      --color-surface-container: #1f2937;
+      --color-surface-container-high: #374151;
+      --color-surface-container-highest: #4b5563;
+      --color-outline-variant: #374151;
+      --color-outline: #6b7280;
+      --color-error: #ef4444;
+      --color-on-error: #ffffff;
+      --color-error-container: #7f1d1d;
+      --color-on-error-container: #fecaca;
+      --color-tertiary: #a78bfa;
+      --color-on-tertiary: #ffffff;
+      --color-tertiary-container: #5b21b6;
+      --color-on-tertiary-container: #ede9fe;
+    }
+  }
 }
 
 @layer base {

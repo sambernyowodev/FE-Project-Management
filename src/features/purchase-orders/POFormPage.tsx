@@ -18,6 +18,7 @@ export function POFormPage() {
   const { data: po, isLoading: isPoLoading } = useGetPurchaseOrder(poId);
 
   const [formData, setFormData] = useState({
+    poNumber: '',
     poName: '',
     customer: 'Telkomsel HCM',
     totalMandays: '',
@@ -30,6 +31,7 @@ export function POFormPage() {
   useEffect(() => {
     if (po && isEditMode) {
       setFormData({
+        poNumber: po.poNumber || '',
         poName: po.poName || '',
         customer: po.customer || '',
         totalMandays: po.totalMandays?.toString() || '',
@@ -49,13 +51,14 @@ export function POFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.poName || !formData.customer || !formData.totalMandays || !formData.totalAmount) {
+    if (!formData.poNumber || !formData.poName || !formData.customer || !formData.totalMandays || !formData.totalAmount) {
       alert('Please fill out all required fields');
       return;
     }
 
     try {
       const payload = {
+        poNumber: formData.poNumber,
         poName: formData.poName,
         customer: formData.customer,
         totalMandays: Number(formData.totalMandays),
@@ -117,6 +120,20 @@ export function POFormPage() {
               </h2>
 
               <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="poNumber" className="text-sm font-semibold text-on-background">PO Number *</label>
+                  <input
+                    id="poNumber"
+                    name="poNumber"
+                    type="text"
+                    required
+                    value={formData.poNumber}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background font-mono"
+                    placeholder="e.g. 4200001234"
+                  />
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <label htmlFor="poName" className="text-sm font-semibold text-on-background">PO Name *</label>
                   <input
