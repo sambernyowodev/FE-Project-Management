@@ -7,7 +7,7 @@ import {
   addDays, 
   isAfter
 } from 'date-fns';
-import { formatDate } from '@/shared/lib/formatter';
+import { formatDate, parseLocalDate } from '@/shared/lib/formatter';
 import { Milestone, User, Calendar, CheckCircle2 } from 'lucide-react';
 import type { ProjectActivity, ProjectMember } from '@/modules/projects/types';
 
@@ -24,18 +24,18 @@ interface GanttChartProps {
 export function GanttChart({ project, activities = [], members = [] }: GanttChartProps) {
   // 1. Calculate Timeline Start and End Dates
   const { timelineStart, timelineEnd, weeks } = useMemo(() => {
-    let start = project.startDate ? new Date(project.startDate) : new Date();
-    let end = project.endDate ? new Date(project.endDate) : addDays(new Date(), 60);
+    let start = parseLocalDate(project.startDate) || new Date();
+    let end = parseLocalDate(project.endDate) || addDays(new Date(), 60);
 
     // Factor in activities dates if they extend beyond project dates
     activities.forEach(act => {
       if (act.startDate) {
-        const actStart = new Date(act.startDate);
-        if (actStart < start) start = actStart;
+        const actStart = parseLocalDate(act.startDate);
+        if (actStart && actStart < start) start = actStart;
       }
       if (act.endDate) {
-        const actEnd = new Date(act.endDate);
-        if (actEnd > end) end = actEnd;
+        const actEnd = parseLocalDate(act.endDate);
+        if (actEnd && actEnd > end) end = actEnd;
       }
     });
 
@@ -87,7 +87,8 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
   const isOverdue = (act: ProjectActivity) => {
     if (act.progressPct === 100 || act.isMilestone) return false;
     if (!act.endDate) return false;
-    return isAfter(new Date(), new Date(act.endDate));
+    const end = parseLocalDate(act.endDate);
+    return end ? isAfter(new Date(), end) : false;
   };
 
   // Calculate Today Line Position
@@ -194,23 +195,25 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
               let hasSchedule = false;
 
               if (act.startDate && act.endDate) {
-                const actStart = new Date(act.startDate);
-                const actEnd = new Date(act.endDate);
+                const actStart = parseLocalDate(act.startDate);
+                const actEnd = parseLocalDate(act.endDate);
                 
-                // Ensure dates fall within timeline bounds
-                const startClamped = actStart < timelineStart ? timelineStart : actStart;
-                const endClamped = actEnd > timelineEnd ? timelineEnd : actEnd;
+                if (actStart && actEnd) {
+                  // Ensure dates fall within timeline bounds
+                  const startClamped = actStart < timelineStart ? timelineStart : actStart;
+                  const endClamped = actEnd > timelineEnd ? timelineEnd : actEnd;
 
-                const daysFromStart = differenceInDays(startClamped, timelineStart);
-                const taskDuration = differenceInDays(endClamped, startClamped) + 1;
+                  const daysFromStart = differenceInDays(startClamped, timelineStart);
+                  const taskDuration = differenceInDays(endClamped, startClamped) + 1;
 
-                leftPercent = (daysFromStart / totalDays) * 100;
-                widthPercent = (taskDuration / totalDays) * 100;
-                hasSchedule = true;
+                  leftPercent = (daysFromStart / totalDays) * 100;
+                  widthPercent = (taskDuration / totalDays) * 100;
+                  hasSchedule = true;
+                }
               } else if (act.isMilestone && (act.startDate || act.endDate)) {
                 // Milestones might only have one date
-                const milestoneDate = new Date(act.startDate || act.endDate || new Date());
-                if (milestoneDate >= timelineStart && milestoneDate <= timelineEnd) {
+                const milestoneDate = parseLocalDate(act.startDate || act.endDate);
+                if (milestoneDate && milestoneDate >= timelineStart && milestoneDate <= timelineEnd) {
                   const daysFromStart = differenceInDays(milestoneDate, timelineStart);
                   leftPercent = (daysFromStart / totalDays) * 100;
                   widthPercent = 1.5; // Fixed small width for point

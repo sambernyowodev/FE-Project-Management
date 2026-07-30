@@ -4,6 +4,7 @@ import {
   useCreateProjectActivity, 
   useUpdateProjectActivity 
 } from '@/modules/projects/hooks/useProjectActivities';
+import { formatDateInput } from '@/shared/lib/formatter';
 import type { ProjectActivity } from '@/modules/projects/types';
 
 const PHASE_OPTIONS = [
@@ -66,8 +67,8 @@ export function ActivityFormModal({
           details: activity.details || '',
           durationDays: activity.durationDays !== undefined ? String(activity.durationDays) : '',
           mandays: activity.mandays !== undefined ? String(activity.mandays) : '',
-          startDate: activity.startDate ? activity.startDate.split('T')[0] : '',
-          endDate: activity.endDate ? activity.endDate.split('T')[0] : '',
+          startDate: activity.startDate ? formatDateInput(activity.startDate) : '',
+          endDate: activity.endDate ? formatDateInput(activity.endDate) : '',
           progressPct: String(activity.progressPct || 0),
           phase: activity.phase || 'DEVELOPMENT',
           assignedToId: activity.assignedToId ? String(activity.assignedToId) : '',
@@ -126,8 +127,8 @@ export function ActivityFormModal({
       details: formData.details || undefined,
       durationDays: formData.durationDays ? Number(formData.durationDays) : undefined,
       mandays: formData.mandays ? Number(formData.mandays) : undefined,
-      startDate: formData.startDate ? new Date(formData.startDate).toISOString() : undefined,
-      endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
+      startDate: formData.startDate || undefined,
+      endDate: formData.endDate || undefined,
       progressPct: Number(formData.progressPct),
       phase: formData.phase,
       assignedToId: formData.assignedToId || null,

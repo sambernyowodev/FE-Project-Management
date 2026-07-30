@@ -73,11 +73,11 @@ export function DashboardPage() {
 
   const totalTickets = filteredTickets.length;
 
-  const totalBillingAmount = filteredBillings.reduce((sum, b) => sum + (b.status === 'FINALIZED' ? (b.totalAmount || 0) : 0), 0);
+  const totalBillingAmount = filteredBillings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
-  // Unbilled mandays calculation: Total mandays from projects minus total mandays in finalized billings
+  // Unbilled mandays calculation: Total mandays from projects minus total mandays in billings
   const totalProjectMandays = filteredProjects.reduce((sum, p) => sum + (p.totalMandays || 0), 0);
-  const totalBilledMandays = filteredBillings.reduce((sum, b) => sum + (b.status === 'FINALIZED' ? (b.totalMandays || 0) : 0), 0);
+  const totalBilledMandays = filteredBillings.reduce((sum, b) => sum + (b.totalMandays || 0), 0);
   const unbilledMandays = Math.max(0, totalProjectMandays - totalBilledMandays);
 
   const formatCurrency = (amount: number) => {
@@ -125,6 +125,19 @@ export function DashboardPage() {
       count: monthlyProjects[index]
     }));
   }, [filteredProjects]);
+
+  const getStatusColor = (status: string) => {
+    const s = status.toUpperCase().replace(/\s+/g, '_');
+    if (s === 'IN_PROGRESS' || s === 'IN PROGRESS') return '#f97316'; // Orange
+    if (s === 'CLOSED') return '#22c55e'; // Hijau / Green
+    if (s === 'UAT') return '#1e40af'; // Biru Tua / Dark Blue
+    if (s === 'PLANNING') return '#3b82f6';
+    if (s === 'SIT') return '#8b5cf6';
+    if (s === 'FUT') return '#06b6d4';
+    if (s === 'ON_HOLD') return '#f59e0b';
+    if (s === 'CANCELLED') return '#ef4444';
+    return '#0052cc';
+  };
 
   return (
     <div className="flex flex-col gap-8">
@@ -247,8 +260,8 @@ export function DashboardPage() {
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#737685', fontSize: 12 }} />
                 <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: '1px solid #c3c6d6', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                  {barData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#0052cc' : '#dae2fd'} />
+                  {barData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={getStatusColor(entry.name)} />
                   ))}
                 </Bar>
               </BarChart>
@@ -303,7 +316,6 @@ export function DashboardPage() {
                   <th className="px-4 py-3 font-semibold">PO Number</th>
                   <th className="px-4 py-3 font-semibold">Customer</th>
                   <th className="px-4 py-3 font-semibold">Amount</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -312,14 +324,6 @@ export function DashboardPage() {
                     <td className="px-4 py-3 font-medium text-on-background">{po.poNumber}</td>
                     <td className="px-4 py-3">{po.customer}</td>
                     <td className="px-4 py-3">{formatCurrency(po.totalAmount || 0)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${po.status === 'ACTIVE' ? 'bg-primary-container text-primary' :
-                          po.status === 'COMPLETED' ? 'bg-green-50 text-green-700' :
-                            'bg-surface-container text-on-surface'
-                        }`}>
-                        {po.status}
-                      </span>
-                    </td>
                   </tr>
                 ))}
                 {filteredPOs.length === 0 && (
@@ -346,7 +350,6 @@ export function DashboardPage() {
                   <th className="px-4 py-3 font-semibold">Billing Number</th>
                   <th className="px-4 py-3 font-semibold">Type</th>
                   <th className="px-4 py-3 font-semibold">Amount</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -355,13 +358,6 @@ export function DashboardPage() {
                     <td className="px-4 py-3 font-medium text-on-background">{billing.billingNumber}</td>
                     <td className="px-4 py-3">{billing.billingType}</td>
                     <td className="px-4 py-3">{formatCurrency(billing.totalAmount || 0)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${billing.status === 'FINALIZED' ? 'bg-green-50 text-green-700' :
-                          'bg-surface-container text-on-surface'
-                        }`}>
-                        {billing.status}
-                      </span>
-                    </td>
                   </tr>
                 ))}
                 {filteredBillings.length === 0 && (

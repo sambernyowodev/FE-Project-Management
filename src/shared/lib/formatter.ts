@@ -10,6 +10,24 @@ export function cn(...inputs: ClassValue[]) {
  */
 export type DateFormatVariant = 'long' | 'short' | 'input' | 'iso' | 'datetime' | 'time'
 
+export function parseLocalDate(date: Date | string | undefined | null): Date | null {
+  if (!date) return null
+  if (date instanceof Date) return isNaN(date.getTime()) ? null : date
+  if (typeof date === 'string') {
+    const match = date.match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (match) {
+      const year = parseInt(match[1], 10)
+      const month = parseInt(match[2], 10) - 1
+      const day = parseInt(match[3], 10)
+      const d = new Date(year, month, day)
+      return isNaN(d.getTime()) ? null : d
+    }
+    const d = new Date(date)
+    return isNaN(d.getTime()) ? null : d
+  }
+  return null
+}
+
 export function formatDate(
   date: Date | string | undefined | null,
   variant: DateFormatVariant = 'long',
@@ -18,8 +36,8 @@ export function formatDate(
   if (!date) return (variant === 'input' || variant === 'iso') ? '' : '-'
 
   try {
-    const d = typeof date === 'string' ? new Date(date) : date
-    if (isNaN(d.getTime())) return (variant === 'input' || variant === 'iso') ? '' : '-'
+    const d = parseLocalDate(date)
+    if (!d) return (variant === 'input' || variant === 'iso') ? '' : '-'
 
     switch (variant) {
       case 'short':
