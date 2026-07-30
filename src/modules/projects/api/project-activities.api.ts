@@ -108,5 +108,48 @@ export const projectActivitiesApi = {
       .single();
     if (error) throw error;
     return mapActivity(act);
+  },
+
+  bulkCreateActivities: async (activities: CreateProjectActivity[]): Promise<ProjectActivity[]> => {
+    const payload = activities.map(data => ({
+      project_id: data.projectId,
+      parent_id: data.parentId || null,
+      activity_name: data.activityName,
+      description: data.description || null,
+      feature: data.feature || null,
+      sub_feature: data.subFeature || null,
+      details: data.details || null,
+      duration_days: data.durationDays || 0,
+      mandays: data.mandays || 0,
+      start_date: data.startDate || null,
+      end_date: data.endDate || null,
+      progress_pct: data.progressPct || 0,
+      phase: data.phase || 'DEVELOPMENT',
+      assigned_to: data.assignedToId || null,
+      sort_order: data.sortOrder || 0,
+      is_milestone: data.isMilestone || false,
+    }));
+
+    const { data, error } = await supabase
+      .from('project_activities')
+      .insert(payload)
+      .select('*, assignedTo:members(*)');
+
+    if (error) throw error;
+    return (data || []).map(mapActivity);
+  },
+
+  bulkUpdateActivities: async (updates: { id: string; data: UpdateProjectActivity }[]): Promise<void> => {
+    for (const item of updates) {
+      await projectActivitiesApi.updateActivity(item.id, item.data);
+    }
+  },
+
+  deleteAllProjectActivities: async (projectId: string): Promise<void> => {
+    const { error } = await supabase
+      .from('project_activities')
+      .delete()
+      .eq('project_id', projectId);
+    if (error) throw error;
   }
 };

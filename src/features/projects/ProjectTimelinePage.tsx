@@ -15,6 +15,7 @@ import { TaskTable } from './components/TaskTable';
 import { ResourcePanel } from './components/ResourcePanel';
 import { ActivityFormModal } from './components/ActivityFormModal';
 import { ManageMembersModal } from './components/ManageMembersModal';
+import { ExcelImportModal } from './components/ExcelImportModal';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import { ProjectStatus } from '@/shared/constants/enums';
 import {
@@ -27,9 +28,12 @@ import {
   Briefcase,
   CalendarDays,
   Edit,
-  ArrowLeft
+  ArrowLeft,
+  Download,
+  Upload
 } from 'lucide-react';
 import { formatDate } from '@/shared/lib/formatter';
+import { generateTimelineExcelTemplate, parseTimelineExcel, type ParsedExcelRow } from '@/shared/lib/excel-helpers';
 import type { ProjectActivity } from '@/modules/projects/types';
 
 export function ProjectTimelinePage() {
@@ -70,6 +74,35 @@ export function ProjectTimelinePage() {
 
   // 6. Manage Team Modal State
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+
+  // 7. Excel Import & Template Download State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [parsedRows, setParsedRows] = useState<ParsedExcelRow[]>([]);
+  const [parsedResourceRoles, setParsedResourceRoles] = useState<Record<string, string>>({});
+  const [isParsingExcel, setIsParsingExcel] = useState(false);
+
+  const handleDownloadTemplate = () => {
+    if (!project) return;
+    generateTimelineExcelTemplate(project, activities, members);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsParsingExcel(true);
+      const res = await parseTimelineExcel(file, activities, members);
+      setParsedRows(res.rows);
+      setParsedResourceRoles(res.resourceRoles || {});
+      setIsImportModalOpen(true);
+    } catch (err: any) {
+      alert('Gagal membaca file Excel. Pastikan format file .xlsx sesuai.');
+    } finally {
+      setIsParsingExcel(false);
+      e.target.value = ''; // reset input file
+    }
+  };
 
   const handleOpenCreateModal = () => {
     setEditingActivity(null);
@@ -289,14 +322,40 @@ export function ProjectTimelinePage() {
                   </button>
                 </div>
 
-                {/* Add Task Button */}
-                <button
-                  onClick={handleOpenCreateModal}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-xs font-bold shadow-sm w-full sm:w-auto justify-center cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Tambah Aktivitas</span>
-                </button>
+                {/* Actions (Add Task & Excel Upload/Download) */}
+                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+                  {/* Download Template Excel */}
+                  <button
+                    onClick={handleDownloadTemplate}
+                    className="flex items-center gap-2 px-3.5 py-2 border border-outline-variant bg-surface rounded-lg hover:bg-surface-container-low text-secondary hover:text-on-background transition-all text-xs font-bold shadow-sm justify-center cursor-pointer"
+                    title="Download Format Template Excel Timeline"
+                  >
+                    <Download className="w-4 h-4 text-emerald-600" />
+                    <span>Download Template</span>
+                  </button>
+
+                  {/* Upload Excel */}
+                  <label className="flex items-center gap-2 px-3.5 py-2 border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-500/20 transition-all text-xs font-bold shadow-sm justify-center cursor-pointer">
+                    <Upload className="w-4 h-4" />
+                    <span>{isParsingExcel ? 'Membaca...' : 'Upload Excel'}</span>
+                    <input
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      disabled={isParsingExcel}
+                    />
+                  </label>
+
+                  {/* Add Task Button */}
+                  <button
+                    onClick={handleOpenCreateModal}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-xs font-bold shadow-sm justify-center cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Tambah Aktivitas</span>
+                  </button>
+                </div>
               </div>
 
               {/* View Components */}
@@ -361,6 +420,17 @@ export function ProjectTimelinePage() {
             projectId={project.id}
             members={members}
             activities={activities}
+          />
+
+          {/* Modal for Preview & Edit Excel Data */}
+          <ExcelImportModal
+            isOpen={isImportModalOpen}
+            onClose={() => setIsImportModalOpen(false)}
+            projectId={project.id}
+            parsedRows={parsedRows}
+            resourceRoles={parsedResourceRoles}
+            members={members}
+            existingActivities={activities}
           />
         </>
       ) : (

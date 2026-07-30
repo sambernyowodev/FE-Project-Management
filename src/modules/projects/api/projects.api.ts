@@ -289,5 +289,121 @@ export const projectsApi = {
       .eq('project_id', projectId)
       .eq('id', memberId);
     if (error) throw error;
+  },
+
+  ensureResourcesInProject: async (
+    projectId: string,
+    resourceNames: string[],
+    resourceRoles: Record<string, string> = {}
+  ): Promise<Map<string, string>> => {
+    const resourceMap = new Map<string, string>();
+    const cleanedNames = Array.from(new Set(resourceNames.map(n => n.trim()).filter(Boolean)));
+    if (cleanedNames.length === 0) return resourceMap;
+
+    // 1. Get all roles from DB for name/code resolution
+    const { data: allRoles } = await supabase.from('roles').select('id, code, name');
+    const rolesList = allRoles || [];
+
+    const findRoleId = (roleName?: string): string | undefined => {
+      if (!roleName) {
+        const fallback = rolesList.find(r => r.code === 'DEV_BE') || rolesList[0];
+        return fallback?.id;
+      }
+      const normalized = roleName.trim().toLowerCase();
+      const matched = rolesList.find(r => 
+        r.code.toLowerCase() === normalized ||
+        r.name.toLowerCase() === normalized ||
+        r.name.toLowerCase().includes(normalized) ||
+        normalized.includes(r.name.toLowerCase())
+      );
+      if (matched) return matched.id;
+      const fallback = rolesList.find(r => r.code === 'DEV_BE') || rolesList[0];
+      return fallback?.id;
+    };
+
+    // 2. Get current project members
+    const existingMembers = await projectsApi.getProjectMembers(projectId);
+    existingMembers.forEach(m => {
+      if (m.user?.fullName) resourceMap.set(m.user.fullName.toLowerCase(), m.memberId);
+      if (m.user?.email) resourceMap.set(m.user.email.toLowerCase(), m.memberId);
+      if (m.user?.employeeId) resourceMap.set(m.user.employeeId.toLowerCase(), m.memberId);
+      if (m.memberId) resourceMap.set(m.memberId.toLowerCase(), m.memberId);
+    });
+
+    // Determine missing names or names that need role sync
+    for (const name of cleanedNames) {
+      const lowerName = name.toLowerCase();
+      const targetRoleName = resourceRoles[lowerName];
+      const targetRoleId = findRoleId(targetRoleName);
+
+      try {
+        let userId = resourceMap.get(lowerName);
+
+        if (!userId) {
+          // Search in master members table
+          const { data: globalMembers } = await supabase
+            .from('members')
+            .select('id, full_name, email, employee_id')
+            .or(`full_name.ilike.%${name}%,employee_id.ilike.%${name}%`)
+            .limit(1);
+
+          userId = globalMembers?.[0]?.id;
+
+          // If not found in master members table, create new member user
+          if (!userId) {
+            const empId = `EMP-${name.toUpperCase().replace(/[^A-Z0-9]/g, '')}`.slice(0, 50);
+            const email = `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@mii.co.id`;
+            
+            const { data: newMember, error: createErr } = await supabase
+              .from('members')
+              .insert({
+                full_name: name,
+                email: email,
+                employee_id: empId,
+                is_active: true
+              })
+              .select('id')
+              .single();
+
+            if (!createErr && newMember) {
+              userId = newMember.id;
+            }
+          }
+        }
+
+        // Upsert user into project_members with correct roleId
+        if (userId && targetRoleId) {
+          const { data: existingPm } = await supabase
+            .from('project_members')
+            .select('id, role_id')
+            .eq('project_id', projectId)
+            .eq('member_id', userId)
+            .maybeSingle();
+
+          if (!existingPm) {
+            await supabase
+              .from('project_members')
+              .insert({
+                project_id: projectId,
+                member_id: userId,
+                role_id: targetRoleId,
+                assigned_mandays: 0
+              });
+          } else if (existingPm.role_id !== targetRoleId && targetRoleName) {
+            // Update role if explicitly provided in Excel
+            await supabase
+              .from('project_members')
+              .update({ role_id: targetRoleId })
+              .eq('id', existingPm.id);
+          }
+
+          resourceMap.set(lowerName, userId);
+        }
+      } catch (err) {
+        console.error(`Failed to ensure resource "${name}" in project:`, err);
+      }
+    }
+
+    return resourceMap;
   }
 };

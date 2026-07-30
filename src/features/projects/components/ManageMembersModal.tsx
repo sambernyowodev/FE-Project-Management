@@ -23,9 +23,13 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [error, setError] = useState('');
 
-  const getCalculatedMandays = (userId: string) => {
+  const getUserId = (m: any) => m.memberId || m.userId || m.user?.id || '';
+
+  const getCalculatedMandays = (memberOrUserId: any) => {
+    const targetUserId = typeof memberOrUserId === 'object' ? getUserId(memberOrUserId) : memberOrUserId;
+    if (!targetUserId) return 0;
     return activities
-      .filter((act: any) => act.assignedToId === userId)
+      .filter((act: any) => act.assignedToId === targetUserId)
       .reduce((sum: number, act: any) => sum + (act.mandays || 0), 0);
   };
 
@@ -39,7 +43,7 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
     if (!selectedRoleId) return activeUsers;
     return activeUsers.filter((u: any) => {
       const alreadyHasRole = members.some(
-        (m: any) => m.userId === u.id && String(m.roleId) === String(selectedRoleId)
+        (m: any) => getUserId(m) === u.id && String(m.roleId) === String(selectedRoleId)
       );
       return !alreadyHasRole;
     });
@@ -200,7 +204,8 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
             ) : (
               <div className="flex flex-col gap-2 max-h-[350px] overflow-y-auto pr-1">
                 {members.map((member: any) => {
-                  const userName = member.user?.fullName || `User ID: ${member.userId}`;
+                  const memberUserId = getUserId(member);
+                  const userName = member.user?.fullName || `User ID: ${memberUserId}`;
                   const userEmail = member.user?.email || '';
                   const roleName = member.role?.name || 'Resource';
 
@@ -211,7 +216,7 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Avatar */}
-                        <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${getAvatarBg(member.userId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
+                        <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${getAvatarBg(memberUserId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
                           {getInitials(userName)}
                         </div>
                         {/* User Details */}
@@ -231,7 +236,7 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
 
                         {/* Mandays */}
                         <span className="text-xs text-primary font-bold font-mono shrink-0" title="Mandays (dari Activities)">
-                          {getCalculatedMandays(member.userId).toFixed(1)} md
+                          {getCalculatedMandays(memberUserId).toFixed(1)} md
                         </span>
 
                         {/* Remove Action */}
@@ -272,7 +277,7 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
                       .map((role: any) => {
                         const roleMembers = members.filter((m: any) => m.roleId === role.id);
                         if (roleMembers.length === 0) return null;
-                        const totalAktual = roleMembers.reduce((sum: number, m: any) => sum + getCalculatedMandays(m.userId), 0);
+                        const totalAktual = roleMembers.reduce((sum: number, m: any) => sum + getCalculatedMandays(getUserId(m)), 0);
                         return {
                           id: role.id,
                           name: role.name,
@@ -291,10 +296,10 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
                     <tr className="font-bold text-on-background bg-surface-container-high/20">
                       <td className="py-3">Grand Total</td>
                       <td className="py-3 text-center font-mono">
-                        {Array.from(new Set(members.map((m: any) => m.userId))).length} orang
+                        {Array.from(new Set(members.map((m: any) => getUserId(m)))).length} orang
                       </td>
                       <td className="py-3 text-right text-primary font-mono">
-                        {Array.from(new Set(members.map((m: any) => m.userId)))
+                        {Array.from(new Set(members.map((m: any) => getUserId(m))))
                           .reduce((sum: number, userId: any) => sum + getCalculatedMandays(userId), 0)
                           .toFixed(1)} md
                       </td>
