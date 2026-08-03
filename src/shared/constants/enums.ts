@@ -3,6 +3,7 @@ export const ProjectStatus = {
     IN_PROGRESS: 'IN PROGRESS',
     SIT: 'SIT',
     UAT: 'UAT',
+    PENTEST: 'PENTEST',
     CLOSED: 'CLOSED',
     ON_HOLD: 'ON HOLD',
     CANCELLED: 'CANCELLED',
