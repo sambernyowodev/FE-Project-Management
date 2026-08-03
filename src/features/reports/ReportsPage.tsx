@@ -100,11 +100,10 @@ function SearchableSelect({
                     onChange(o.id);
                     setIsOpen(false);
                   }}
-                  className={`px-3 py-2.5 text-left text-xs rounded-lg transition-colors flex justify-between items-center cursor-pointer ${
-                    o.id === value
+                  className={`px-3 py-2.5 text-left text-xs rounded-lg transition-colors flex justify-between items-center cursor-pointer ${o.id === value
                       ? 'bg-primary/10 text-primary font-bold'
                       : 'hover:bg-surface-container-low text-on-background'
-                  }`}
+                    }`}
                 >
                   <span>{o.label}</span>
                   {o.id === value && <Check className="w-3.5 h-3.5 text-primary" />}
@@ -256,7 +255,7 @@ export function ReportsPage() {
         if (!actDate) return true;
         const start = projectStartDate ? new Date(projectStartDate) : null;
         const end = projectEndDate ? new Date(projectEndDate) : null;
-        
+
         if (start && actDate < start) return false;
         if (end && actDate > end) return false;
         return true;
@@ -530,22 +529,20 @@ export function ReportsPage() {
       <div className="flex border-b border-outline-variant">
         <button
           onClick={() => setActiveTab('project')}
-          className={`px-6 py-3 text-sm font-bold border-b-2 cursor-pointer transition-all flex items-center gap-2 ${
-            activeTab === 'project'
+          className={`px-6 py-3 text-sm font-bold border-b-2 cursor-pointer transition-all flex items-center gap-2 ${activeTab === 'project'
               ? 'border-primary text-primary'
               : 'border-transparent text-secondary hover:text-on-background'
-          }`}
+            }`}
         >
           <Briefcase className="w-4 h-4" />
           <span>Laporan Project</span>
         </button>
         <button
           onClick={() => setActiveTab('support')}
-          className={`px-6 py-3 text-sm font-bold border-b-2 cursor-pointer transition-all flex items-center gap-2 ${
-            activeTab === 'support'
+          className={`px-6 py-3 text-sm font-bold border-b-2 cursor-pointer transition-all flex items-center gap-2 ${activeTab === 'support'
               ? 'border-primary text-primary'
               : 'border-transparent text-secondary hover:text-on-background'
-          }`}
+            }`}
         >
           <Layers className="w-4 h-4" />
           <span>Laporan Support Ticket</span>
@@ -566,21 +563,19 @@ export function ReportsPage() {
               <div className="flex gap-2 p-1 bg-surface-container-low border border-outline-variant/60 rounded-xl w-fit shadow-inner">
                 <button
                   onClick={() => setProjectSubTab('overview')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    projectSubTab === 'overview'
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectSubTab === 'overview'
                       ? 'bg-primary text-on-primary shadow-sm'
                       : 'text-secondary hover:text-on-background'
-                  }`}
+                    }`}
                 >
                   Overview Semua Project
                 </button>
                 <button
                   onClick={() => setProjectSubTab('detail')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    projectSubTab === 'detail'
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${projectSubTab === 'detail'
                       ? 'bg-primary text-on-primary shadow-sm'
                       : 'text-secondary hover:text-on-background'
-                  }`}
+                    }`}
                 >
                   Fokus Detail Project
                 </button>
@@ -627,6 +622,7 @@ export function ReportsPage() {
                           <option value="IN PROGRESS">IN PROGRESS</option>
                           <option value="SIT">SIT</option>
                           <option value="UAT">UAT</option>
+                          <option value="PENTEST">PENTEST</option>
                           <option value="FUT">FUT</option>
                           <option value="CLOSED">CLOSED</option>
                           <option value="ON HOLD">ON HOLD</option>
@@ -894,21 +890,19 @@ export function ReportsPage() {
               <div className="flex gap-2 p-1 bg-surface-container-low border border-outline-variant/60 rounded-xl w-fit shadow-inner">
                 <button
                   onClick={() => setSupportSubTab('overview')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    supportSubTab === 'overview'
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${supportSubTab === 'overview'
                       ? 'bg-primary text-on-primary shadow-sm'
                       : 'text-secondary hover:text-on-background'
-                  }`}
+                    }`}
                 >
                   Overview Semua Tiket
                 </button>
                 <button
                   onClick={() => setSupportSubTab('detail')}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    supportSubTab === 'detail'
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${supportSubTab === 'detail'
                       ? 'bg-primary text-on-primary shadow-sm'
                       : 'text-secondary hover:text-on-background'
-                  }`}
+                    }`}
                 >
                   Fokus Detail Tiket
                 </button>

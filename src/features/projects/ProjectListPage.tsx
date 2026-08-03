@@ -127,6 +127,7 @@ export function ProjectListPage() {
           { label: 'In Progress', value: ProjectStatus.IN_PROGRESS },
           { label: 'SIT', value: ProjectStatus.SIT },
           { label: 'UAT', value: ProjectStatus.UAT },
+          { label: 'Pentest', value: ProjectStatus.PENTEST },
           { label: 'FUT', value: ProjectStatus.FUT },
           { label: 'On Hold', value: ProjectStatus.ON_HOLD },
           { label: 'Closed', value: ProjectStatus.CLOSED },

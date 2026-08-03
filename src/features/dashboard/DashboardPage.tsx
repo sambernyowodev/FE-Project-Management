@@ -131,10 +131,11 @@ export function DashboardPage() {
     if (s === 'IN_PROGRESS' || s === 'IN PROGRESS') return '#f97316'; // Orange
     if (s === 'CLOSED') return '#22c55e'; // Hijau / Green
     if (s === 'UAT') return '#1e40af'; // Biru Tua / Dark Blue
-    if (s === 'PLANNING') return '#3b82f6';
-    if (s === 'SIT') return '#8b5cf6';
-    if (s === 'FUT') return '#06b6d4';
-    if (s === 'ON_HOLD') return '#f59e0b';
+    if (s === 'PLANNING') return '#16648bff';
+    if (s === 'SIT') return '#06b6d4';
+    if (s === 'PENTEST') return '#f7eb05ff';
+    if (s === 'FUT') return '#8b5cf6';
+    if (s === 'ON_HOLD') return '#f5880bff';
     if (s === 'CANCELLED') return '#ef4444';
     return '#0052cc';
   };
