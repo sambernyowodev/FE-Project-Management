@@ -9,6 +9,12 @@ export type SupportTicket = Entity<'SupportTicketResponseDto'> & {
     projectCode: string;
   } | null;
   assignees?: SupportTicketAssignee[];
+  companyId?: string | null;
+  departmentId?: string | null;
+  businessOwnerId?: string | null;
+  company?: { id: string; name: string; code: string } | null;
+  department?: { id: string; name: string } | null;
+  businessOwner?: { id: string; name: string; title?: string | null } | null;
 };
 
 export type SupportTicketAssignee = Entity<'SupportTicketAssigneeResponseDto'> & {

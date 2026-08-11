@@ -10,6 +10,9 @@ import {
 import { useGetMasterProjects, useCreateMasterProject } from '@/modules/master/projects/hooks/useMasterProjects';
 import { useGetUsers } from '@/modules/master/users/hooks/useUsers';
 import { useGetPurchaseOrders } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
+import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
+import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
+import { useGetBusinessOwners } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 import { ProjectStatus } from '@/shared/constants/enums';
 
 
@@ -41,9 +44,14 @@ export function ProjectFormPage() {
   const { data: usersRes } = useGetUsers({ perPage: 100 });
   const activeMembers = (usersRes?.data || []).filter((u: any) => u.isActive);
 
+  const { data: companies = [] } = useGetCompanies();
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    companyId: '',
+    departmentId: '',
+    businessOwnerId: '',
     picClient: '',
     picInternal: '',
     platform: '',
@@ -62,11 +70,17 @@ export function ProjectFormPage() {
     poId: ''
   });
 
+  const { data: departments = [] } = useGetDepartments(formData.companyId || undefined);
+  const { data: businessOwners = [] } = useGetBusinessOwners({ departmentId: formData.departmentId || undefined });
+
   useEffect(() => {
     if (project && isEditing) {
       setFormData({
         name: project.name || '',
         description: project.description || '',
+        companyId: project.companyId || '',
+        departmentId: project.departmentId || '',
+        businessOwnerId: project.businessOwnerId || '',
         picClient: project.picClient || '',
         picInternal: project.picInternal || '',
         platform: project.platform || '',
@@ -170,6 +184,9 @@ export function ProjectFormPage() {
 
       const dataToSend: any = {
         projectId: targetProjectId,
+        companyId: formData.companyId || undefined,
+        departmentId: formData.departmentId || undefined,
+        businessOwnerId: formData.businessOwnerId || undefined,
         picClient: formData.picClient || undefined,
         picInternal: formData.picInternal || undefined,
         platform: formData.platform || undefined,
@@ -367,37 +384,99 @@ export function ProjectFormPage() {
                   />
                 </div>
 
+                {/* Company Master Data */}
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="customer" className="text-sm font-semibold text-on-background">
-                    Customer
+                  <label htmlFor="companyId" className="text-sm font-semibold text-on-background">
+                    Customer / Company
                   </label>
-                  <input
-                    id="customer"
-                    name="customer"
-                    type="text"
-                    value={formData.customer}
-                    onChange={handleChange}
+                  <select
+                    id="companyId"
+                    name="companyId"
+                    value={formData.companyId}
+                    onChange={(e) => {
+                      const companyId = e.target.value;
+                      const selectedComp = companies.find(c => c.id === companyId);
+                      setFormData(prev => ({
+                        ...prev,
+                        companyId,
+                        departmentId: '',
+                        businessOwnerId: '',
+                        customer: selectedComp ? selectedComp.name : prev.customer
+                      }));
+                    }}
                     className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                    placeholder="e.g. PT Bank Mandiri"
-                  />
+                  >
+                    <option value="">-- Pilih Company --</option>
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
+                {/* Department Master Data */}
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="picClient" className="text-sm font-semibold text-on-background">
-                    PIC Client
+                  <label htmlFor="departmentId" className="text-sm font-semibold text-on-background">
+                    Department *
                   </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary" />
-                    <input
-                      id="picClient"
-                      name="picClient"
-                      type="text"
-                      value={formData.picClient}
-                      onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                      placeholder="e.g. John Doe (Client PM)"
-                    />
-                  </div>
+                  <select
+                    id="departmentId"
+                    name="departmentId"
+                    required
+                    disabled={!formData.companyId}
+                    value={formData.departmentId}
+                    onChange={(e) => {
+                      const departmentId = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        departmentId,
+                        businessOwnerId: ''
+                      }));
+                    }}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background disabled:bg-surface-container-low disabled:opacity-70"
+                  >
+                    <option value="">
+                      {!formData.companyId ? '-- Pilih Company terlebih dahulu --' : '-- Pilih Department --'}
+                    </option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Business Owner (PIC Client) */}
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="businessOwnerId" className="text-sm font-semibold text-on-background">
+                    Business Owner (PIC Client)
+                  </label>
+                  <select
+                    id="businessOwnerId"
+                    name="businessOwnerId"
+                    disabled={!formData.departmentId}
+                    value={formData.businessOwnerId}
+                    onChange={(e) => {
+                      const businessOwnerId = e.target.value;
+                      const selectedBo = businessOwners.find(b => b.id === businessOwnerId);
+                      setFormData(prev => ({
+                        ...prev,
+                        businessOwnerId,
+                        picClient: selectedBo ? selectedBo.name : prev.picClient
+                      }));
+                    }}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background disabled:bg-surface-container-low disabled:opacity-70"
+                  >
+                    <option value="">
+                      {!formData.departmentId ? '-- Pilih Department terlebih dahulu --' : '-- Pilih Business Owner --'}
+                    </option>
+                    {businessOwners.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} {b.title ? `(${b.title})` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex flex-col gap-2" ref={picContainerRef}>
@@ -462,7 +541,7 @@ export function ProjectFormPage() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="totalMandays" className="text-sm font-semibold text-on-background">Total Mandays</label>
+                  <label htmlFor="totalMandays" className="text-sm font-semibold text-on-background">Total Mandays (Plan)</label>
                   <input
                     id="totalMandays"
                     name="totalMandays"

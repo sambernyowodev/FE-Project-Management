@@ -6,6 +6,8 @@ import {
   useGetPurchaseOrder,
   useUpdatePurchaseOrder
 } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
+import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
+import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
 
 export function POFormPage() {
   const navigate = useNavigate();
@@ -17,10 +19,14 @@ export function POFormPage() {
   const updateMutation = useUpdatePurchaseOrder();
   const { data: po, isLoading: isPoLoading } = useGetPurchaseOrder(poId);
 
+  const { data: companies = [] } = useGetCompanies();
+
   const [formData, setFormData] = useState({
     poNumber: '',
     poName: '',
-    customer: 'Telkomsel HCM',
+    companyId: '',
+    departmentId: '',
+    customer: '',
     totalMandays: '',
     totalAmount: '',
     description: '',
@@ -28,12 +34,16 @@ export function POFormPage() {
     endDate: '',
   });
 
+  const { data: departments = [] } = useGetDepartments(formData.companyId || undefined);
+
   useEffect(() => {
     if (po && isEditMode) {
       setFormData({
         poNumber: po.poNumber || '',
         poName: po.poName || '',
-        customer: po.customer || '',
+        companyId: po.companyId || '',
+        departmentId: po.departmentId || '',
+        customer: po.company?.name || po.customer || '',
         totalMandays: po.totalMandays?.toString() || '',
         totalAmount: po.totalAmount?.toString() || '',
         description: po.description || '',
@@ -51,7 +61,7 @@ export function POFormPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.poNumber || !formData.poName || !formData.customer || !formData.totalMandays || !formData.totalAmount) {
+    if (!formData.poNumber || !formData.poName || !formData.totalMandays || !formData.totalAmount) {
       alert('Please fill out all required fields');
       return;
     }
@@ -60,7 +70,9 @@ export function POFormPage() {
       const payload = {
         poNumber: formData.poNumber,
         poName: formData.poName,
-        customer: formData.customer,
+        companyId: formData.companyId || null,
+        departmentId: formData.departmentId || null,
+        customer: formData.customer || undefined,
         totalMandays: Number(formData.totalMandays),
         totalAmount: Number(formData.totalAmount),
         description: formData.description || undefined,
@@ -148,18 +160,60 @@ export function POFormPage() {
                   />
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="customer" className="text-sm font-semibold text-on-background">Customer *</label>
-                  <input
-                    id="customer"
-                    name="customer"
-                    type="text"
-                    required
-                    value={formData.customer}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background"
-                    placeholder="e.g. Telkomsel HCM"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="companyId" className="text-sm font-semibold text-on-background">Customer / Company</label>
+                    <select
+                      id="companyId"
+                      name="companyId"
+                      value={formData.companyId}
+                      onChange={(e) => {
+                        const companyId = e.target.value;
+                        const selectedComp = companies.find(c => c.id === companyId);
+                        setFormData(prev => ({
+                          ...prev,
+                          companyId,
+                          departmentId: '',
+                          customer: selectedComp ? selectedComp.name : prev.customer
+                        }));
+                      }}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background"
+                    >
+                      <option value="">-- Pilih Company --</option>
+                      {companies.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="departmentId" className="text-sm font-semibold text-on-background">Department *</label>
+                    <select
+                      id="departmentId"
+                      name="departmentId"
+                      disabled={!formData.companyId}
+                      value={formData.departmentId}
+                      onChange={(e) => {
+                        const departmentId = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          departmentId
+                        }));
+                      }}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background text-on-background disabled:bg-surface-container-low disabled:opacity-70"
+                    >
+                      <option value="">
+                        {!formData.companyId ? '-- Pilih Company terlebih dahulu --' : '-- Pilih Department --'}
+                      </option>
+                      {departments.map(d => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2">

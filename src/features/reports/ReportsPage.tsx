@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
+import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
+import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
+import { useGetBusinessOwners } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 
 const getTodayString = () => {
   const d = new Date();
@@ -129,15 +132,30 @@ export function ReportsPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
+  // Master Data Hook
+  const { data: companies = [] } = useGetCompanies();
+
   // Project Overview Filters
   const [projectStartDate, setProjectStartDate] = useState(getStartOfYearString());
   const [projectEndDate, setProjectEndDate] = useState(getTodayString());
   const [projectStatusFilter, setProjectStatusFilter] = useState('ALL');
+  const [projectCompanyFilter, setProjectCompanyFilter] = useState('');
+  const [projectDepartmentFilter, setProjectDepartmentFilter] = useState('');
+  const [projectBusinessOwnerFilter, setProjectBusinessOwnerFilter] = useState('');
+
+  const { data: projectDepartments = [] } = useGetDepartments(projectCompanyFilter || undefined);
+  const { data: projectBusinessOwners = [] } = useGetBusinessOwners({ departmentId: projectDepartmentFilter || undefined, companyId: projectCompanyFilter || undefined });
 
   // Support Overview Filters
   const [supportStartDate, setSupportStartDate] = useState(getStartOfYearString());
   const [supportEndDate, setSupportEndDate] = useState(getTodayString());
   const [supportStatusFilter, setSupportStatusFilter] = useState('ALL');
+  const [supportCompanyFilter, setSupportCompanyFilter] = useState('');
+  const [supportDepartmentFilter, setSupportDepartmentFilter] = useState('');
+  const [supportBusinessOwnerFilter, setSupportBusinessOwnerFilter] = useState('');
+
+  const { data: supportDepartments = [] } = useGetDepartments(supportCompanyFilter || undefined);
+  const { data: supportBusinessOwners = [] } = useGetBusinessOwners({ departmentId: supportDepartmentFilter || undefined, companyId: supportCompanyFilter || undefined });
 
   const {
     projects,
@@ -267,7 +285,12 @@ export function ReportsPage() {
         id: p.id,
         name: p.name,
         projectCode: p.projectCode,
-        customer: p.customer || '-',
+        companyId: p.companyId,
+        departmentId: p.departmentId,
+        businessOwnerId: p.businessOwnerId,
+        customer: p.company?.name || p.customer || '-',
+        departmentName: p.department?.name || '-',
+        businessOwnerName: p.businessOwner?.name || p.picClient || '-',
         platform: p.platform || '-',
         status: p.status,
         startDate: p.startDate,
@@ -278,6 +301,10 @@ export function ReportsPage() {
     }).filter((p: any) => {
       // Filter by Status
       if (projectStatusFilter !== 'ALL' && p.status !== projectStatusFilter) return false;
+      // Filter by Master Data
+      if (projectCompanyFilter && p.companyId !== projectCompanyFilter) return false;
+      if (projectDepartmentFilter && p.departmentId !== projectDepartmentFilter) return false;
+      if (projectBusinessOwnerFilter && p.businessOwnerId !== projectBusinessOwnerFilter) return false;
       // Filter by Date Range
       if (projectStartDate || projectEndDate) {
         const start = projectStartDate ? new Date(projectStartDate) : null;
@@ -314,7 +341,12 @@ export function ReportsPage() {
         id: t.id,
         ticketCode: t.ticketCode,
         projectName: t.masterProject?.name || 'Project Tanpa Nama',
-        customer: t.customer || '-',
+        companyId: t.companyId,
+        departmentId: t.departmentId,
+        businessOwnerId: t.businessOwnerId,
+        customer: t.company?.name || t.customer || '-',
+        departmentName: t.department?.name || '-',
+        businessOwnerName: t.businessOwner?.name || t.picClient || '-',
         issueTitle: t.issueTitle,
         status: t.status,
         startDate: t.startDate || t.createdAt,
@@ -326,6 +358,10 @@ export function ReportsPage() {
     }).filter((t: any) => {
       // Filter by Status
       if (supportStatusFilter !== 'ALL' && t.status !== supportStatusFilter) return false;
+      // Filter by Master Data
+      if (supportCompanyFilter && t.companyId !== supportCompanyFilter) return false;
+      if (supportDepartmentFilter && t.departmentId !== supportDepartmentFilter) return false;
+      if (supportBusinessOwnerFilter && t.businessOwnerId !== supportBusinessOwnerFilter) return false;
       // Filter by Date Range
       if (supportStartDate || supportEndDate) {
         const start = supportStartDate ? new Date(supportStartDate) : null;
@@ -444,7 +480,9 @@ export function ReportsPage() {
       'Project Code': p.projectCode,
       'Nama Project': p.name,
       'Platform': p.platform,
-      'Customer': p.customer,
+      'Customer / Company': p.customer,
+      'Department': p.departmentName,
+      'Client PIC (Business Owner)': p.businessOwnerName,
       'Status': p.status,
       'Tanggal Mulai': p.startDate ? p.startDate.substring(0, 10) : '-',
       'Tanggal Selesai': p.endDate ? p.endDate.substring(0, 10) : '-',
@@ -476,7 +514,9 @@ export function ReportsPage() {
       'Ticket Code': t.ticketCode,
       'Nama Project': t.projectName,
       'Judul Issue': t.issueTitle,
-      'Customer': t.customer,
+      'Customer / Company': t.customer,
+      'Department': t.departmentName,
+      'Client PIC (Business Owner)': t.businessOwnerName,
       'Status': t.status,
       'Tanggal Pengerjaan': t.startDate ? t.startDate.substring(0, 10) : '-',
       'Jumlah Assignee': t.assigneeCount,
@@ -631,12 +671,73 @@ export function ReportsPage() {
                       </div>
                     </div>
 
+                    {/* Master Data Customer Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-on-background">Company / Customer</label>
+                        <select
+                          value={projectCompanyFilter}
+                          onChange={(e) => {
+                            setProjectCompanyFilter(e.target.value);
+                            setProjectDepartmentFilter('');
+                            setProjectBusinessOwnerFilter('');
+                          }}
+                          className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                        >
+                          <option value="">Semua Company</option>
+                          {companies.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-on-background">Department</label>
+                        <select
+                          value={projectDepartmentFilter}
+                          disabled={!projectCompanyFilter}
+                          onChange={(e) => {
+                            setProjectDepartmentFilter(e.target.value);
+                            setProjectBusinessOwnerFilter('');
+                          }}
+                          className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:bg-surface-container-low disabled:opacity-60"
+                        >
+                          <option value="">
+                            {!projectCompanyFilter ? 'Pilih Company terlebih dahulu' : 'Semua Department'}
+                          </option>
+                          {projectDepartments.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-on-background">Client PIC (Business Owner)</label>
+                        <select
+                          value={projectBusinessOwnerFilter}
+                          disabled={!projectDepartmentFilter}
+                          onChange={(e) => setProjectBusinessOwnerFilter(e.target.value)}
+                          className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:bg-surface-container-low disabled:opacity-60"
+                        >
+                          <option value="">
+                            {!projectDepartmentFilter ? 'Pilih Department terlebih dahulu' : 'Semua Business Owner'}
+                          </option>
+                          {projectBusinessOwners.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
                     <div className="flex justify-between items-center border-t border-outline-variant/60 pt-4 mt-2">
                       <button
                         onClick={() => {
                           setProjectStartDate(getStartOfYearString());
                           setProjectEndDate(getTodayString());
                           setProjectStatusFilter('ALL');
+                          setProjectCompanyFilter('');
+                          setProjectDepartmentFilter('');
+                          setProjectBusinessOwnerFilter('');
                         }}
                         className="px-4 py-2 border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors text-xs font-bold cursor-pointer"
                       >
@@ -957,12 +1058,73 @@ export function ReportsPage() {
                       </div>
                     </div>
 
+                    {/* Master Data Customer Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-on-background">Company / Customer</label>
+                        <select
+                          value={supportCompanyFilter}
+                          onChange={(e) => {
+                            setSupportCompanyFilter(e.target.value);
+                            setSupportDepartmentFilter('');
+                            setSupportBusinessOwnerFilter('');
+                          }}
+                          className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium"
+                        >
+                          <option value="">Semua Company</option>
+                          {companies.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-on-background">Department</label>
+                        <select
+                          value={supportDepartmentFilter}
+                          disabled={!supportCompanyFilter}
+                          onChange={(e) => {
+                            setSupportDepartmentFilter(e.target.value);
+                            setSupportBusinessOwnerFilter('');
+                          }}
+                          className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:bg-surface-container-low disabled:opacity-60"
+                        >
+                          <option value="">
+                            {!supportCompanyFilter ? 'Pilih Company terlebih dahulu' : 'Semua Department'}
+                          </option>
+                          {supportDepartments.map(d => (
+                            <option key={d.id} value={d.id}>{d.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-on-background">Client PIC (Business Owner)</label>
+                        <select
+                          value={supportBusinessOwnerFilter}
+                          disabled={!supportDepartmentFilter}
+                          onChange={(e) => setSupportBusinessOwnerFilter(e.target.value)}
+                          className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 font-medium disabled:bg-surface-container-low disabled:opacity-60"
+                        >
+                          <option value="">
+                            {!supportDepartmentFilter ? 'Pilih Department terlebih dahulu' : 'Semua Business Owner'}
+                          </option>
+                          {supportBusinessOwners.map(b => (
+                            <option key={b.id} value={b.id}>{b.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
                     <div className="flex justify-between items-center border-t border-outline-variant/60 pt-4 mt-2">
                       <button
                         onClick={() => {
                           setSupportStartDate(getStartOfYearString());
                           setSupportEndDate(getTodayString());
                           setSupportStatusFilter('ALL');
+                          setSupportCompanyFilter('');
+                          setSupportDepartmentFilter('');
+                          setSupportBusinessOwnerFilter('');
                         }}
                         className="px-4 py-2 border border-outline-variant rounded-lg hover:bg-surface-container-high transition-colors text-xs font-bold cursor-pointer"
                       >

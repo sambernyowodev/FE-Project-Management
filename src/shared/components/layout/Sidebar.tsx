@@ -3,20 +3,22 @@ import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FolderKanban,
-  TicketCheck,
-  Users,
   FileText,
-  FileSpreadsheet,
-  Building2,
-  ChevronDown,
-  ChevronRight,
-  Database,
-  Coins,
+  Users,
   Shield,
+  Coins,
+  ChevronDown,
   ChevronUp,
+  ChevronRight,
   User,
   LogOut,
-  Receipt
+  Receipt,
+  TicketCheck,
+  FileSpreadsheet,
+  Building2,
+  Network,
+  UserCheck,
+  Database
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useProfile, useLogout } from '@/modules/auth/hooks/useAuth';
@@ -32,6 +34,9 @@ const mainNavigation = [
 ];
 
 const masterNavigation = [
+  { name: 'Company', href: '/master/companies', icon: Building2 },
+  { name: 'Department', href: '/master/departments', icon: Network },
+  { name: 'Business Owner', href: '/master/business-owners', icon: UserCheck },
   { name: 'Members', href: '/master/members', icon: Users },
   { name: 'Projects', href: '/master/projects', icon: FolderKanban },
   { name: 'Roles', href: '/master/roles', icon: Shield },
@@ -87,7 +92,7 @@ export function Sidebar() {
           <Building2 className="text-on-primary w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-xl font-black text-primary leading-tight">HCM PM</h2>
+          <h2 className="text-xl font-black text-primary leading-tight">MII PM</h2>
           <p className="text-xs text-secondary uppercase tracking-wider font-semibold">Enterprise Suite</p>
         </div>
       </div>

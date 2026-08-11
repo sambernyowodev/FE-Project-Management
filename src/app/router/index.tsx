@@ -22,6 +22,12 @@ import { MasterProjectListPage } from '@/features/master/projects/MasterProjectL
 import { MasterProjectFormPage } from '@/features/master/projects/MasterProjectFormPage';
 import { RoleListPage } from '@/features/master/roles/RoleListPage';
 import { RoleFormPage } from '@/features/master/roles/RoleFormPage';
+import { CompanyListPage } from '@/features/master/companies/CompanyListPage';
+import { CompanyFormPage } from '@/features/master/companies/CompanyFormPage';
+import { DepartmentListPage } from '@/features/master/departments/DepartmentListPage';
+import { DepartmentFormPage } from '@/features/master/departments/DepartmentFormPage';
+import { BusinessOwnerListPage } from '@/features/master/business-owners/BusinessOwnerListPage';
+import { BusinessOwnerFormPage } from '@/features/master/business-owners/BusinessOwnerFormPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { ProfilePage } from '@/features/auth/ProfilePage';
@@ -92,6 +98,42 @@ export const router = createBrowserRouter([
       {
         path: 'master',
         children: [
+          {
+            path: 'companies',
+            element: <CompanyListPage />
+          },
+          {
+            path: 'companies/new',
+            element: <CompanyFormPage />
+          },
+          {
+            path: 'companies/:id',
+            element: <CompanyFormPage />
+          },
+          {
+            path: 'departments',
+            element: <DepartmentListPage />
+          },
+          {
+            path: 'departments/new',
+            element: <DepartmentFormPage />
+          },
+          {
+            path: 'departments/:id',
+            element: <DepartmentFormPage />
+          },
+          {
+            path: 'business-owners',
+            element: <BusinessOwnerListPage />
+          },
+          {
+            path: 'business-owners/new',
+            element: <BusinessOwnerFormPage />
+          },
+          {
+            path: 'business-owners/:id',
+            element: <BusinessOwnerFormPage />
+          },
           {
             path: 'projects',
             element: <MasterProjectListPage />

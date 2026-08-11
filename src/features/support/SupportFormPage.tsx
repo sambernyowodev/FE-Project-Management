@@ -8,6 +8,9 @@ import {
   useDeleteSupportTicket
 } from '@/modules/support/hooks/useSupportTickets';
 import { useGetMasterProjects } from '@/modules/master/projects/hooks/useMasterProjects';
+import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
+import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
+import { useGetBusinessOwners } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 import { SupportTicketStatus } from '@/shared/constants/enums';
 
 const STATUS_OPTIONS = Object.values(SupportTicketStatus);
@@ -72,10 +75,15 @@ export function SupportFormPage() {
   const updateMutation = useUpdateSupportTicket();
   const deleteMutation = useDeleteSupportTicket();
 
+  const { data: companies = [] } = useGetCompanies();
+
   const [formData, setFormData] = useState({
     projectName: '',
     projectId: '',
     newProjectName: '',
+    companyId: '',
+    departmentId: '',
+    businessOwnerId: '',
     customer: '',
     issueTitle: '',
     issueDescription: '',
@@ -87,6 +95,9 @@ export function SupportFormPage() {
     endDate: '',
     folderAttachment: '',
   });
+
+  const { data: departments = [] } = useGetDepartments(formData.companyId || undefined);
+  const { data: businessOwners = [] } = useGetBusinessOwners({ departmentId: formData.departmentId || undefined });
 
   const [error, setError] = useState('');
   const hasInitialized = useRef(false);
@@ -101,6 +112,9 @@ export function SupportFormPage() {
           projectName: ticket.masterProject?.name || '',
           projectId: ticket.masterProjectId ? String(ticket.masterProjectId) : '',
           newProjectName: '',
+          companyId: ticket.companyId || '',
+          departmentId: ticket.departmentId || '',
+          businessOwnerId: ticket.businessOwnerId || '',
           customer: ticket.customer || '',
           issueTitle: ticket.issueTitle || '',
           issueDescription: ticket.issueDescription || '',
@@ -173,6 +187,9 @@ export function SupportFormPage() {
       projectName: masterProjectName,
       masterProjectId,
       masterProjectName,
+      companyId: formData.companyId || null,
+      departmentId: formData.departmentId || null,
+      businessOwnerId: formData.businessOwnerId || null,
       issueTitle: formData.issueTitle,
       issueDescription: formData.issueDescription || null,
       customer: formData.customer || null,
@@ -367,31 +384,92 @@ export function SupportFormPage() {
                 </div>
               )}
 
-              {/* Customer & Client PIC */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Company, Department & Business Owner Master Data */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="customer" className="text-sm font-semibold text-on-background">Customer</label>
-                  <input
-                    id="customer"
-                    name="customer"
-                    type="text"
-                    value={formData.customer}
-                    onChange={handleChange}
+                  <label htmlFor="companyId" className="text-sm font-semibold text-on-background">Customer / Company</label>
+                  <select
+                    id="companyId"
+                    name="companyId"
+                    value={formData.companyId}
+                    onChange={(e) => {
+                      const companyId = e.target.value;
+                      const selectedComp = companies.find(c => c.id === companyId);
+                      setFormData(prev => ({
+                        ...prev,
+                        companyId,
+                        departmentId: '',
+                        businessOwnerId: '',
+                        customer: selectedComp ? selectedComp.name : prev.customer
+                      }));
+                    }}
                     className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                    placeholder="e.g. Telkomsel"
-                  />
+                  >
+                    <option value="">-- Pilih Company --</option>
+                    {companies.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="picClient" className="text-sm font-semibold text-on-background">Client PIC</label>
-                  <input
-                    id="picClient"
-                    name="picClient"
-                    type="text"
-                    value={formData.picClient}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                    placeholder="e.g. Mba Isti"
-                  />
+                  <label htmlFor="departmentId" className="text-sm font-semibold text-on-background">Department *</label>
+                  <select
+                    id="departmentId"
+                    name="departmentId"
+                    required
+                    disabled={!formData.companyId}
+                    value={formData.departmentId}
+                    onChange={(e) => {
+                      const departmentId = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        departmentId,
+                        businessOwnerId: ''
+                      }));
+                    }}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background disabled:bg-surface-container-low disabled:opacity-70"
+                  >
+                    <option value="">
+                      {!formData.companyId ? '-- Pilih Company terlebih dahulu --' : '-- Pilih Department --'}
+                    </option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="businessOwnerId" className="text-sm font-semibold text-on-background">Client PIC</label>
+                  <select
+                    id="businessOwnerId"
+                    name="businessOwnerId"
+                    disabled={!formData.departmentId}
+                    value={formData.businessOwnerId}
+                    onChange={(e) => {
+                      const businessOwnerId = e.target.value;
+                      const selectedBo = businessOwners.find(b => b.id === businessOwnerId);
+                      setFormData(prev => ({
+                        ...prev,
+                        businessOwnerId,
+                        picClient: selectedBo ? selectedBo.name : prev.picClient
+                      }));
+                    }}
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background disabled:bg-surface-container-low disabled:opacity-70"
+                  >
+                    <option value="">
+                      {!formData.departmentId ? '-- Pilih Department terlebih dahulu --' : '-- Pilih Business Owner --'}
+                    </option>
+                    {businessOwners.map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} {b.title ? `(${b.title})` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

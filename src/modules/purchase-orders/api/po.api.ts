@@ -8,7 +8,11 @@ const mapPO = (p: any): PurchaseOrder => {
     id: p.id,
     poNumber: p.po_number,
     poName: p.po_name,
-    customer: p.customer,
+    companyId: p.company_id,
+    departmentId: p.department_id,
+    company: p.companies ? { id: p.companies.id, code: p.companies.code, name: p.companies.name } : undefined,
+    department: p.departments ? { id: p.departments.id, name: p.departments.name } : undefined,
+    customer: p.companies?.name || p.customer,
     description: p.description || '',
     totalMandays: totalMandays,
     totalAmount: Number(p.total_amount || 0),
@@ -40,7 +44,7 @@ export const poApi = {
   getPurchaseOrders: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: PurchaseOrder[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
     let query = supabase
       .from('purchase_orders')
-      .select('*, po_projects(*, projects(*, master_projects(name)))', { count: 'exact' });
+      .select('*, companies(*), departments(*), po_projects(*, projects(*, master_projects(name)))', { count: 'exact' });
 
     if (params?.search) {
       query = query.or(`po_name.ilike.%${params.search}%,po_number.ilike.%${params.search}%`);
@@ -55,6 +59,12 @@ export const poApi = {
               query = query.ilike('po_number', `%${val}%`);
             } else if (key === 'poName') {
               query = query.ilike('po_name', `%${val}%`);
+            } else if (key === 'companyId') {
+              query = query.eq('company_id', val);
+            } else if (key === 'departmentId') {
+              query = query.eq('department_id', val);
+            } else if (key === 'customer') {
+              query = query.ilike('customer', `%${val}%`);
             } else if (key === 'totalMandays') {
               query = query.eq('total_mandays', Number(val));
             } else if (key === 'totalAmount') {
@@ -103,7 +113,7 @@ export const poApi = {
   getPurchaseOrder: async (id: string): Promise<PurchaseOrder> => {
     const { data, error } = await supabase
       .from('purchase_orders')
-      .select('*, po_projects(*, projects(*, master_projects(name)))')
+      .select('*, companies(*), departments(*), po_projects(*, projects(*, master_projects(name)))')
       .eq('id', id)
       .single();
 
@@ -111,7 +121,7 @@ export const poApi = {
     return mapPO(data);
   },
 
-  createPurchaseOrder: async (data: { poNumber?: string; poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }): Promise<PurchaseOrder> => {
+  createPurchaseOrder: async (data: { poNumber?: string; poName: string; companyId?: string | null; departmentId?: string | null; customer?: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }): Promise<PurchaseOrder> => {
     let poNumber = data.poNumber || '';
     if (!poNumber) {
       const { data: latestPO } = await supabase
@@ -135,7 +145,9 @@ export const poApi = {
       .insert({
         po_number: poNumber,
         po_name: data.poName,
-        customer: data.customer,
+        company_id: data.companyId || null,
+        department_id: data.departmentId || null,
+        customer: data.customer || null,
         total_mandays: data.totalMandays,
         total_amount: data.totalAmount,
         description: data.description,
@@ -143,19 +155,21 @@ export const poApi = {
         end_date: data.endDate || null,
         is_active: true,
       })
-      .select('*, po_projects(*, projects(*, master_projects(name)))')
+      .select('*, companies(*), departments(*), po_projects(*, projects(*, master_projects(name)))')
       .single();
 
     if (error) throw error;
     return mapPO(newPo);
   },
 
-  updatePurchaseOrder: async (id: string, data: Partial<{ poNumber?: string; poName: string; customer: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }>): Promise<PurchaseOrder> => {
+  updatePurchaseOrder: async (id: string, data: Partial<{ poNumber?: string; poName: string; companyId?: string | null; departmentId?: string | null; customer?: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }>): Promise<PurchaseOrder> => {
     const { data: updatedPo, error } = await supabase
       .from('purchase_orders')
       .update({
         po_number: data.poNumber,
         po_name: data.poName,
+        company_id: data.companyId !== undefined ? data.companyId : undefined,
+        department_id: data.departmentId !== undefined ? data.departmentId : undefined,
         customer: data.customer,
         total_mandays: data.totalMandays,
         total_amount: data.totalAmount,
@@ -164,7 +178,7 @@ export const poApi = {
         end_date: data.endDate || null,
       })
       .eq('id', id)
-      .select('*, po_projects(*, projects(*, master_projects(name)))')
+      .select('*, companies(*), departments(*), po_projects(*, projects(*, master_projects(name)))')
       .single();
 
     if (error) throw error;

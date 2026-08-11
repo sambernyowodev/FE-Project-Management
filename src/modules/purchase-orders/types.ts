@@ -1,6 +1,17 @@
 import type { Entity } from '@/shared/lib/api-helpers';
 
 export type PurchaseOrder = Entity<'PurchaseOrderResponseDto'> & {
+  companyId?: string | null;
+  departmentId?: string | null;
+  company?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  department?: {
+    id: string;
+    name: string;
+  };
   allocatedMandays: number;
   remainingMandays: number;
   poProjects?: Array<{

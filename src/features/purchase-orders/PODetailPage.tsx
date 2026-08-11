@@ -134,7 +134,15 @@ export function PODetailPage() {
         <div>
           <span className="font-mono text-xs px-2 py-1 bg-surface-container-high rounded text-secondary border border-outline-variant">{po.poNumber}</span>
           <h1 className="text-3xl font-bold text-on-background mt-1 mb-1">{po.poName}</h1>
-          <p className="text-secondary text-sm">Customer: <span className="font-semibold text-on-background">{po.customer}</span></p>
+          <p className="text-secondary text-sm flex items-center gap-2 mt-1">
+            <span>Company: <span className="font-semibold text-on-background">{po.company?.name || po.customer || '-'}</span></span>
+            {po.department?.name && (
+              <>
+                <span>•</span>
+                <span>Department: <span className="font-semibold text-on-background">{po.department.name}</span></span>
+              </>
+            )}
+          </p>
         </div>
       </div>
 

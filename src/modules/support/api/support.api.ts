@@ -8,6 +8,12 @@ const mapTicket = (t: any): SupportTicket => ({
   masterProjectId: t.master_project_id,
   picClient: t.pic_client || '',
   customer: t.customer || '',
+  companyId: t.company_id,
+  departmentId: t.department_id,
+  businessOwnerId: t.business_owner_id,
+  company: t.company ? { id: t.company.id, name: t.company.name, code: t.company.code } : null,
+  department: t.department ? { id: t.department.id, name: t.department.name } : null,
+  businessOwner: t.business_owner ? { id: t.business_owner.id, name: t.business_owner.name, title: t.business_owner.title } : null,
   issueTitle: t.issue_title,
   issueDescription: t.issue_description,
   hoursSpent: Number(t.hours_spent),
@@ -25,7 +31,7 @@ const mapTicket = (t: any): SupportTicket => ({
 
 export const supportApi = {
   getTickets: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: SupportTicket[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
-    let query = supabase.from('support_tickets').select('*, master_project:master_projects!inner(*)', { count: 'exact' });
+    let query = supabase.from('support_tickets').select('*, master_project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*)', { count: 'exact' });
 
     if (params?.search) {
       query = query.or(`issue_title.ilike.%${params.search}%,ticket_code.ilike.%${params.search}%`);
@@ -38,6 +44,12 @@ export const supportApi = {
           if (val !== undefined && val !== null && val !== '') {
             if (key === 'status') {
               query = query.eq('status', val);
+            } else if (key === 'companyId') {
+              query = query.eq('company_id', val);
+            } else if (key === 'departmentId') {
+              query = query.eq('department_id', val);
+            } else if (key === 'businessOwnerId') {
+              query = query.eq('business_owner_id', val);
             } else if (key === 'ticketCode') {
               query = query.ilike('ticket_code', `%${val}%`);
             } else if (key === 'projectName') {
@@ -91,14 +103,14 @@ export const supportApi = {
   getTicketById: async (id: string): Promise<SupportTicket> => {
     const { data, error } = await supabase
       .from('support_tickets')
-      .select('*, master_project:master_projects(*)')
+      .select('*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*)')
       .eq('id', id)
       .single();
     if (error) throw error;
     return mapTicket(data);
   },
 
-  createTicket: async (data: CreateSupportTicket): Promise<SupportTicket> => {
+  createTicket: async (data: CreateSupportTicket & { companyId?: string; departmentId?: string; businessOwnerId?: string }): Promise<SupportTicket> => {
     let masterProjectId = data.masterProjectId as any;
 
     if (!masterProjectId && data.masterProjectName) {
@@ -144,6 +156,9 @@ export const supportApi = {
         master_project_id: masterProjectId,
         customer: data.customer,
         pic_client: data.picClient,
+        company_id: data.companyId || null,
+        department_id: data.departmentId || null,
+        business_owner_id: data.businessOwnerId || null,
         issue_title: data.issueTitle,
         issue_description: data.issueDescription,
         status: 'OPEN',
@@ -152,13 +167,13 @@ export const supportApi = {
         end_date: data.endDate,
         folder_attachment: data.folderAttachment,
       })
-      .select('*, master_project:master_projects(*)')
+      .select('*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*)')
       .single();
     if (error) throw error;
     return mapTicket(ticket);
   },
 
-  updateTicket: async (id: string, data: UpdateSupportTicket): Promise<SupportTicket> => {
+  updateTicket: async (id: string, data: UpdateSupportTicket & { companyId?: string; departmentId?: string; businessOwnerId?: string }): Promise<SupportTicket> => {
     let masterProjectId = data.masterProjectId as any;
 
     if (!masterProjectId && data.masterProjectName) {
@@ -198,6 +213,9 @@ export const supportApi = {
         master_project_id: masterProjectId,
         customer: data.customer,
         pic_client: data.picClient,
+        company_id: data.companyId !== undefined ? (data.companyId || null) : undefined,
+        department_id: data.departmentId !== undefined ? (data.departmentId || null) : undefined,
+        business_owner_id: data.businessOwnerId !== undefined ? (data.businessOwnerId || null) : undefined,
         issue_title: data.issueTitle,
         issue_description: data.issueDescription,
         hours_spent: data.hoursSpent,
@@ -209,7 +227,7 @@ export const supportApi = {
         folder_attachment: data.folderAttachment,
       })
       .eq('id', id)
-      .select('*, master_project:master_projects(*)')
+      .select('*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*)')
       .single();
     if (error) throw error;
     return mapTicket(ticket);

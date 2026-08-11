@@ -4,6 +4,8 @@ import {
   useGetPurchaseOrders,
   useDeletePurchaseOrder
 } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
+import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
+import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { PurchaseOrder } from '@/modules/purchase-orders/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
@@ -17,6 +19,11 @@ export function POListPage() {
   const [filters, setFilters] = useState<Record<string, any>>({});
 
   const deleteMutation = useDeletePurchaseOrder();
+  const { data: companies = [] } = useGetCompanies();
+  const { data: departments = [] } = useGetDepartments();
+
+  const companyFilterOptions = companies.map(c => ({ label: c.name, value: c.id }));
+  const departmentFilterOptions = departments.map(d => ({ label: d.name, value: d.id }));
 
   const filterString = Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined;
 
@@ -78,6 +85,28 @@ export function POListPage() {
       accessorKey: 'poName',
       cell: ({ row }) => (
         <span className="font-bold text-on-background">{row.original.poName}</span>
+      ),
+    },
+    {
+      id: 'companyId',
+      header: 'Company',
+      accessorKey: 'companyId',
+      meta: {
+        filterOptions: companyFilterOptions,
+      },
+      cell: ({ row }) => (
+        <span className="font-medium text-on-background">{row.original.company?.name || row.original.customer || '-'}</span>
+      ),
+    },
+    {
+      id: 'departmentId',
+      header: 'Department',
+      accessorKey: 'departmentId',
+      meta: {
+        filterOptions: departmentFilterOptions,
+      },
+      cell: ({ row }) => (
+        <span className="font-medium text-secondary">{row.original.department?.name || '-'}</span>
       ),
     },
     {

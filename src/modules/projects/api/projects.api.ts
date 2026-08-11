@@ -13,6 +13,12 @@ const mapProject = (p: any): Project => {
     customer: p.customer,
     picInternal: p.pic_internal,
     parentProjectId: p.parent_project_id,
+    companyId: p.company_id,
+    departmentId: p.department_id,
+    businessOwnerId: p.business_owner_id,
+    company: p.company ? { id: p.company.id, name: p.company.name, code: p.company.code } : null,
+    department: p.department ? { id: p.department.id, name: p.department.name } : null,
+    businessOwner: p.business_owner ? { id: p.business_owner.id, name: p.business_owner.name, title: p.business_owner.title } : null,
     totalMandays: Number(p.total_mandays),
     startDate: p.start_date,
     endDate: p.end_date,
@@ -35,20 +41,20 @@ const mapProject = (p: any): Project => {
 
 export const projectsApi = {
   getProjects: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: Project[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
-    let selectQuery = '*, project:master_projects!inner(*)';
+    let selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*)';
     if (params?.filter) {
       try {
         const filters = JSON.parse(params.filter);
         if (filters.poId) {
-          selectQuery = '*, project:master_projects!inner(*), po_projects!inner(po_id, purchase_orders(po_number))';
+          selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects!inner(po_id, purchase_orders(po_number))';
         } else {
-          selectQuery = '*, project:master_projects!inner(*), po_projects(po_id, purchase_orders(po_number))';
+          selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))';
         }
       } catch (e) {
-        selectQuery = '*, project:master_projects!inner(*), po_projects(po_id, purchase_orders(po_number))';
+        selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))';
       }
     } else {
-      selectQuery = '*, project:master_projects!inner(*), po_projects(po_id, purchase_orders(po_number))';
+      selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))';
     }
 
     let query = supabase.from('projects').select(selectQuery, { count: 'exact' });
@@ -64,6 +70,12 @@ export const projectsApi = {
           if (val !== undefined && val !== null && val !== '') {
             if (key === 'status') {
               query = query.eq('status', val);
+            } else if (key === 'companyId') {
+              query = query.eq('company_id', val);
+            } else if (key === 'departmentId') {
+              query = query.eq('department_id', val);
+            } else if (key === 'businessOwnerId') {
+              query = query.eq('business_owner_id', val);
             } else if (key === 'projectCode') {
               query = query.ilike('project.project_code', `%${val}%`);
             } else if (key === 'name') {
@@ -119,14 +131,14 @@ export const projectsApi = {
   getProjectById: async (id: string): Promise<Project> => {
     const { data, error } = await supabase
       .from('projects')
-      .select('*, project:master_projects(*), po_projects(po_id, purchase_orders(po_number))')
+      .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))')
       .eq('id', id)
       .single();
     if (error) throw error;
     return mapProject(data);
   },
 
-  createProject: async (data: CreateProject & { poId?: string }): Promise<Project> => {
+  createProject: async (data: CreateProject & { poId?: string; companyId?: string; departmentId?: string; businessOwnerId?: string }): Promise<Project> => {
     const { data: proj, error } = await supabase
       .from('projects')
       .insert({
@@ -135,6 +147,9 @@ export const projectsApi = {
         customer: data.customer,
         pic_internal: data.picInternal,
         parent_project_id: data.parentProjectId,
+        company_id: data.companyId || null,
+        department_id: data.departmentId || null,
+        business_owner_id: data.businessOwnerId || null,
         status: data.status,
         total_mandays: data.totalMandays,
         start_date: data.startDate,
@@ -147,7 +162,7 @@ export const projectsApi = {
         timeline_remark: data.timelineRemark,
         progress_pct: data.progressPct,
       })
-      .select('*, project:master_projects(*), po_projects(po_id, purchase_orders(po_number))')
+      .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))')
       .single();
     if (error) throw error;
 
@@ -167,7 +182,7 @@ export const projectsApi = {
     return mapProject(proj);
   },
 
-  updateProject: async (id: string, data: UpdateProject & { poId?: string }): Promise<Project> => {
+  updateProject: async (id: string, data: UpdateProject & { poId?: string; companyId?: string; departmentId?: string; businessOwnerId?: string }): Promise<Project> => {
     const { data: proj, error } = await supabase
       .from('projects')
       .update({
@@ -176,6 +191,9 @@ export const projectsApi = {
         customer: data.customer,
         pic_internal: data.picInternal,
         parent_project_id: data.parentProjectId,
+        company_id: data.companyId !== undefined ? (data.companyId || null) : undefined,
+        department_id: data.departmentId !== undefined ? (data.departmentId || null) : undefined,
+        business_owner_id: data.businessOwnerId !== undefined ? (data.businessOwnerId || null) : undefined,
         status: data.status,
         total_mandays: data.totalMandays,
         start_date: data.startDate,
@@ -189,7 +207,7 @@ export const projectsApi = {
         progress_pct: data.progressPct,
       })
       .eq('id', id)
-      .select('*, project:master_projects(*), po_projects(po_id, purchase_orders(po_number))')
+      .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))')
       .single();
     if (error) throw error;
 

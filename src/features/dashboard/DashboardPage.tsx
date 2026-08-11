@@ -12,12 +12,20 @@ import { useGetProjects } from '@/modules/projects/hooks/useProjects';
 import { useGetSupportTickets } from '@/modules/support/hooks/useSupportTickets';
 import { useGetBillings } from '@/modules/billing/hooks/useBilling';
 import { useGetPurchaseOrders } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
+import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
+import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
 
 export function DashboardPage() {
   const { data: projectsRes, isLoading: isProjectsLoading } = useGetProjects({ perPage: 1000 });
   const { data: ticketsRes, isLoading: isTicketsLoading } = useGetSupportTickets({ perPage: 1000 });
   const { data: billingsRes, isLoading: isBillingsLoading } = useGetBillings({ perPage: 1000 });
   const { data: posRes } = useGetPurchaseOrders({ perPage: 1000 });
+  const { data: companies = [] } = useGetCompanies();
+
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('');
+
+  const { data: departments = [] } = useGetDepartments(selectedCompanyId || undefined);
 
   const projects = projectsRes?.data || [];
   const tickets = ticketsRes?.data || [];
@@ -48,14 +56,24 @@ export function DashboardPage() {
 
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  // Filter data based on selected year
+  // Filter data based on selected year, company, department
   const filteredProjects = useMemo(() => {
-    return projects.filter(p => p.startDate && new Date(p.startDate).getFullYear() === selectedYear);
-  }, [projects, selectedYear]);
+    return projects.filter(p => {
+      const matchYear = p.startDate && new Date(p.startDate).getFullYear() === selectedYear;
+      const matchCompany = !selectedCompanyId || p.companyId === selectedCompanyId;
+      const matchDepartment = !selectedDepartmentId || p.departmentId === selectedDepartmentId;
+      return matchYear && matchCompany && matchDepartment;
+    });
+  }, [projects, selectedYear, selectedCompanyId, selectedDepartmentId]);
 
   const filteredTickets = useMemo(() => {
-    return tickets.filter(t => t.startDate && new Date(t.startDate).getFullYear() === selectedYear);
-  }, [tickets, selectedYear]);
+    return tickets.filter(t => {
+      const matchYear = t.startDate && new Date(t.startDate).getFullYear() === selectedYear;
+      const matchCompany = !selectedCompanyId || t.companyId === selectedCompanyId;
+      const matchDepartment = !selectedDepartmentId || t.departmentId === selectedDepartmentId;
+      return matchYear && matchCompany && matchDepartment;
+    });
+  }, [tickets, selectedYear, selectedCompanyId, selectedDepartmentId]);
 
   const filteredBillings = useMemo(() => {
     return billings.filter(b => b.billingPeriodStart && new Date(b.billingPeriodStart).getFullYear() === selectedYear);
@@ -96,12 +114,12 @@ export function DashboardPage() {
 
   const pieData = useMemo(() => {
     const customerMap = filteredProjects.reduce((acc, p) => {
-      const customer = p.picClient || 'Unknown';
-      acc[customer] = (acc[customer] || 0) + 1;
+      const ownerName = p.businessOwner?.name || p.picClient || 'Unknown';
+      acc[ownerName] = (acc[ownerName] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    const colors = ['#0052cc', '#7029e1', '#0c56d0', '#5600be', '#0b1c30'];
+    const colors = ['#0052cc', '#7029e1', '#0c56d0', '#5600be', '#0b1c30', '#06b6d4', '#f97316', '#22c55e'];
     return Object.entries(customerMap).map(([name, value], i) => ({
       name,
       value,
@@ -149,17 +167,54 @@ export function DashboardPage() {
           <h1 className="text-2xl font-bold text-on-background mb-1 md:hidden">Dashboard</h1>
           <p className="text-secondary text-sm">Overview of enterprise project metrics, billing, and support.</p>
         </div>
-        <div className="relative">
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded bg-white hover:bg-surface-container-low transition-colors text-on-surface-variant text-sm font-semibold shadow-sm cursor-pointer appearance-none pr-8 outline-none focus:border-primary"
-          >
-            {availableYears.map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
-          </select>
-          <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant" />
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Company Filter */}
+          <div className="relative">
+            <select
+              value={selectedCompanyId}
+              onChange={(e) => {
+                setSelectedCompanyId(e.target.value);
+                setSelectedDepartmentId('');
+              }}
+              className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded bg-white hover:bg-surface-container-low transition-colors text-on-surface-variant text-sm font-semibold shadow-sm cursor-pointer appearance-none pr-8 outline-none focus:border-primary"
+            >
+              <option value="">Semua Company</option>
+              {companies.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant" />
+          </div>
+
+          {/* Department Filter */}
+          <div className="relative">
+            <select
+              value={selectedDepartmentId}
+              disabled={!selectedCompanyId}
+              onChange={(e) => setSelectedDepartmentId(e.target.value)}
+              className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded bg-white hover:bg-surface-container-low transition-colors text-on-surface-variant text-sm font-semibold shadow-sm cursor-pointer appearance-none pr-8 outline-none focus:border-primary disabled:bg-surface-container-low disabled:opacity-60"
+            >
+              <option value="">Semua Department</option>
+              {departments.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant" />
+          </div>
+
+          {/* Year Filter */}
+          <div className="relative">
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="flex items-center gap-2 px-4 py-2 border border-outline-variant rounded bg-white hover:bg-surface-container-low transition-colors text-on-surface-variant text-sm font-semibold shadow-sm cursor-pointer appearance-none pr-8 outline-none focus:border-primary"
+            >
+              {availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant" />
+          </div>
         </div>
       </div>
 
@@ -273,7 +328,7 @@ export function DashboardPage() {
         {/* Pie Chart */}
         <div className="lg:col-span-4 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm p-6 flex flex-col h-[400px]">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-bold text-on-background">Projects by Customer</h3>
+            <h3 className="text-xl font-bold text-on-background">Projects by Business Owner</h3>
             <button className="text-secondary hover:text-on-background transition-colors cursor-pointer">
               <MoreVertical className="w-5 h-5" />
             </button>
