@@ -4,6 +4,7 @@ import {
   useCreateProjectActivity, 
   useUpdateProjectActivity 
 } from '@/modules/projects/hooks/useProjectActivities';
+import { useGetResourceWorkloadMap } from '@/modules/resources/hooks/useResources';
 import { formatDateInput } from '@/shared/lib/formatter';
 import type { ProjectActivity } from '@/modules/projects/types';
 
@@ -34,6 +35,7 @@ export function ActivityFormModal({
   const isEditing = Boolean(activity);
   const createMutation = useCreateProjectActivity(projectId);
   const updateMutation = useUpdateProjectActivity(projectId);
+  const { data: workloadMap = {} } = useGetResourceWorkloadMap();
 
   const [formData, setFormData] = useState({
     activityName: '',
@@ -349,15 +351,19 @@ export function ActivityFormModal({
                 className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               >
                 <option value="">-- Belum Ditugaskan --</option>
-                {Array.from(new Map(members.map(m => [m.memberId, m])).values()).map(member => {
-                  const roleName = member.role?.name || 'Resource';
-                  const userName = member.user?.fullName || member.user?.name || `Member ID: ${member.memberId}`;
-                  return (
-                    <option key={member.memberId} value={member.memberId}>
-                      {userName} ({roleName})
-                    </option>
-                  );
-                })}
+                {Array.from(new Map(members.map(m => [m.memberId, m])).values())
+                  .filter(member => member.user?.isActive !== false)
+                  .map(member => {
+                    const roleName = member.role?.name || 'Resource';
+                    const userName = member.user?.fullName || member.user?.name || `Member ID: ${member.memberId}`;
+                    const workload = workloadMap[member.memberId];
+                    const workloadLabel = workload?.workloadLabel || 'Idle';
+                    return (
+                      <option key={member.memberId} value={member.memberId}>
+                        {userName} ({roleName}) — [{workloadLabel}]
+                      </option>
+                    );
+                  })}
               </select>
             </div>
 

@@ -1,22 +1,28 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, Network } from 'lucide-react';
 import { useGetDepartments, useDeleteDepartment } from '@/modules/master/departments/hooks/useDepartments';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import type { Department } from '@/modules/master/departments/types';
 
 export function DepartmentListPage() {
   const navigate = useNavigate();
   const { data: departments = [], isLoading, refetch } = useGetDepartments();
   const deleteMutation = useDeleteDepartment();
+  const [deletingDept, setDeletingDept] = useState<{ id: string; name: string } | null>(null);
 
-  const handleDeactivate = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus department "${name}"?`)) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          refetch();
-        }
-      });
-    }
+  const handleConfirmDelete = () => {
+    if (!deletingDept) return;
+    deleteMutation.mutate(deletingDept.id, {
+      onSuccess: () => {
+        setDeletingDept(null);
+        refetch();
+      },
+      onError: () => {
+        setDeletingDept(null);
+      }
+    });
   };
 
   const columns: ColumnDef<Department, any>[] = [
@@ -64,7 +70,7 @@ export function DepartmentListPage() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleDeactivate(row.original.id, row.original.name)}
+            onClick={() => setDeletingDept({ id: row.original.id, name: row.original.name })}
             className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
             title="Delete Department"
           >
@@ -93,6 +99,19 @@ export function DepartmentListPage() {
         addLabel="Tambah Department"
         onRefresh={refetch}
         exportFilename="departments-list"
+      />
+
+      {/* Confirm Dialog for Delete Department */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingDept)}
+        onClose={() => setDeletingDept(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Department?"
+        message={`Apakah Anda yakin ingin menghapus department "${deletingDept?.name || ''}"?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

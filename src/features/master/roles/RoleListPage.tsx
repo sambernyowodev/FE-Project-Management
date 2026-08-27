@@ -1,26 +1,32 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2 } from 'lucide-react';
 import { useGetRoles, useDeleteRole } from '@/modules/master/roles/hooks/useRoles';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import type { Role } from '@/modules/master/roles/types';
 
 export function RoleListPage() {
   const navigate = useNavigate();
   const { data: rolesRes, isLoading, refetch } = useGetRoles();
   const deleteMutation = useDeleteRole();
+  const [deletingRole, setDeletingRole] = useState<{ id: string; name: string } | null>(null);
 
   // Roles endpoint /roles does not have server-side pagination, sorting, or search.
   // Passing only raw data to DataTable allows it to handle search/sort/filter/paging client-side.
   const rawRoles = rolesRes || [];
 
-  const handleDeactivate = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus role "${name}"?`)) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          refetch();
-        }
-      });
-    }
+  const handleConfirmDelete = () => {
+    if (!deletingRole) return;
+    deleteMutation.mutate(deletingRole.id, {
+      onSuccess: () => {
+        setDeletingRole(null);
+        refetch();
+      },
+      onError: () => {
+        setDeletingRole(null);
+      }
+    });
   };
 
   const columns: ColumnDef<Role, any>[] = [
@@ -65,7 +71,7 @@ export function RoleListPage() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleDeactivate(row.original.id, row.original.name)}
+            onClick={() => setDeletingRole({ id: row.original.id, name: row.original.name })}
             className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
             title="Delete Role"
           >
@@ -94,6 +100,19 @@ export function RoleListPage() {
         addLabel="New Role"
         onRefresh={refetch}
         exportFilename="roles-list"
+      />
+
+      {/* Confirm Dialog for Delete Role */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingRole)}
+        onClose={() => setDeletingRole(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Role?"
+        message={`Apakah Anda yakin ingin menghapus role "${deletingRole?.name || ''}"?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

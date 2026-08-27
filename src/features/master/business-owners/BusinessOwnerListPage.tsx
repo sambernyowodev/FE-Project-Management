@@ -1,22 +1,28 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, UserCheck, Mail, Phone } from 'lucide-react';
 import { useGetBusinessOwners, useDeleteBusinessOwner } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import type { BusinessOwner } from '@/modules/master/business-owners/types';
 
 export function BusinessOwnerListPage() {
   const navigate = useNavigate();
   const { data: businessOwners = [], isLoading, refetch } = useGetBusinessOwners();
   const deleteMutation = useDeleteBusinessOwner();
+  const [deletingOwner, setDeletingOwner] = useState<{ id: string; name: string } | null>(null);
 
-  const handleDeactivate = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus business owner "${name}"?`)) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          refetch();
-        }
-      });
-    }
+  const handleConfirmDelete = () => {
+    if (!deletingOwner) return;
+    deleteMutation.mutate(deletingOwner.id, {
+      onSuccess: () => {
+        setDeletingOwner(null);
+        refetch();
+      },
+      onError: () => {
+        setDeletingOwner(null);
+      }
+    });
   };
 
   const columns: ColumnDef<BusinessOwner, any>[] = [
@@ -92,7 +98,7 @@ export function BusinessOwnerListPage() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleDeactivate(row.original.id, row.original.name)}
+            onClick={() => setDeletingOwner({ id: row.original.id, name: row.original.name })}
             className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
             title="Delete Business Owner"
           >
@@ -121,6 +127,19 @@ export function BusinessOwnerListPage() {
         addLabel="Tambah Business Owner"
         onRefresh={refetch}
         exportFilename="business-owners-list"
+      />
+
+      {/* Confirm Dialog for Delete Business Owner */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingOwner)}
+        onClose={() => setDeletingOwner(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Business Owner?"
+        message={`Apakah Anda yakin ingin menghapus business owner "${deletingOwner?.name || ''}"?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

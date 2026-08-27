@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2 } from 'lucide-react';
 import { useGetMasterProjects, useDeleteMasterProject } from '@/modules/master/projects/hooks/useMasterProjects';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import type { MasterProject } from '@/modules/master/projects/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
 
@@ -12,6 +13,7 @@ export function MasterProjectListPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const [deletingProject, setDeletingProject] = useState<{ id: string; name: string } | null>(null);
 
   const filterString = Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined;
 
@@ -45,14 +47,17 @@ export function MasterProjectListPage() {
     setFilters(nextFilters);
   };
 
-  const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus master project "${name}"?`)) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          refetch();
-        }
-      });
-    }
+  const handleConfirmDelete = () => {
+    if (!deletingProject) return;
+    deleteMutation.mutate(deletingProject.id, {
+      onSuccess: () => {
+        setDeletingProject(null);
+        refetch();
+      },
+      onError: () => {
+        setDeletingProject(null);
+      }
+    });
   };
 
   const columns: ColumnDef<MasterProject, any>[] = [
@@ -117,7 +122,7 @@ export function MasterProjectListPage() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleDelete(row.original.id, row.original.name)}
+            onClick={() => setDeletingProject({ id: row.original.id, name: row.original.name })}
             className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
             title="Delete Master Project"
           >
@@ -152,6 +157,19 @@ export function MasterProjectListPage() {
         onFilterChange={handleFilterChange}
         onRefresh={refetch}
         exportFilename="master-projects-list"
+      />
+
+      {/* Confirm Dialog for Master Project Delete */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingProject)}
+        onClose={() => setDeletingProject(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Master Project?"
+        message={`Apakah Anda yakin ingin menghapus master project "${deletingProject?.name || ''}"?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

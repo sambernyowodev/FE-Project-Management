@@ -6,6 +6,7 @@ import {
   useDeleteSupportTicket
 } from '@/modules/support/hooks/useSupportTickets';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { SupportTicket } from '@/modules/support/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
@@ -18,6 +19,7 @@ export function SupportListPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const [deletingTicket, setDeletingTicket] = useState<{ id: string; code: string } | null>(null);
 
   const filterString = Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined;
 
@@ -51,14 +53,17 @@ export function SupportListPage() {
     setFilters(nextFilters);
   };
 
-  const handleDelete = (id: string, ticketCode: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus ticket ${ticketCode}?`)) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          refetch();
-        }
-      });
-    }
+  const handleConfirmDelete = () => {
+    if (!deletingTicket) return;
+    deleteMutation.mutate(deletingTicket.id, {
+      onSuccess: () => {
+        setDeletingTicket(null);
+        refetch();
+      },
+      onError: () => {
+        setDeletingTicket(null);
+      }
+    });
   };
 
   const columns: ColumnDef<SupportTicket, any>[] = [
@@ -143,7 +148,7 @@ export function SupportListPage() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleDelete(row.original.id, row.original.ticketCode)}
+            onClick={() => setDeletingTicket({ id: row.original.id, code: row.original.ticketCode })}
             className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
             title="Delete Ticket"
           >
@@ -176,6 +181,19 @@ export function SupportListPage() {
         onFilterChange={handleFilterChange}
         onRefresh={refetch}
         exportFilename="support-tickets-list"
+      />
+
+      {/* Confirm Dialog for Delete Ticket */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingTicket)}
+        onClose={() => setDeletingTicket(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Support Ticket?"
+        message={`Apakah Anda yakin ingin menghapus tiket "${deletingTicket?.code || ''}"? Seluruh alokasi jam dan riwayat tiket ini akan dihapus.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

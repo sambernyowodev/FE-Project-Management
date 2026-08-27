@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Shield, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, ShieldCheck, Shield } from 'lucide-react';
 import {
   useGetRole,
   useCreateRole,
   useUpdateRole,
-  useDeleteRole
+  useDeleteRole,
 } from '@/modules/master/roles/hooks/useRoles';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 export function RoleFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: role, isLoading: isRoleLoading } = useGetRole(id || '');
 
@@ -87,13 +89,19 @@ export function RoleFormPage() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus role ini?')) {
-      deleteMutation.mutate(id!, {
-        onSuccess: () => {
-          navigate('/master/roles');
-        },
-      });
-    }
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(id!, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/master/roles');
+      },
+      onError: () => {
+        setIsDeleteDialogOpen(false);
+      }
+    });
   };
 
   if (isEditing && isRoleLoading) {
@@ -246,6 +254,19 @@ export function RoleFormPage() {
           </div>
         </div>
       </form>
+
+      {/* Confirm Dialog for Role Delete */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Role?"
+        message={`Apakah Anda yakin ingin menghapus role "${role?.name || ''}" (${role?.code || ''})?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

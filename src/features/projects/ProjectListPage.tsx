@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Edit, Trash2 } from 'lucide-react';
-import { StatusBadge } from '@/shared/components/common/StatusBadge';
-import { useDeleteProject, useGetProjects } from '@/modules/projects/hooks/useProjects';
+import { Edit, Trash2, Calendar } from 'lucide-react';
+import { useGetProjects, useDeleteProject } from '@/modules/projects/hooks/useProjects';
 import { useGetPurchaseOrders } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
+import { StatusBadge } from '@/shared/components/common/StatusBadge';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import type { Project } from '@/modules/projects/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
 import { ProjectStatus } from '@/shared/constants/enums';
@@ -17,6 +18,7 @@ export function ProjectListPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const [deletingProject, setDeletingProject] = useState<{ id: string; code: string } | null>(null);
 
   const filterString = Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined;
 
@@ -28,10 +30,11 @@ export function ProjectListPage() {
     filter: filterString,
   });
 
+  const { data: poData } = useGetPurchaseOrders({ perPage: 100 });
+  const purchaseOrders = poData?.data || [];
+
   const deleteMutation = useDeleteProject();
 
-  const { data: poRes } = useGetPurchaseOrders({ perPage: 100 });
-  const purchaseOrders = poRes?.data || [];
   const poFilterOptions = purchaseOrders.map(po => ({
     label: po.poNumber || '-',
     value: po.id,
@@ -57,14 +60,17 @@ export function ProjectListPage() {
     setFilters(nextFilters);
   };
 
-  const handleDelete = (id: string, projectCode: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus project ${projectCode}?`)) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          refetch();
-        }
-      });
-    }
+  const handleConfirmDelete = () => {
+    if (!deletingProject) return;
+    deleteMutation.mutate(deletingProject.id, {
+      onSuccess: () => {
+        setDeletingProject(null);
+        refetch();
+      },
+      onError: () => {
+        setDeletingProject(null);
+      }
+    });
   };
 
   const columns: ColumnDef<Project, any>[] = [
@@ -160,7 +166,7 @@ export function ProjectListPage() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleDelete(row.original.id, row.original.projectCode)}
+            onClick={() => setDeletingProject({ id: row.original.id, code: row.original.projectCode })}
             className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
             title="Delete Project"
           >
@@ -195,6 +201,19 @@ export function ProjectListPage() {
         onFilterChange={handleFilterChange}
         onRefresh={refetch}
         exportFilename="project-list"
+      />
+
+      {/* Confirm Dialog for Delete Project */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingProject)}
+        onClose={() => setDeletingProject(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Project?"
+        message={`Apakah Anda yakin ingin menghapus project "${deletingProject?.code || ''}"? Seluruh data aktivitas dan timeline project ini akan dihapus.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

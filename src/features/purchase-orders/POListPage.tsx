@@ -1,15 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  useGetPurchaseOrders,
-  useDeletePurchaseOrder
-} from '@/modules/purchase-orders/hooks/usePurchaseOrders';
+import { Eye, Edit, Trash2 } from 'lucide-react';
+import { useGetPurchaseOrders, useDeletePurchaseOrder } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
 import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
 import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import type { PurchaseOrder } from '@/modules/purchase-orders/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
-import { Eye, Edit2, Trash2 } from 'lucide-react';
 
 export function POListPage() {
   const navigate = useNavigate();
@@ -17,6 +15,7 @@ export function POListPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const [deletingPo, setDeletingPo] = useState<{ id: string; name: string } | null>(null);
 
   const deleteMutation = useDeletePurchaseOrder();
   const { data: companies = [] } = useGetCompanies();
@@ -59,14 +58,14 @@ export function POListPage() {
     setFilters(nextFilters);
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (window.confirm(`Are you sure you want to delete purchase order "${name}"? This action cannot be undone.`)) {
-      try {
-        await deleteMutation.mutateAsync(id);
-        refetch();
-      } catch (err: any) {
-        alert(err?.response?.data?.message || err.message || 'Failed to delete PO');
-      }
+  const handleConfirmDelete = async () => {
+    if (!deletingPo) return;
+    try {
+      await deleteMutation.mutateAsync(deletingPo.id);
+      setDeletingPo(null);
+      refetch();
+    } catch {
+      setDeletingPo(null);
     }
   };
 
@@ -165,10 +164,10 @@ export function POListPage() {
             className="p-1.5 text-secondary hover:text-primary transition-colors cursor-pointer rounded hover:bg-surface-container-high"
             title="Edit"
           >
-            <Edit2 className="w-4 h-4" />
+            <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleDelete(row.original.id, row.original.poName)}
+            onClick={() => setDeletingPo({ id: row.original.id, name: row.original.poName })}
             className="p-1.5 text-secondary hover:text-error transition-colors cursor-pointer rounded hover:bg-error/10"
             title="Delete"
           >
@@ -203,6 +202,19 @@ export function POListPage() {
         onAdd={() => navigate('/purchase-orders/new')}
         addLabel="Create PO"
         exportFilename="purchase-orders-list"
+      />
+
+      {/* Confirm Dialog for Delete PO */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingPo)}
+        onClose={() => setDeletingPo(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Purchase Order?"
+        message={`Apakah Anda yakin ingin menghapus PO "${deletingPo?.name || ''}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

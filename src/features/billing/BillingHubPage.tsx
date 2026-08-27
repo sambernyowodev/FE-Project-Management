@@ -16,6 +16,7 @@ import {
 import { cn } from '@/shared/lib/utils';
 import { exportBillingToExcel } from '@/shared/lib/excel';
 import { useGetBillings, useGetBillingById, useDeleteBilling } from '@/modules/billing/hooks/useBilling';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 export function BillingHubPage() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export function BillingHubPage() {
   const [selectedBillingId, setSelectedBillingId] = useState<string | null>(null);
   const [listSearch, setListSearch] = useState('');
   const [listTypeFilter, setListTypeFilter] = useState<'ALL' | 'PROJECT' | 'SUPPORT'>('ALL');
+  const [deletingBilling, setDeletingBilling] = useState<{ id: string; number: string } | null>(null);
 
   const deleteMutation = useDeleteBilling();
 
@@ -41,14 +43,14 @@ export function BillingHubPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
   };
 
-  const handleDelete = async (id: string, billingNumber: string) => {
-    if (window.confirm(`Are you sure you want to delete billing "${billingNumber}"? This action cannot be undone.`)) {
-      try {
-        await deleteMutation.mutateAsync(id);
-        refetchBillings();
-      } catch (err: any) {
-        alert(err?.response?.data?.message || err.message || 'Failed to delete billing');
-      }
+  const handleConfirmDelete = async () => {
+    if (!deletingBilling) return;
+    try {
+      await deleteMutation.mutateAsync(deletingBilling.id);
+      setDeletingBilling(null);
+      refetchBillings();
+    } catch {
+      setDeletingBilling(null);
     }
   };
 
@@ -209,7 +211,7 @@ export function BillingHubPage() {
                               <Download className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(b.id, b.billingNumber)}
+                              onClick={() => setDeletingBilling({ id: b.id, number: b.billingNumber })}
                               title="Delete Billing"
                               className="p-1.5 border border-outline-variant hover:border-error text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors cursor-pointer"
                             >
@@ -381,6 +383,19 @@ export function BillingHubPage() {
           </div>
         </div>
       )}
+
+      {/* Confirm Dialog for Delete Billing */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingBilling)}
+        onClose={() => setDeletingBilling(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Billing?"
+        message={`Apakah Anda yakin ingin menghapus data billing "${deletingBilling?.number || ''}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

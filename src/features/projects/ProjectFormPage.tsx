@@ -14,6 +14,7 @@ import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
 import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
 import { useGetBusinessOwners } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 import { ProjectStatus } from '@/shared/constants/enums';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 
 const STATUS_OPTIONS = Object.values(ProjectStatus);
@@ -22,6 +23,7 @@ export function ProjectFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: project, isLoading: isProjectLoading } = useGetProject(id || '');
   const { data: masterProjectsRes } = useGetMasterProjects({ perPage: 100 });
@@ -227,13 +229,19 @@ export function ProjectFormPage() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this project?')) {
-      deleteMutation.mutate(id!, {
-        onSuccess: () => {
-          navigate('/projects');
-        }
-      });
-    }
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(id!, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/projects');
+      },
+      onError: () => {
+        setIsDeleteDialogOpen(false);
+      }
+    });
   };
 
   if (isEditing && isProjectLoading) {
@@ -786,6 +794,19 @@ export function ProjectFormPage() {
           </button>
         </div>
       </form>
+
+      {/* Confirm Dialog for Project Delete */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Project?"
+        message={`Apakah Anda yakin ingin menghapus project "${project?.name || ''}" (${project?.projectCode || ''})? Seluruh data aktivitas dan alokasi member akan dibersihkan.`}
+        confirmText="Ya, Hapus Project"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

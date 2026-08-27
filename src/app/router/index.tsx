@@ -5,6 +5,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProjectListPage } from '@/features/projects/ProjectListPage';
 import { ProjectFormPage } from '@/features/projects/ProjectFormPage';
 import { ProjectTimelinePage } from '@/features/projects/ProjectTimelinePage';
+import { ResourceManagementPage } from '@/features/resources/ResourceManagementPage';
 import { POListPage } from '@/features/purchase-orders/POListPage';
 import { POFormPage } from '@/features/purchase-orders/POFormPage';
 import { PODetailPage } from '@/features/purchase-orders/PODetailPage';
@@ -62,6 +63,10 @@ export const router = createBrowserRouter([
       {
         path: 'timeline',
         element: <ProjectTimelinePage />
+      },
+      {
+        path: 'resources',
+        element: <ResourceManagementPage />
       },
       {
         path: 'purchase-orders',

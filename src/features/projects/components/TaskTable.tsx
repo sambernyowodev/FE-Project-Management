@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Edit, Trash2, CornerDownRight, Check, X, Calendar, User, Milestone } from 'lucide-react';
 import { useDeleteProjectActivity, useUpdateActivityProgress } from '@/modules/projects/hooks/useProjectActivities';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import { formatDate } from '@/shared/lib/formatter';
 import type { ProjectActivity, ProjectMember } from '@/modules/projects/types';
 
@@ -26,6 +27,7 @@ export function TaskTable({
   // Keep track of which activity progress is being edited inline
   const [editingProgressId, setEditingProgressId] = useState<string | null>(null);
   const [tempProgress, setTempProgress] = useState<string>('0');
+  const [deletingActivity, setDeletingActivity] = useState<{ id: string; name: string } | null>(null);
 
   // Flatten and sort activities so children appear directly under their parents
   const rootActivities = activities
@@ -41,10 +43,11 @@ export function TaskTable({
     sortedActivities.push(...children);
   });
 
-  const handleDelete = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus aktivitas "${name}"?`)) {
-      deleteMutation.mutate(id);
-    }
+  const handleConfirmDelete = () => {
+    if (!deletingActivity) return;
+    deleteMutation.mutate(deletingActivity.id, {
+      onSettled: () => setDeletingActivity(null),
+    });
   };
 
   const startInlineEdit = (activity: ProjectActivity) => {
@@ -254,7 +257,7 @@ export function TaskTable({
                           <Edit className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(act.id, act.activityName)}
+                          onClick={() => setDeletingActivity({ id: act.id, name: act.activityName })}
                           className="p-1 hover:bg-surface-container-high rounded text-secondary hover:text-error transition-colors cursor-pointer"
                           title="Hapus Aktivitas"
                         >
@@ -269,6 +272,19 @@ export function TaskTable({
           </tbody>
         </table>
       </div>
+
+      {/* Confirm Dialog for Activity Delete */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingActivity)}
+        onClose={() => setDeletingActivity(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Aktivitas?"
+        message={`Apakah Anda yakin ingin menghapus aktivitas "${deletingActivity?.name || ''}"? Sub-aktivitas di dalamnya (jika ada) juga akan dihapus.`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

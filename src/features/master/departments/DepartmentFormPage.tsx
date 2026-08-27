@@ -5,14 +5,16 @@ import {
   useGetDepartment,
   useCreateDepartment,
   useUpdateDepartment,
-  useDeleteDepartment
+  useDeleteDepartment,
 } from '@/modules/master/departments/hooks/useDepartments';
 import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 export function DepartmentFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: department, isLoading: isDeptLoading } = useGetDepartment(id || '');
   const { data: companies = [] } = useGetCompanies();
@@ -90,13 +92,19 @@ export function DepartmentFormPage() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus department ini?')) {
-      deleteMutation.mutate(id!, {
-        onSuccess: () => {
-          navigate('/master/departments');
-        },
-      });
-    }
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(id!, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/master/departments');
+      },
+      onError: () => {
+        setIsDeleteDialogOpen(false);
+      }
+    });
   };
 
   if (isEditing && isDeptLoading) {
@@ -232,6 +240,19 @@ export function DepartmentFormPage() {
           </div>
         </div>
       </form>
+
+      {/* Confirm Dialog for Department Delete */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Department?"
+        message={`Apakah Anda yakin ingin menghapus department "${department?.name || ''}"?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

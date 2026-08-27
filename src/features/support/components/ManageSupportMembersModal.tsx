@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, UserPlus, Trash2, Award, Calendar, Clock, FileText, CheckCircle } from 'lucide-react';
+import { X, UserPlus, Trash2, Award, Calendar, Clock, FileText, CheckCircle, CheckCircle2, AlertCircle, FolderKanban, TicketCheck } from 'lucide-react';
 import { useGetUsers } from '@/modules/master/users/hooks/useUsers';
 import { useGetRoles } from '@/modules/master/roles/hooks/useRoles';
+import { useGetResourceWorkloadMap } from '@/modules/resources/hooks/useResources';
 import {
   useAddTicketAssignee,
   useUpdateTicketAssignee,
   useRemoveTicketAssignee
 } from '@/modules/support/hooks/useSupportTickets';
 import { SupportTicketStatus } from '@/shared/constants/enums';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 interface ManageSupportMembersModalProps {
   isOpen: boolean;
@@ -19,6 +21,7 @@ interface ManageSupportMembersModalProps {
 export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees }: ManageSupportMembersModalProps) {
   const { data: usersRes } = useGetUsers({ perPage: 200 });
   const { data: rolesRes } = useGetRoles();
+  const { data: workloadMap = {} } = useGetResourceWorkloadMap();
   const addAssigneeMutation = useAddTicketAssignee(ticketId);
   const updateAssigneeMutation = useUpdateTicketAssignee(ticketId);
   const removeAssigneeMutation = useRemoveTicketAssignee(ticketId);
@@ -32,6 +35,7 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
   const [endDate, setEndDate] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+  const [assigneeToRemove, setAssigneeToRemove] = useState<{ id: string; name: string } | null>(null);
 
   // Editing state
   const [editingAssigneeId, setEditingAssigneeId] = useState<string | null>(null);
@@ -146,13 +150,20 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
   };
 
   const handleRemoveAssignee = (id: string, userName: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin mengeluarkan ${userName} dari ticket support ini?`)) {
-      removeAssigneeMutation.mutate(id, {
-        onError: (err: any) => {
-          setError(err.message || 'Gagal menghapus member');
-        },
-      });
-    }
+    setAssigneeToRemove({ id, name: userName });
+  };
+
+  const handleConfirmRemove = () => {
+    if (!assigneeToRemove) return;
+    removeAssigneeMutation.mutate(assigneeToRemove.id, {
+      onSuccess: () => {
+        setAssigneeToRemove(null);
+      },
+      onError: (err: any) => {
+        setError(err.message || 'Gagal menghapus member');
+        setAssigneeToRemove(null);
+      },
+    });
   };
 
   const getInitials = (name: string) => {
@@ -233,19 +244,33 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
                       className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary disabled:opacity-60"
                     />
                     {isDropdownOpen && !editingAssigneeId && (
-                      <div className="absolute z-50 left-0 right-0 mt-1 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-lg flex flex-col p-1 max-h-48 overflow-y-auto">
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-lg flex flex-col p-1 max-h-56 overflow-y-auto">
                         {getFilteredUsers().length > 0 ? (
-                          getFilteredUsers().map((u: any) => (
-                            <button
-                              key={u.id}
-                              type="button"
-                              onClick={() => handleSelectUser(u)}
-                              className="px-3 py-2 text-left text-xs hover:bg-surface-container-low rounded transition-colors flex justify-between items-center cursor-pointer"
-                            >
-                              <span className="font-bold text-on-background">{u.fullName}</span>
-                              <span className="text-secondary text-[10px]">{u.email}</span>
-                            </button>
-                          ))
+                          getFilteredUsers().map((u: any) => {
+                            const workload = workloadMap[u.id];
+                            const label = workload?.workloadLabel || 'Idle';
+                            const isIdle = workload?.isIdle ?? true;
+                            return (
+                              <button
+                                key={u.id}
+                                type="button"
+                                onClick={() => handleSelectUser(u)}
+                                className="px-3 py-2 text-left text-xs hover:bg-surface-container-low rounded transition-colors flex flex-col gap-0.5 cursor-pointer border-b border-outline-variant/30 last:border-0"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-bold text-on-background">{u.fullName}</span>
+                                  <span className={`text-[10px] px-2 py-0.2 rounded-full font-bold ${
+                                    isIdle
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : 'bg-amber-50 text-amber-800 border border-amber-200'
+                                  }`}>
+                                    {label}
+                                  </span>
+                                </div>
+                                <span className="text-secondary text-[10px]">{u.email}</span>
+                              </button>
+                            );
+                          })
                         ) : (
                           <div className="px-3 py-2 text-xs text-secondary text-center">
                             Tidak ditemukan user aktif
@@ -273,6 +298,66 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
                   </select>
                 </div>
               </div>
+
+              {/* Selected User Workload Preview */}
+              {selectedUserId && workloadMap[selectedUserId] && (
+                <div className="p-3 bg-surface border border-outline-variant rounded-lg flex flex-col gap-2 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-secondary flex items-center gap-1.5">
+                      Informasi Beban Kerja Resource:
+                    </span>
+                    {workloadMap[selectedUserId].isIdle ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        Idle (Tersedia, 0 Project Aktif & 0 Support Aktif)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                        <AlertCircle className="w-3 h-3 text-amber-600" />
+                        {workloadMap[selectedUserId].workloadLabel}
+                      </span>
+                    )}
+                  </div>
+
+                  {!workloadMap[selectedUserId].isIdle && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1 border-t border-outline-variant/40">
+                      {/* Active Projects */}
+                      {workloadMap[selectedUserId].activeProjects.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold text-secondary flex items-center gap-1">
+                            <FolderKanban className="w-3 h-3 text-primary" />
+                            Project Aktif ({workloadMap[selectedUserId].activeProjects.length}):
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {workloadMap[selectedUserId].activeProjects.map(p => (
+                              <span key={p.id} className="px-2 py-0.5 bg-surface-container-high rounded text-on-background font-mono text-[10px]">
+                                {p.projectCode}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Active Supports */}
+                      {workloadMap[selectedUserId].activeSupports.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                          <span className="font-bold text-secondary flex items-center gap-1">
+                            <TicketCheck className="w-3 h-3 text-purple-600" />
+                            Support Aktif ({workloadMap[selectedUserId].activeSupports.length}):
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {workloadMap[selectedUserId].activeSupports.map(s => (
+                              <span key={s.id} className="px-2 py-0.5 bg-purple-500/10 text-purple-700 rounded font-mono text-[10px]">
+                                {s.ticketCode}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Hours Spent & Status */}
               <div className="grid grid-cols-2 gap-4">
@@ -516,6 +601,19 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
           </div>
         </div>
       </div>
+
+      {/* Confirm Dialog for Removing Assignee */}
+      <ConfirmDialog
+        isOpen={Boolean(assigneeToRemove)}
+        onClose={() => setAssigneeToRemove(null)}
+        onConfirm={handleConfirmRemove}
+        title="Keluarkan Member dari Support Ticket?"
+        message={`Apakah Anda yakin ingin mengeluarkan "${assigneeToRemove?.name || ''}" dari tiket support ini? Catatan jam kerja member pada tiket ini akan dihapus.`}
+        confirmText="Ya, Keluarkan"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={removeAssigneeMutation.isPending}
+      />
     </div>
   );
 }

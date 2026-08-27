@@ -5,13 +5,15 @@ import {
   useGetCompany,
   useCreateCompany,
   useUpdateCompany,
-  useDeleteCompany
+  useDeleteCompany,
 } from '@/modules/master/companies/hooks/useCompanies';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 export function CompanyFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: company, isLoading: isCompanyLoading } = useGetCompany(id || '');
 
@@ -88,13 +90,19 @@ export function CompanyFormPage() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus company ini?')) {
-      deleteMutation.mutate(id!, {
-        onSuccess: () => {
-          navigate('/master/companies');
-        },
-      });
-    }
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(id!, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/master/companies');
+      },
+      onError: () => {
+        setIsDeleteDialogOpen(false);
+      }
+    });
   };
 
   if (isEditing && isCompanyLoading) {
@@ -225,6 +233,19 @@ export function CompanyFormPage() {
           </div>
         </div>
       </form>
+
+      {/* Confirm Dialog for Company Delete */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Company?"
+        message={`Apakah Anda yakin ingin menghapus company "${company?.name || ''}" (${company?.code || ''})?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

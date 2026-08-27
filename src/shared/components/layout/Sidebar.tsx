@@ -18,7 +18,8 @@ import {
   Building2,
   Network,
   UserCheck,
-  Database
+  Database,
+  BookUser
 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { useProfile, useLogout } from '@/modules/auth/hooks/useAuth';
@@ -28,6 +29,7 @@ const mainNavigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projects', href: '/projects', icon: FolderKanban },
   { name: 'Support', href: '/support', icon: TicketCheck },
+  { name: 'Members Management', href: '/resources', icon: BookUser },
   { name: 'Billing', href: '/billing', icon: FileText },
   { name: 'Purchase Orders', href: '/purchase-orders', icon: Receipt },
   { name: 'Reports', href: '/reports', icon: FileSpreadsheet },

@@ -1,4 +1,5 @@
 import { Users, AlertCircle, CheckCircle2, UserCheck, Settings } from 'lucide-react';
+import { useGetResourceWorkloadMap } from '@/modules/resources/hooks/useResources';
 import type { ProjectMember, ProjectActivity } from '@/modules/projects/types';
 
 interface ResourcePanelProps {
@@ -19,6 +20,8 @@ const ROLE_MAPPINGS: Record<string, { label: string; color: string }> = {
 };
 
 export function ResourcePanel({ members = [], activities = [], onManageTeam }: ResourcePanelProps) {
+  const { data: workloadMap = {} } = useGetResourceWorkloadMap();
+
   // Count tasks per user ID
   const taskCounts: Record<string, number> = {};
   activities.forEach(act => {
@@ -168,6 +171,11 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                         <div className="flex flex-col min-w-0">
                           <span className="text-sm font-semibold text-on-background truncate">{userName}</span>
                           <span className="text-[10px] text-secondary truncate">{userEmail}</span>
+                          {workloadMap[member.memberId] && (
+                            <span className="text-[9px] text-secondary font-medium truncate">
+                              Beban: <strong className={workloadMap[member.memberId].isIdle ? 'text-emerald-600' : 'text-amber-600'}>{workloadMap[member.memberId].workloadLabel}</strong>
+                            </span>
+                          )}
                         </div>
                       </div>
                       

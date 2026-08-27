@@ -5,15 +5,17 @@ import {
   useGetBusinessOwner,
   useCreateBusinessOwner,
   useUpdateBusinessOwner,
-  useDeleteBusinessOwner
+  useDeleteBusinessOwner,
 } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
 import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 export function BusinessOwnerFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: businessOwner, isLoading: isBoLoading } = useGetBusinessOwner(id || '');
   const { data: companies = [] } = useGetCompanies();
@@ -109,13 +111,19 @@ export function BusinessOwnerFormPage() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus Business Owner ini?')) {
-      deleteMutation.mutate(id!, {
-        onSuccess: () => {
-          navigate('/master/business-owners');
-        },
-      });
-    }
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(id!, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/master/business-owners');
+      },
+      onError: () => {
+        setIsDeleteDialogOpen(false);
+      }
+    });
   };
 
   if (isEditing && isBoLoading) {
@@ -305,6 +313,19 @@ export function BusinessOwnerFormPage() {
           </div>
         </div>
       </form>
+
+      {/* Confirm Dialog for Business Owner Delete */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Business Owner?"
+        message={`Apakah Anda yakin ingin menghapus business owner "${businessOwner?.name || ''}"?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

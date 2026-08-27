@@ -1,5 +1,12 @@
 import { supabase } from '@/shared/api/supabase';
-import type { User, CreateUser, UpdateUser } from '../types';
+import type {
+  User,
+  CreateUser,
+  UpdateUser,
+  MemberRelationsData,
+  MemberProjectRelation,
+  MemberSupportRelation
+} from '../types';
 
 const mapUser = (m: any): User => ({
   id: m.id,
@@ -127,6 +134,7 @@ export const usersApi = {
       .from('members')
       .update({
         full_name: data.fullName,
+        email: data.email,
         employee_id: data.employeeId,
         is_active: data.isActive,
       })
@@ -138,10 +146,108 @@ export const usersApi = {
     return mapUser(updatedMember);
   },
 
-  deleteUser: async (id: string): Promise<void> => {
+  toggleUserStatus: async (id: string, isActive: boolean): Promise<void> => {
     const { error } = await supabase
       .from('members')
-      .update({ is_active: false })
+      .update({ is_active: isActive })
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+
+  getMemberRelations: async (memberId: string): Promise<MemberRelationsData> => {
+    // 1. Fetch project_members for this member
+    const { data: rawPm, error: pmErr } = await supabase
+      .from('project_members')
+      .select('id, project_id, role:roles(name), assigned_mandays, project:projects(id, status, project_master:master_projects(project_code, name))')
+      .eq('member_id', memberId);
+
+    if (pmErr) throw pmErr;
+
+    // 2. Fetch support_ticket_assignees for this member
+    const { data: rawSta, error: staErr } = await supabase
+      .from('support_ticket_assignees')
+      .select('id, support_ticket_id, role:roles(name), ticket:support_tickets(id, ticket_code, issue_title, status)')
+      .eq('member_id', memberId);
+
+    if (staErr) throw staErr;
+
+    // 3. Fetch activity count
+    const { count, error: actErr } = await supabase
+      .from('project_activities')
+      .select('id', { count: 'exact', head: true })
+      .eq('assigned_to', memberId);
+
+    if (actErr) throw actErr;
+
+    const projects: MemberProjectRelation[] = (rawPm || []).map((pm: any) => ({
+      id: pm.id,
+      projectId: pm.project_id,
+      projectCode: pm.project?.project_master?.project_code || `PRJ-${pm.project_id}`,
+      projectName: pm.project?.project_master?.name || 'Unnamed Project',
+      status: pm.project?.status || 'UNKNOWN',
+      roleName: pm.role?.name || 'Team Member',
+      assignedMandays: Number(pm.assigned_mandays || 0),
+    }));
+
+    const supports: MemberSupportRelation[] = (rawSta || []).map((sta: any) => ({
+      id: sta.id,
+      ticketId: sta.support_ticket_id,
+      ticketCode: sta.ticket?.ticket_code || `TKT-${sta.support_ticket_id}`,
+      issueTitle: sta.ticket?.issue_title || 'Unnamed Ticket',
+      status: sta.ticket?.status || 'UNKNOWN',
+      roleName: sta.role?.name || 'Assignee',
+    }));
+
+    return {
+      memberId,
+      projects,
+      supports,
+      activityCount: count || 0,
+    };
+  },
+
+  removeMemberFromProject: async (memberId: string, projectId: string): Promise<void> => {
+    // Release project activities assigned to this member in this project
+    await supabase
+      .from('project_activities')
+      .update({ assigned_to: null })
+      .eq('assigned_to', memberId)
+      .eq('project_id', projectId);
+
+    // Delete project_members record
+    const { error } = await supabase
+      .from('project_members')
+      .delete()
+      .eq('member_id', memberId)
+      .eq('project_id', projectId);
+
+    if (error) throw error;
+  },
+
+  removeMemberFromSupport: async (memberId: string, ticketId: string): Promise<void> => {
+    const { error } = await supabase
+      .from('support_ticket_assignees')
+      .delete()
+      .eq('member_id', memberId)
+      .eq('support_ticket_id', ticketId);
+
+    if (error) throw error;
+  },
+
+  deleteUser: async (id: string): Promise<void> => {
+    // 1. Release activity assignments first
+    await supabase.from('project_activities').update({ assigned_to: null }).eq('assigned_to', id);
+
+    // 2. Delete relations
+    await supabase.from('member_roles').delete().eq('member_id', id);
+    await supabase.from('project_members').delete().eq('member_id', id);
+    await supabase.from('support_ticket_assignees').delete().eq('member_id', id);
+
+    // 3. Delete member record
+    const { error } = await supabase
+      .from('members')
+      .delete()
       .eq('id', id);
 
     if (error) throw error;

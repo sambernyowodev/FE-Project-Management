@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -19,11 +19,12 @@ import {
   useAddProjectToPO,
   useRemoveProjectFromPO
 } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 export function PODetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const poId = id || '';
+  const navigate = useNavigate();
 
   const { data: po, isLoading: isPoLoading, refetch } = useGetPurchaseOrder(poId);
   const { data: projectsWithoutPo = [], isLoading: isProjectsLoading } = useGetProjectsWithoutPO();
@@ -31,10 +32,11 @@ export function PODetailPage() {
   const addProjectMutation = useAddProjectToPO();
   const removeProjectMutation = useRemoveProjectFromPO();
 
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
-  const [remarks, setRemarks] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [projectToRemove, setProjectToRemove] = useState<{ id: string; name: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -106,14 +108,14 @@ export function PODetailPage() {
     }
   };
 
-  const handleRemoveProject = async (projectId: string, projectName: string) => {
-    if (window.confirm(`Are you sure you want to remove project "${projectName}" from this PO?`)) {
-      try {
-        await removeProjectMutation.mutateAsync({ poId, projectId });
-        refetch();
-      } catch (err: any) {
-        alert(err?.response?.data?.message || err.message || 'Failed to remove project');
-      }
+  const handleConfirmRemove = async () => {
+    if (!projectToRemove) return;
+    try {
+      await removeProjectMutation.mutateAsync({ poId, projectId: projectToRemove.id });
+      setProjectToRemove(null);
+      refetch();
+    } catch {
+      setProjectToRemove(null);
     }
   };
 
@@ -226,7 +228,7 @@ export function PODetailPage() {
                         <td className="py-3 text-center">
                           <button
                             type="button"
-                            onClick={() => handleRemoveProject(item.projectId, item.project?.project?.name || `Project #${item.projectId}`)}
+                            onClick={() => setProjectToRemove({ id: item.projectId, name: item.project?.project?.name || `Project #${item.projectId}` })}
                             className="p-1.5 hover:bg-error/10 text-secondary hover:text-error rounded transition-colors cursor-pointer"
                             title="Remove assignment"
                           >
@@ -397,6 +399,19 @@ export function PODetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirm Dialog for Removing Project from PO */}
+      <ConfirmDialog
+        isOpen={Boolean(projectToRemove)}
+        onClose={() => setProjectToRemove(null)}
+        onConfirm={handleConfirmRemove}
+        title="Lepas Project dari PO?"
+        message={`Apakah Anda yakin ingin melepas project "${projectToRemove?.name || ''}" dari Purchase Order ini?`}
+        confirmText="Ya, Lepas"
+        cancelText="Batal"
+        variant="warning"
+        isLoading={removeProjectMutation.isPending}
+      />
     </div>
   );
 }

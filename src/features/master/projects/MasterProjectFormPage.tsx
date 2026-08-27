@@ -5,14 +5,16 @@ import {
   useGetMasterProject,
   useCreateMasterProject,
   useUpdateMasterProject,
-  useDeleteMasterProject
+  useDeleteMasterProject,
 } from '@/modules/master/projects/hooks/useMasterProjects';
 import { formatDate } from '@/shared/lib/formatter';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 export function MasterProjectFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: project, isLoading: isProjectLoading } = useGetMasterProject(id || '');
 
@@ -85,13 +87,19 @@ export function MasterProjectFormPage() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus master project ini?')) {
-      deleteMutation.mutate(id!, {
-        onSuccess: () => {
-          navigate('/master/projects');
-        },
-      });
-    }
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(id!, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/master/projects');
+      },
+      onError: () => {
+        setIsDeleteDialogOpen(false);
+      }
+    });
   };
 
   if (isEditing && isProjectLoading) {
@@ -274,6 +282,19 @@ export function MasterProjectFormPage() {
           </div>
         </div>
       </form>
+
+      {/* Confirm Dialog for Master Project Delete */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Master Project?"
+        message={`Apakah Anda yakin ingin menghapus master project "${project?.name || ''}" (${project?.projectCode || ''})?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

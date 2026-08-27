@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Coins, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, ShieldCheck, Coins } from 'lucide-react';
 import {
   useGetRoleRate,
   useCreateRoleRate,
   useUpdateRoleRate,
-  useDeleteRoleRate
+  useDeleteRoleRate,
 } from '@/modules/master/role-rates/hooks/useRoleRates';
 import { useGetRoles } from '@/modules/master/roles/hooks/useRoles';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 export function RoleRateFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: roleRate, isLoading: isRoleRateLoading } = useGetRoleRate(id || '');
   const { data: roles = [], isLoading: isRolesLoading } = useGetRoles();
@@ -100,16 +102,20 @@ export function RoleRateFormPage() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus rate ini?')) {
-      deleteMutation.mutate(id!, {
-        onSuccess: () => {
-          navigate('/master/role-rates');
-        },
-        onError: (err: any) => {
-          setError(err?.message || 'Gagal menghapus rate');
-        },
-      });
-    }
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(id!, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/master/role-rates');
+      },
+      onError: (err: any) => {
+        setError(err?.message || 'Gagal menghapus rate');
+        setIsDeleteDialogOpen(false);
+      },
+    });
   };
 
   if (isEditing && (isRoleRateLoading || isRolesLoading)) {
@@ -319,6 +325,19 @@ export function RoleRateFormPage() {
           </div>
         </div>
       </form>
+
+      {/* Confirm Dialog for Role Rate Delete */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Rate?"
+        message={`Apakah Anda yakin ingin menghapus rate untuk role "${roleRate?.role?.name || ''}"?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

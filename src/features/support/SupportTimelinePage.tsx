@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGetSupportTicket, useGetTicketAssignees } from '@/modules/support/hooks/useSupportTickets';
+import { useGetResourceWorkloadMap } from '@/modules/resources/hooks/useResources';
 import { ManageSupportMembersModal } from './components/ManageSupportMembersModal';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import { SupportTicketStatus } from '@/shared/constants/enums';
@@ -23,6 +24,7 @@ export function SupportTimelinePage() {
 
   const { data: ticket, isLoading: isTicketLoading, refetch: refetchTicket } = useGetSupportTicket(ticketId);
   const { data: assignees = [], isLoading: isAssigneesLoading, refetch: refetchAssignees } = useGetTicketAssignees(ticketId);
+  const { data: workloadMap = {} } = useGetResourceWorkloadMap();
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
   const isLoading = isTicketLoading || isAssigneesLoading;
@@ -247,6 +249,11 @@ export function SupportTimelinePage() {
                             <div className="flex flex-col min-w-0">
                               <span className="font-bold text-on-background truncate">{userName}</span>
                               <span className="text-[10px] text-secondary truncate">{userEmail}</span>
+                              {workloadMap[assignee.memberId] && (
+                                <span className="text-[9px] text-secondary font-medium truncate mt-0.5">
+                                  Beban: <strong className={workloadMap[assignee.memberId].isIdle ? 'text-emerald-600' : 'text-amber-600'}>{workloadMap[assignee.memberId].workloadLabel}</strong>
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>

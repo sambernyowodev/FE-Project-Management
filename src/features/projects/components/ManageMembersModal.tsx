@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { X, UserPlus, Trash2, Award } from 'lucide-react';
+import { X, UserPlus, Trash2, Award, CheckCircle2, AlertCircle, FolderKanban, TicketCheck } from 'lucide-react';
 import { useGetUsers } from '@/modules/master/users/hooks/useUsers';
 import { useGetRoles } from '@/modules/master/roles/hooks/useRoles';
 import { useAddProjectMember, useRemoveProjectMember } from '@/modules/projects/hooks/useProjects';
+import { useGetResourceWorkloadMap } from '@/modules/resources/hooks/useResources';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 interface ManageMembersModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ interface ManageMembersModalProps {
 export function ManageMembersModal({ isOpen, onClose, projectId, members, activities = [] }: ManageMembersModalProps) {
   const { data: usersRes } = useGetUsers({ perPage: 200 });
   const { data: rolesRes } = useGetRoles();
+  const { data: workloadMap = {} } = useGetResourceWorkloadMap();
 
   const addMemberMutation = useAddProjectMember(projectId);
   const removeMemberMutation = useRemoveProjectMember(projectId);
@@ -22,6 +25,7 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [error, setError] = useState('');
+  const [memberToRemove, setMemberToRemove] = useState<string | null>(null);
 
   const getUserId = (m: any) => m.memberId || m.userId || m.user?.id || '';
 
@@ -77,13 +81,20 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
   };
 
   const handleRemoveMember = (memberId: string) => {
-    if (window.confirm('Apakah Anda yakin ingin mengeluarkan member ini dari project?')) {
-      removeMemberMutation.mutate(memberId, {
-        onError: (err: any) => {
-          setError(err.message || 'Gagal menghapus member');
-        },
-      });
-    }
+    setMemberToRemove(memberId);
+  };
+
+  const handleConfirmRemove = () => {
+    if (!memberToRemove) return;
+    removeMemberMutation.mutate(memberToRemove, {
+      onSuccess: () => {
+        setMemberToRemove(null);
+      },
+      onError: (err: any) => {
+        setError(err.message || 'Gagal menghapus member');
+        setMemberToRemove(null);
+      },
+    });
   };
 
   const getInitials = (name: string) => {
@@ -154,11 +165,15 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
                   className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 >
                   <option value="">-- Pilih User --</option>
-                  {getFilteredUsers().map((u: any) => (
-                    <option key={u.id} value={u.id}>
-                      {u.fullName} ({u.email})
-                    </option>
-                  ))}
+                  {getFilteredUsers().map((u: any) => {
+                    const workload = workloadMap[u.id];
+                    const label = workload?.workloadLabel || 'Idle';
+                    return (
+                      <option key={u.id} value={u.id}>
+                        {u.fullName} — [{label}]
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -189,6 +204,66 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
                 <span>Tambah Member</span>
               </button>
             </div>
+
+            {/* Selected User Workload Preview */}
+            {selectedUserId && workloadMap[selectedUserId] && (
+              <div className="p-3 bg-surface border border-outline-variant rounded-lg flex flex-col gap-2 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-secondary flex items-center gap-1.5">
+                    Informasi Beban Kerja Resource:
+                  </span>
+                  {workloadMap[selectedUserId].isIdle ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      Idle (Tersedia, 0 Project Aktif & 0 Support Aktif)
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                      <AlertCircle className="w-3 h-3 text-amber-600" />
+                      {workloadMap[selectedUserId].workloadLabel}
+                    </span>
+                  )}
+                </div>
+
+                {!workloadMap[selectedUserId].isIdle && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1 border-t border-outline-variant/40">
+                    {/* Active Projects */}
+                    {workloadMap[selectedUserId].activeProjects.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <span className="font-bold text-secondary flex items-center gap-1">
+                          <FolderKanban className="w-3 h-3 text-primary" />
+                          Project Aktif ({workloadMap[selectedUserId].activeProjects.length}):
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {workloadMap[selectedUserId].activeProjects.map(p => (
+                            <span key={p.id} className="px-2 py-0.5 bg-surface-container-high rounded text-on-background font-mono text-[10px]">
+                              {p.projectCode} ({p.name})
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Active Supports */}
+                    {workloadMap[selectedUserId].activeSupports.length > 0 && (
+                      <div className="flex flex-col gap-1">
+                        <span className="font-bold text-secondary flex items-center gap-1">
+                          <TicketCheck className="w-3 h-3 text-purple-600" />
+                          Support Aktif ({workloadMap[selectedUserId].activeSupports.length}):
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {workloadMap[selectedUserId].activeSupports.map(s => (
+                            <span key={s.id} className="px-2 py-0.5 bg-purple-500/10 text-purple-700 rounded font-mono text-[10px]">
+                              {s.ticketCode}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </form>
 
           {/* Current Members List */}
@@ -311,6 +386,19 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
           )}
         </div>
       </div>
+
+      {/* Confirm Dialog for Removing Member */}
+      <ConfirmDialog
+        isOpen={Boolean(memberToRemove)}
+        onClose={() => setMemberToRemove(null)}
+        onConfirm={handleConfirmRemove}
+        title="Keluarkan Member dari Project?"
+        message="Apakah Anda yakin ingin mengeluarkan member ini dari project? Alokasi tugas member pada project ini akan dinonaktifkan."
+        confirmText="Ya, Keluarkan"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={removeMemberMutation.isPending}
+      />
     </div>
   );
 }

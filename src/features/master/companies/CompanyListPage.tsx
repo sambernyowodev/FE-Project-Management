@@ -1,22 +1,28 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, Building2 } from 'lucide-react';
 import { useGetCompanies, useDeleteCompany } from '@/modules/master/companies/hooks/useCompanies';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import type { Company } from '@/modules/master/companies/types';
 
 export function CompanyListPage() {
   const navigate = useNavigate();
   const { data: companies = [], isLoading, refetch } = useGetCompanies();
   const deleteMutation = useDeleteCompany();
+  const [deletingCompany, setDeletingCompany] = useState<{ id: string; name: string } | null>(null);
 
-  const handleDeactivate = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus company "${name}"?`)) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          refetch();
-        }
-      });
-    }
+  const handleConfirmDelete = () => {
+    if (!deletingCompany) return;
+    deleteMutation.mutate(deletingCompany.id, {
+      onSuccess: () => {
+        setDeletingCompany(null);
+        refetch();
+      },
+      onError: () => {
+        setDeletingCompany(null);
+      }
+    });
   };
 
   const columns: ColumnDef<Company, any>[] = [
@@ -64,7 +70,7 @@ export function CompanyListPage() {
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => handleDeactivate(row.original.id, row.original.name)}
+            onClick={() => setDeletingCompany({ id: row.original.id, name: row.original.name })}
             className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
             title="Delete Company"
           >
@@ -93,6 +99,19 @@ export function CompanyListPage() {
         addLabel="Tambah Company"
         onRefresh={refetch}
         exportFilename="companies-list"
+      />
+
+      {/* Confirm Dialog for Delete Company */}
+      <ConfirmDialog
+        isOpen={Boolean(deletingCompany)}
+        onClose={() => setDeletingCompany(null)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Company?"
+        message={`Apakah Anda yakin ingin menghapus company "${deletingCompany?.name || ''}"?`}
+        confirmText="Ya, Hapus"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, UserCircle, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, UserCircle, ShieldCheck, UserCheck, UserX } from 'lucide-react';
 import {
   useGetUser,
   useCreateUser,
   useUpdateUser,
-  useDeleteUser,
+  useToggleUserStatus,
 } from '@/modules/master/users/hooks/useUsers';
 import { formatDate } from '@/shared/lib/formatter';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
+import { MemberDeleteRelationsModal } from './components/MemberDeleteRelationsModal';
 
 export function MemberFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,7 +20,7 @@ export function MemberFormPage() {
 
   const createMutation = useCreateUser();
   const updateMutation = useUpdateUser();
-  const deleteMutation = useDeleteUser();
+  const toggleStatusMutation = useToggleUserStatus();
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -28,6 +30,8 @@ export function MemberFormPage() {
   });
 
   const [error, setError] = useState('');
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user && isEditing) {
@@ -58,7 +62,7 @@ export function MemberFormPage() {
       return;
     }
 
-    if (!isEditing && !formData.email.trim()) {
+    if (!formData.email.trim()) {
       setError('Email wajib diisi');
       return;
     }
@@ -66,6 +70,7 @@ export function MemberFormPage() {
     if (isEditing) {
       const payload: any = {
         fullName: formData.fullName,
+        email: formData.email,
         employeeId: formData.employeeId || undefined,
         isActive: formData.isActive,
       };
@@ -99,14 +104,24 @@ export function MemberFormPage() {
     }
   };
 
-  const handleDelete = () => {
-    if (window.confirm('Apakah Anda yakin ingin menonaktifkan member ini?')) {
-      deleteMutation.mutate(id!, {
+  const handleConfirmToggleStatus = () => {
+    if (!user) return;
+    const newStatus = !user.isActive;
+    const actionText = newStatus ? 'mengaktifkan' : 'menonaktifkan';
+    
+    toggleStatusMutation.mutate(
+      { id: id!, isActive: newStatus },
+      {
         onSuccess: () => {
-          navigate('/master/members');
+          setFormData(prev => ({ ...prev, isActive: newStatus }));
+          setIsStatusDialogOpen(false);
         },
-      });
-    }
+        onError: (err: any) => {
+          setError(err?.response?.data?.message || err.message || `Gagal ${actionText} member`);
+          setIsStatusDialogOpen(false);
+        },
+      }
+    );
   };
 
   if (isEditing && isUserLoading) {
@@ -141,15 +156,46 @@ export function MemberFormPage() {
             </p>
           </div>
         </div>
-        {isEditing && user?.isActive && (
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="flex items-center gap-2 px-4 py-2 border border-error/30 text-error rounded-lg hover:bg-error/5 transition-colors text-sm font-semibold shadow-sm cursor-pointer"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>Nonaktifkan</span>
-          </button>
+
+        {/* Action Buttons on Edit Mode */}
+        {isEditing && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Toggle Active / Inactive */}
+            <button
+              type="button"
+              onClick={() => setIsStatusDialogOpen(true)}
+              disabled={toggleStatusMutation.isPending}
+              className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50 ${
+                user?.isActive
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20'
+                  : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20'
+              }`}
+              title={user?.isActive ? 'Nonaktifkan Member' : 'Aktifkan Member'}
+            >
+              {user?.isActive ? (
+                <>
+                  <UserX className="w-3.5 h-3.5" />
+                  <span>Nonaktifkan</span>
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>Aktifkan Member</span>
+                </>
+              )}
+            </button>
+
+            {/* Permanent Delete Button */}
+            <button
+              type="button"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 border border-error/30 bg-error/5 hover:bg-error/10 text-error rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer"
+              title="Hapus Semua Data Member Permanen"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Hapus Permanen</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -195,17 +241,12 @@ export function MemberFormPage() {
                   id="email"
                   name="email"
                   type="email"
-                  required={!isEditing}
-                  disabled={isEditing}
+                  required
                   value={formData.email}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background ${isEditing ? 'opacity-60 cursor-not-allowed bg-surface-container-low' : ''
-                    }`}
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
                   placeholder="e.g. john.doe@company.com"
                 />
-                {isEditing && (
-                  <p className="text-xs text-secondary">Email tidak dapat diubah setelah dibuat.</p>
-                )}
               </div>
 
               {/* No password field required since members are only project resources */}
@@ -303,6 +344,34 @@ export function MemberFormPage() {
           </div>
         </div>
       </form>
+
+      {/* Member Delete Relations & Cascade Modal */}
+      <MemberDeleteRelationsModal
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        member={user ? { id: user.id, fullName: user.fullName, employeeId: user.employeeId, email: user.email } : null}
+        onSuccessDelete={() => {
+          setIsDeleteDialogOpen(false);
+          navigate('/master/members');
+        }}
+      />
+
+      {/* Confirm Dialog for Status Toggle */}
+      <ConfirmDialog
+        isOpen={isStatusDialogOpen}
+        onClose={() => setIsStatusDialogOpen(false)}
+        onConfirm={handleConfirmToggleStatus}
+        title={user?.isActive ? 'Nonaktifkan Member?' : 'Aktifkan Kembali Member?'}
+        message={
+          user?.isActive
+            ? `Member "${user?.fullName || ''}" akan dinonaktifkan dan tidak dapat dialokasikan ke project atau tiket support baru.`
+            : `Member "${user?.fullName || ''}" akan diaktifkan kembali dan dapat dialokasikan ke project atau support.`
+        }
+        confirmText={user?.isActive ? 'Ya, Nonaktifkan' : 'Ya, Aktifkan'}
+        cancelText="Batal"
+        variant={user?.isActive ? 'warning' : 'success'}
+        isLoading={toggleStatusMutation.isPending}
+      />
     </div>
   );
 }

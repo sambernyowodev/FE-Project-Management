@@ -12,6 +12,7 @@ import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
 import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
 import { useGetBusinessOwners } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 import { SupportTicketStatus } from '@/shared/constants/enums';
+import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 
 const STATUS_OPTIONS = Object.values(SupportTicketStatus);
 
@@ -19,6 +20,7 @@ export function SupportFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: ticket, isLoading: isTicketLoading } = useGetSupportTicket(id || '');
   const { data: masterProjectsRes, isLoading: isMasterProjectsLoading } = useGetMasterProjects({ perPage: 200 });
@@ -231,13 +233,19 @@ export function SupportFormPage() {
   };
 
   const handleDelete = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus ticket ini?')) {
-      deleteMutation.mutate(id!, {
-        onSuccess: () => {
-          navigate('/support');
-        }
-      });
-    }
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    deleteMutation.mutate(id!, {
+      onSuccess: () => {
+        setIsDeleteDialogOpen(false);
+        navigate('/support');
+      },
+      onError: () => {
+        setIsDeleteDialogOpen(false);
+      }
+    });
   };
 
   if (isEditing && (isTicketLoading || isMasterProjectsLoading)) {
@@ -636,6 +644,19 @@ export function SupportFormPage() {
           </div>
         </div>
       </form>
+
+      {/* Confirm Dialog for Support Ticket Delete */}
+      <ConfirmDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Hapus Support Ticket?"
+        message={`Apakah Anda yakin ingin menghapus tiket "${ticket?.ticketCode || ''}"? Seluruh alokasi jam dan riwayat tiket ini akan dibersihkan.`}
+        confirmText="Ya, Hapus Ticket"
+        cancelText="Batal"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

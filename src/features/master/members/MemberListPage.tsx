@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2 } from 'lucide-react';
-import { useGetUsers, useDeleteUser } from '@/modules/master/users/hooks/useUsers';
+import { useGetUsers } from '@/modules/master/users/hooks/useUsers';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import type { User } from '@/modules/master/users/types';
 import type { SortingState, ColumnFiltersState } from '@tanstack/react-table';
+import { MemberDeleteRelationsModal } from './components/MemberDeleteRelationsModal';
 
 export function MemberListPage() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export function MemberListPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const [deletingUser, setDeletingUser] = useState<{ id: string; fullName: string; employeeId?: string | null; email?: string | null } | null>(null);
 
   const filterString = Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined;
 
@@ -22,8 +24,6 @@ export function MemberListPage() {
     search,
     filter: filterString,
   });
-
-  const deleteMutation = useDeleteUser();
 
   const users = data?.data || [];
   const totalItems = data?.meta?.total || 0;
@@ -43,16 +43,6 @@ export function MemberListPage() {
       nextFilters[f.id] = f.value;
     });
     setFilters(nextFilters);
-  };
-
-  const handleDeactivate = (id: string, name: string) => {
-    if (window.confirm(`Apakah Anda yakin ingin menonaktifkan member "${name}"?`)) {
-      deleteMutation.mutate(id, {
-        onSuccess: () => {
-          refetch();
-        }
-      });
-    }
   };
 
   const columns: ColumnDef<User, any>[] = [
@@ -123,15 +113,18 @@ export function MemberListPage() {
           >
             <Edit className="w-4 h-4" />
           </button>
-          {row.original.isActive && (
-            <button
-              onClick={() => handleDeactivate(row.original.id, row.original.fullName)}
-              className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
-              title="Deactivate Member"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={() => setDeletingUser({
+              id: row.original.id,
+              fullName: row.original.fullName,
+              employeeId: row.original.employeeId,
+              email: row.original.email
+            })}
+            className="p-1.5 hover:bg-surface-container-high rounded-lg text-error hover:bg-error/5 transition-all cursor-pointer"
+            title="Hapus Member"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       ),
     },
@@ -161,6 +154,17 @@ export function MemberListPage() {
         onFilterChange={handleFilterChange}
         onRefresh={refetch}
         exportFilename="members-list"
+      />
+
+      {/* Member Delete Relations & Cascade Modal */}
+      <MemberDeleteRelationsModal
+        isOpen={Boolean(deletingUser)}
+        onClose={() => setDeletingUser(null)}
+        member={deletingUser}
+        onSuccessDelete={() => {
+          setDeletingUser(null);
+          refetch();
+        }}
       />
     </div>
   );
