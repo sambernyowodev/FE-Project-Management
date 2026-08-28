@@ -25,10 +25,22 @@ export interface MemberSupportRelation {
   roleName: string;
 }
 
+export interface MemberActivityRelation {
+  id: string;
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  activityName: string;
+  feature?: string | null;
+  phase?: string | null;
+  progressPct?: number;
+}
+
 export interface MemberRelationsData {
   memberId: string;
   projects: MemberProjectRelation[];
   supports: MemberSupportRelation[];
+  activities: MemberActivityRelation[];
   activityCount: number;
 }
 

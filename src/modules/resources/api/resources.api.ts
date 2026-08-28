@@ -40,7 +40,12 @@ export const resourcesApi = {
       const proj = pm.project;
       const projMaster = proj?.project_master;
       const projStatus = proj?.status || 'PLANNING';
-      const isProjectActive = String(projStatus).trim().toUpperCase() !== 'CLOSED';
+      const normalizedProjStatus = String(projStatus).trim().toUpperCase().replace(/[\s_]+/g, '');
+      const isProjectActive =
+        normalizedProjStatus !== 'CLOSED' &&
+        normalizedProjStatus !== 'ONHOLD' &&
+        normalizedProjStatus !== 'CANCELLED' &&
+        normalizedProjStatus !== 'CANCELED';
 
       const detail: MemberProjectDetail = {
         id: pm.id,

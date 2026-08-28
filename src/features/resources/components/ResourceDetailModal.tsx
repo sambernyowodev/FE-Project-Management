@@ -299,12 +299,12 @@ export function ResourceDetailModal({ isOpen, onClose, resource }: ResourceDetai
               <div className="flex flex-col gap-3">
                 <h4 className="text-xs font-bold text-secondary uppercase tracking-wider flex items-center gap-1.5">
                   <FolderKanban className="w-4 h-4 text-emerald-600" />
-                  <span>Riwayat Project Selesai / Closed ({resource.completedProjects.length})</span>
+                  <span>Riwayat Project Selesai / Non-Aktif ({resource.completedProjects.length})</span>
                 </h4>
 
                 {resource.completedProjects.length === 0 ? (
                   <div className="p-4 rounded-xl border border-dashed border-outline-variant bg-surface-container-low text-center text-xs text-secondary">
-                    Belum ada riwayat project yang berstatus CLOSED.
+                    Belum ada riwayat project non-aktif (Closed, On Hold, Cancelled).
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -318,9 +318,7 @@ export function ResourceDetailModal({ isOpen, onClose, resource }: ResourceDetai
                             <span className="text-xs font-mono text-secondary">{proj.projectCode}</span>
                             <h5 className="text-sm font-bold text-on-background">{proj.projectName}</h5>
                           </div>
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-500/10 text-slate-600 border border-slate-500/20">
-                            CLOSED
-                          </span>
+                          <StatusBadge status={proj.status} />
                         </div>
                         <div className="text-[11px] text-secondary flex justify-between">
                           <span>Role: <strong>{proj.roleName || '-'}</strong></span>

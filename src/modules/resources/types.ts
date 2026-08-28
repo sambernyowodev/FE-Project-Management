@@ -14,7 +14,7 @@ export interface MemberProjectDetail {
   roleCode?: string;
   assignedMandays?: number;
   actualMandays?: number;
-  isProjectActive: boolean; // status !== 'CLOSED'
+  isProjectActive: boolean; // status not in ('CLOSED', 'ON HOLD', 'CANCELLED')
 }
 
 export interface MemberSupportDetail {
