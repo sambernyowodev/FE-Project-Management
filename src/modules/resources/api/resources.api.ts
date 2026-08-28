@@ -123,8 +123,38 @@ export const resourcesApi = {
       const totalAssignedMandays = activeProjects.reduce((acc, p) => acc + (p.assignedMandays || 0), 0);
       const totalSupportHours = activeSupports.reduce((acc, s) => acc + (s.hoursSpent || 0), 0);
 
+      // Compute primaryRole automatically based on the most frequent role across project & support assignments.
+      // If there is a tie in frequency, select the role from the earliest project assignment.
+      const roleFrequencyMap = new Map<string, { roleName: string; count: number; firstIndex: number }>();
+      let assignmentOrder = 0;
+
+      [...memberProjects, ...memberSupports].forEach((item) => {
+        const rName = item.roleName;
+        if (!rName) return;
+
+        if (!roleFrequencyMap.has(rName)) {
+          roleFrequencyMap.set(rName, {
+            roleName: rName,
+            count: 1,
+            firstIndex: assignmentOrder++,
+          });
+        } else {
+          const entry = roleFrequencyMap.get(rName)!;
+          entry.count += 1;
+        }
+      });
+
+      const sortedRoles = Array.from(roleFrequencyMap.values()).sort((a, b) => {
+        if (b.count !== a.count) {
+          return b.count - a.count; // Highest frequency first
+        }
+        return a.firstIndex - b.firstIndex; // Tie-breaker: earliest project assignment first
+      });
+
       const roles = (m.member_roles || []).map((mr: any) => mr.role).filter(Boolean);
-      const primaryRole = roles.length > 0 ? roles[0].name : (activeProjects[0]?.roleName || 'Member');
+      const primaryRole = sortedRoles.length > 0
+        ? sortedRoles[0].roleName
+        : (roles.length > 0 ? roles[0].name : 'Member');
 
       // Generate workload label
       let workloadLabel = 'Idle';
