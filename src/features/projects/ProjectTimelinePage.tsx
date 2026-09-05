@@ -30,10 +30,16 @@ import {
   Edit,
   ArrowLeft,
   Download,
-  Upload
+  Upload,
+  FileSpreadsheet
 } from 'lucide-react';
 import { formatDate } from '@/shared/lib/formatter';
-import { generateTimelineExcelTemplate, parseTimelineExcel, type ParsedExcelRow } from '@/shared/lib/excel-helpers';
+import {
+  generateTimelineExcelTemplate,
+  exportTimelineGanttToExcel,
+  parseTimelineExcel,
+  type ParsedExcelRow
+} from '@/shared/lib/excel-helpers';
 import type { ProjectActivity } from '@/modules/projects/types';
 
 export function ProjectTimelinePage() {
@@ -84,6 +90,11 @@ export function ProjectTimelinePage() {
   const handleDownloadTemplate = () => {
     if (!project) return;
     generateTimelineExcelTemplate(project, activities, members);
+  };
+
+  const handleDownloadGanttExcel = () => {
+    if (!project) return;
+    exportTimelineGanttToExcel(project, activities, members);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,13 +188,24 @@ export function ProjectTimelinePage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2.5">
                 <StatusBadge status={project.status || ProjectStatus.PLANNING} />
                 {project.timelineRemark && (
                   <span className="text-xs px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg font-semibold">
                     {project.timelineRemark}
                   </span>
                 )}
+
+                {/* Download Template Excel */}
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 border border-emerald-600/30 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 rounded-lg text-xs font-semibold transition-all cursor-pointer shadow-xs"
+                  title="Download Format Template Excel Timeline"
+                >
+                  <Download className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Download Template</span>
+                </button>
+
                 <button
                   onClick={() => navigate(`/projects/${project.id}`)}
                   className="flex items-center gap-1.5 px-3.5 py-1.5 border border-outline-variant rounded-lg hover:bg-surface-container-low text-xs font-bold text-secondary transition-all cursor-pointer"
@@ -251,10 +273,10 @@ export function ProjectTimelinePage() {
               </div>
             </div>
 
-            {/* Repository Links */}
+            {/* Project Overview Footer: Links & Remarks */}
             {(project.repositoryLink || project.timelineLink || project.remarks) && (
               <div className="border-t border-outline-variant/60 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs">
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap items-center gap-2.5">
                   {project.repositoryLink && (
                     <a
                       href={project.repositoryLink}
@@ -296,13 +318,13 @@ export function ProjectTimelinePage() {
             <div className="lg:col-span-3 flex flex-col gap-6 min-w-0">
 
               {/* Toolbar and View Tabs */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-3 shadow-sm">
+              <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-3.5 shadow-sm">
 
-                {/* Tabs */}
-                <div className="flex gap-1.5 p-1 bg-surface-container-high rounded-lg w-full sm:w-auto">
+                {/* View Switcher Tabs */}
+                <div className="flex items-center gap-1 p-1 bg-surface-container-high/70 rounded-lg w-full sm:w-auto shrink-0 border border-outline-variant/30">
                   <button
                     onClick={() => setActiveTab('gantt')}
-                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${activeTab === 'gantt'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${activeTab === 'gantt'
                       ? 'bg-surface-container-lowest text-primary shadow-sm'
                       : 'text-secondary hover:text-on-background'
                       }`}
@@ -312,7 +334,7 @@ export function ProjectTimelinePage() {
                   </button>
                   <button
                     onClick={() => setActiveTab('list')}
-                    className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${activeTab === 'list'
+                    className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${activeTab === 'list'
                       ? 'bg-surface-container-lowest text-primary shadow-sm'
                       : 'text-secondary hover:text-on-background'
                       }`}
@@ -322,21 +344,21 @@ export function ProjectTimelinePage() {
                   </button>
                 </div>
 
-                {/* Actions (Add Task & Excel Upload/Download) */}
-                <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-                  {/* Download Template Excel */}
+                {/* Actions Toolbar (Excel Actions & Add Task) */}
+                <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto xl:justify-end">
+                  {/* Download Timeline Gantt Chart ke Excel */}
                   <button
-                    onClick={handleDownloadTemplate}
-                    className="flex items-center gap-2 px-3.5 py-2 border border-outline-variant bg-surface rounded-lg hover:bg-surface-container-low text-secondary hover:text-on-background transition-all text-xs font-bold shadow-sm justify-center cursor-pointer"
-                    title="Download Format Template Excel Timeline"
+                    onClick={handleDownloadGanttExcel}
+                    className="flex items-center gap-2 px-3.5 py-2 border border-emerald-600/30 bg-emerald-50/80 text-emerald-800 hover:bg-emerald-100/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 rounded-lg transition-all text-xs font-bold shadow-xs cursor-pointer"
+                    title="Download Timeline Gantt Chart ke Excel dengan pewarnaan per cell (.xlsx)"
                   >
-                    <Download className="w-4 h-4 text-emerald-600" />
-                    <span>Download Template</span>
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>Export Gantt to Excel</span>
                   </button>
 
                   {/* Upload Excel */}
-                  <label className="flex items-center gap-2 px-3.5 py-2 border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-500/20 transition-all text-xs font-bold shadow-sm justify-center cursor-pointer">
-                    <Upload className="w-4 h-4" />
+                  <label className="flex items-center gap-1.5 px-3 py-2 border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-500/20 transition-all text-xs font-semibold shadow-xs cursor-pointer">
+                    <Upload className="w-3.5 h-3.5 shrink-0" />
                     <span>{isParsingExcel ? 'Membaca...' : 'Upload Excel'}</span>
                     <input
                       type="file"
@@ -347,12 +369,15 @@ export function ProjectTimelinePage() {
                     />
                   </label>
 
+                  {/* Separator Divider */}
+                  <div className="hidden sm:block h-6 w-px bg-outline-variant/60 mx-1"></div>
+
                   {/* Add Task Button */}
                   <button
                     onClick={handleOpenCreateModal}
-                    className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-xs font-bold shadow-sm justify-center cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary/90 transition-colors text-xs font-bold shadow-sm justify-center cursor-pointer ml-auto sm:ml-0"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 shrink-0" />
                     <span>Tambah Aktivitas</span>
                   </button>
                 </div>

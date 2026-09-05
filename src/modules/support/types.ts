@@ -12,6 +12,9 @@ export type SupportTicket = Entity<'SupportTicketResponseDto'> & {
   companyId?: string | null;
   departmentId?: string | null;
   businessOwnerId?: string | null;
+  poId?: string | null;
+  poNumber?: string | null;
+  purchaseOrder?: { id: string; poNumber: string; poName?: string } | null;
   company?: { id: string; name: string; code: string } | null;
   department?: { id: string; name: string } | null;
   businessOwner?: { id: string; name: string; title?: string | null } | null;
@@ -35,11 +38,14 @@ export type SupportTicketAssignee = Entity<'SupportTicketAssigneeResponseDto'> &
 export type CreateSupportTicketAssignee = Schema<'CreateSupportTicketAssigneeDto'>;
 export type UpdateSupportTicketAssignee = Schema<'UpdateSupportTicketAssigneeDto'>;
 
-export type CreateSupportTicket = Schema<'CreateSupportTicketDto'>;
+export type CreateSupportTicket = Schema<'CreateSupportTicketDto'> & {
+  poId?: string | null;
+};
 export type UpdateSupportTicket = Partial<CreateSupportTicket> & {
   hoursSpent?: number;
   status?: string;
   notes?: string;
+  poId?: string | null;
 };
 
 

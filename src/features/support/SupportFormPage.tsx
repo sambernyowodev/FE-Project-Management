@@ -7,6 +7,7 @@ import {
   useUpdateSupportTicket,
   useDeleteSupportTicket
 } from '@/modules/support/hooks/useSupportTickets';
+import { useGetPurchaseOrders } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
 import { useGetMasterProjects } from '@/modules/master/projects/hooks/useMasterProjects';
 import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
 import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
@@ -25,6 +26,9 @@ export function SupportFormPage() {
   const { data: ticket, isLoading: isTicketLoading } = useGetSupportTicket(id || '');
   const { data: masterProjectsRes, isLoading: isMasterProjectsLoading } = useGetMasterProjects({ perPage: 200 });
   const masterProjects = masterProjectsRes?.data || [];
+
+  const { data: poData } = useGetPurchaseOrders({ perPage: 100 });
+  const purchaseOrders = poData?.data || [];
 
   const [isProjectDropdownOpen, setIsProjectDropdownOpen] = useState(false);
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
@@ -83,6 +87,7 @@ export function SupportFormPage() {
     projectName: '',
     projectId: '',
     newProjectName: '',
+    poId: '',
     companyId: '',
     departmentId: '',
     businessOwnerId: '',
@@ -114,6 +119,7 @@ export function SupportFormPage() {
           projectName: ticket.masterProject?.name || '',
           projectId: ticket.masterProjectId ? String(ticket.masterProjectId) : '',
           newProjectName: '',
+          poId: ticket.poId || '',
           companyId: ticket.companyId || '',
           departmentId: ticket.departmentId || '',
           businessOwnerId: ticket.businessOwnerId || '',
@@ -189,6 +195,7 @@ export function SupportFormPage() {
       projectName: masterProjectName,
       masterProjectId,
       masterProjectName,
+      poId: formData.poId || null,
       companyId: formData.companyId || null,
       departmentId: formData.departmentId || null,
       businessOwnerId: formData.businessOwnerId || null,
@@ -391,6 +398,27 @@ export function SupportFormPage() {
                   />
                 </div>
               )}
+
+              {/* Purchase Order */}
+              <div className="flex flex-col gap-2">
+                <label htmlFor="poId" className="text-sm font-semibold text-on-background">
+                  Purchase Order
+                </label>
+                <select
+                  id="poId"
+                  name="poId"
+                  value={formData.poId}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold"
+                >
+                  <option value="">-- Select Purchase Order (Optional) --</option>
+                  {purchaseOrders.map(po => (
+                    <option key={po.id} value={po.id}>
+                      {po.poNumber} {po.poName ? `- ${po.poName}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
               {/* Company, Department & Business Owner Master Data */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">

@@ -1,37 +1,66 @@
 import { supabase } from '@/shared/api/supabase';
 import type { SupportTicket, CreateSupportTicket, UpdateSupportTicket, SupportTicketAssignee, CreateSupportTicketAssignee, UpdateSupportTicketAssignee } from '../types';
 
-const mapTicket = (t: any): SupportTicket => ({
-  ...t,
-  id: t.id,
-  ticketCode: t.ticket_code,
-  masterProjectId: t.master_project_id,
-  picClient: t.pic_client || '',
-  customer: t.customer || '',
-  companyId: t.company_id,
-  departmentId: t.department_id,
-  businessOwnerId: t.business_owner_id,
-  company: t.company ? { id: t.company.id, name: t.company.name, code: t.company.code } : null,
-  department: t.department ? { id: t.department.id, name: t.department.name } : null,
-  businessOwner: t.business_owner ? { id: t.business_owner.id, name: t.business_owner.name, title: t.business_owner.title } : null,
-  issueTitle: t.issue_title,
-  issueDescription: t.issue_description,
-  hoursSpent: Number(t.hours_spent),
-  mandaysSpent: Number(t.mandays_spent),
-  status: t.status,
-  startDate: t.start_date,
-  endDate: t.end_date,
-  folderAttachment: t.folder_attachment,
-  notes: t.notes,
-  updateDate: t.update_date || t.updated_at,
-  isActive: t.is_active,
-  projectName: t.master_project?.name || '',
-  projectId: t.master_project_id || '',
-});
+let hasPoIdSupportColumn: boolean | null = null;
+async function checkPoIdSupportColumn(): Promise<boolean> {
+  if (hasPoIdSupportColumn !== null) return hasPoIdSupportColumn;
+  try {
+    const { error } = await supabase.from('support_tickets').select('po_id').limit(1);
+    hasPoIdSupportColumn = !error;
+  } catch {
+    hasPoIdSupportColumn = false;
+  }
+  return hasPoIdSupportColumn;
+}
+
+const mapTicket = (t: any): SupportTicket => {
+  const po = t.purchase_orders || t.purchase_order;
+  const poData = Array.isArray(po) ? po[0] : po;
+
+  return {
+    ...t,
+    id: t.id,
+    ticketCode: t.ticket_code,
+    masterProjectId: t.master_project_id,
+    picClient: t.pic_client || '',
+    customer: t.customer || '',
+    companyId: t.company_id,
+    departmentId: t.department_id,
+    businessOwnerId: t.business_owner_id,
+    poId: t.po_id || poData?.id || undefined,
+    poNumber: poData?.po_number || undefined,
+    purchaseOrder: poData ? {
+      id: poData.id,
+      poNumber: poData.po_number,
+      poName: poData.po_name,
+    } : null,
+    company: t.company ? { id: t.company.id, name: t.company.name, code: t.company.code } : null,
+    department: t.department ? { id: t.department.id, name: t.department.name } : null,
+    businessOwner: t.business_owner ? { id: t.business_owner.id, name: t.business_owner.name, title: t.business_owner.title } : null,
+    issueTitle: t.issue_title,
+    issueDescription: t.issue_description,
+    hoursSpent: Number(t.hours_spent),
+    mandaysSpent: Number(t.mandays_spent),
+    status: t.status,
+    startDate: t.start_date,
+    endDate: t.end_date,
+    folderAttachment: t.folder_attachment,
+    notes: t.notes,
+    updateDate: t.update_date || t.updated_at,
+    isActive: t.is_active,
+    projectName: t.master_project?.name || '',
+    projectId: t.master_project_id || '',
+  };
+};
 
 export const supportApi = {
   getTickets: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: SupportTicket[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
-    let query = supabase.from('support_tickets').select('*, master_project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*)', { count: 'exact' });
+    const canUsePo = await checkPoIdSupportColumn();
+    const selectQuery = canUsePo
+      ? '*, master_project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), purchase_orders:purchase_orders(*)'
+      : '*, master_project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*)';
+
+    let query = supabase.from('support_tickets').select(selectQuery, { count: 'exact' });
 
     if (params?.search) {
       query = query.or(`issue_title.ilike.%${params.search}%,ticket_code.ilike.%${params.search}%`);
@@ -50,6 +79,8 @@ export const supportApi = {
               query = query.eq('department_id', val);
             } else if (key === 'businessOwnerId') {
               query = query.eq('business_owner_id', val);
+            } else if (key === 'poId' && canUsePo) {
+              query = query.eq('po_id', val);
             } else if (key === 'ticketCode') {
               query = query.ilike('ticket_code', `%${val}%`);
             } else if (key === 'projectName') {
@@ -101,9 +132,14 @@ export const supportApi = {
   },
 
   getTicketById: async (id: string): Promise<SupportTicket> => {
+    const canUsePo = await checkPoIdSupportColumn();
+    const selectQuery = canUsePo
+      ? '*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), purchase_orders:purchase_orders(*)'
+      : '*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*)';
+
     const { data, error } = await supabase
       .from('support_tickets')
-      .select('*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*)')
+      .select(selectQuery)
       .eq('id', id)
       .single();
     if (error) throw error;
@@ -149,25 +185,36 @@ export const supportApi = {
     const ticketSeq = (count || 0) + 1;
     const ticketCode = `SUP-${year}-${String(ticketSeq).padStart(4, '0')}`;
 
+    const canUsePo = await checkPoIdSupportColumn();
+    const insertPayload: any = {
+      ticket_code: ticketCode,
+      master_project_id: masterProjectId,
+      customer: data.customer,
+      pic_client: data.picClient,
+      company_id: data.companyId || null,
+      department_id: data.departmentId || null,
+      business_owner_id: data.businessOwnerId || null,
+      issue_title: data.issueTitle,
+      issue_description: data.issueDescription,
+      status: 'OPEN',
+      is_active: true,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      folder_attachment: data.folderAttachment,
+    };
+
+    if (canUsePo && data.poId !== undefined) {
+      insertPayload.po_id = data.poId || null;
+    }
+
+    const selectQuery = canUsePo
+      ? '*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), purchase_orders:purchase_orders(*)'
+      : '*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*)';
+
     const { data: ticket, error } = await supabase
       .from('support_tickets')
-      .insert({
-        ticket_code: ticketCode,
-        master_project_id: masterProjectId,
-        customer: data.customer,
-        pic_client: data.picClient,
-        company_id: data.companyId || null,
-        department_id: data.departmentId || null,
-        business_owner_id: data.businessOwnerId || null,
-        issue_title: data.issueTitle,
-        issue_description: data.issueDescription,
-        status: 'OPEN',
-        is_active: true,
-        start_date: data.startDate,
-        end_date: data.endDate,
-        folder_attachment: data.folderAttachment,
-      })
-      .select('*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*)')
+      .insert(insertPayload)
+      .select(selectQuery)
       .single();
     if (error) throw error;
     return mapTicket(ticket);
@@ -207,27 +254,38 @@ export const supportApi = {
       }
     }
 
+    const canUsePo = await checkPoIdSupportColumn();
+    const updatePayload: any = {
+      master_project_id: masterProjectId,
+      customer: data.customer,
+      pic_client: data.picClient,
+      company_id: data.companyId !== undefined ? (data.companyId || null) : undefined,
+      department_id: data.departmentId !== undefined ? (data.departmentId || null) : undefined,
+      business_owner_id: data.businessOwnerId !== undefined ? (data.businessOwnerId || null) : undefined,
+      issue_title: data.issueTitle,
+      issue_description: data.issueDescription,
+      hours_spent: data.hoursSpent,
+      mandays_spent: data.hoursSpent ? Number((data.hoursSpent / 8).toFixed(2)) : undefined,
+      status: data.status,
+      notes: data.notes,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      folder_attachment: data.folderAttachment,
+    };
+
+    if (canUsePo && data.poId !== undefined) {
+      updatePayload.po_id = data.poId || null;
+    }
+
+    const selectQuery = canUsePo
+      ? '*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), purchase_orders:purchase_orders(*)'
+      : '*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*)';
+
     const { data: ticket, error } = await supabase
       .from('support_tickets')
-      .update({
-        master_project_id: masterProjectId,
-        customer: data.customer,
-        pic_client: data.picClient,
-        company_id: data.companyId !== undefined ? (data.companyId || null) : undefined,
-        department_id: data.departmentId !== undefined ? (data.departmentId || null) : undefined,
-        business_owner_id: data.businessOwnerId !== undefined ? (data.businessOwnerId || null) : undefined,
-        issue_title: data.issueTitle,
-        issue_description: data.issueDescription,
-        hours_spent: data.hoursSpent,
-        mandays_spent: data.hoursSpent ? Number((data.hoursSpent / 8).toFixed(2)) : undefined,
-        status: data.status,
-        notes: data.notes,
-        start_date: data.startDate,
-        end_date: data.endDate,
-        folder_attachment: data.folderAttachment,
-      })
+      .update(updatePayload)
       .eq('id', id)
-      .select('*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*)')
+      .select(selectQuery)
       .single();
     if (error) throw error;
     return mapTicket(ticket);

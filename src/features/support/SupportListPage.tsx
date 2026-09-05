@@ -5,6 +5,7 @@ import {
   useGetSupportTickets,
   useDeleteSupportTicket
 } from '@/modules/support/hooks/useSupportTickets';
+import { useGetPurchaseOrders } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
@@ -30,6 +31,14 @@ export function SupportListPage() {
     search,
     filter: filterString,
   });
+
+  const { data: poData } = useGetPurchaseOrders({ perPage: 100 });
+  const purchaseOrders = poData?.data || [];
+
+  const poFilterOptions = purchaseOrders.map(po => ({
+    label: po.poNumber || '-',
+    value: po.id,
+  }));
 
   const deleteMutation = useDeleteSupportTicket();
 
@@ -81,6 +90,17 @@ export function SupportListPage() {
       accessorKey: 'projectName',
       cell: ({ row }) => (
         <span className="font-semibold text-on-background">{row.original.projectName || '-'}</span>
+      ),
+    },
+    {
+      id: 'poId',
+      header: 'PO Number',
+      accessorKey: 'poNumber',
+      meta: {
+        filterOptions: poFilterOptions,
+      },
+      cell: ({ row }) => (
+        <span className="font-semibold text-secondary">{row.original.poNumber || '-'}</span>
       ),
     },
     {
