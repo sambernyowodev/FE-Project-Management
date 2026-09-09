@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Menu, Bell, User, LogOut } from 'lucide-react';
+import { Menu, User, LogOut, Building2 } from 'lucide-react';
 import { useProfile, useLogout } from '@/modules/auth/hooks/useAuth';
 
-export function Topbar() {
+interface TopbarProps {
+  onToggleMobileMenu?: () => void;
+}
+
+export function Topbar({ onToggleMobileMenu }: TopbarProps) {
   const { data: profileRes } = useProfile();
   const profile = profileRes?.data;
   const { logout } = useLogout();
@@ -33,19 +37,35 @@ export function Topbar() {
   };
 
   return (
-    <header className="md:hidden flex justify-between items-center h-16 px-4 w-full sticky top-0 z-50 bg-surface-container-lowest border-b border-outline-variant">
-      <div className="flex items-center gap-2">
-        <Menu className="text-primary w-6 h-6 cursor-pointer" />
-        <span className="text-2xl font-bold text-primary">HCM Pro</span>
+    <header className="md:hidden flex justify-between items-center h-16 px-4 w-full sticky top-0 z-30 bg-surface-container border-b border-outline-variant select-none">
+      {/* Hamburger Menu & Brand */}
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={onToggleMobileMenu}
+          aria-label="Buka Menu"
+          className="p-2 -ml-1.5 text-secondary hover:text-primary hover:bg-surface-container-high rounded-xl transition-all cursor-pointer"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center shrink-0">
+            <Building2 className="text-on-primary w-4 h-4" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-base font-black text-primary leading-tight">MII PM</span>
+            <span className="text-[9px] text-secondary font-semibold uppercase tracking-wider leading-none">Enterprise</span>
+          </div>
+        </div>
       </div>
-      <div className="flex items-center gap-4 relative" ref={dropdownRef}>
-        <Bell className="text-on-surface-variant cursor-pointer w-6 h-6" />
-        
+
+      {/* User Profile Avatar / Dropdown */}
+      <div className="flex items-center gap-3 relative" ref={dropdownRef}>
         {profile && (
           <div>
             <div
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-8 h-8 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden cursor-pointer select-none"
+              className="w-9 h-9 rounded-full bg-surface-container-highest border border-outline-variant flex items-center justify-center overflow-hidden cursor-pointer select-none transition-transform active:scale-95"
             >
               {profile.avatarUrl ? (
                 <img
@@ -54,7 +74,7 @@ export function Topbar() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-[10px] font-bold text-primary">
+                <span className="text-xs font-bold text-primary">
                   {getInitials(profile.fullName)}
                 </span>
               )}
@@ -72,7 +92,7 @@ export function Topbar() {
                     {profile.email}
                   </span>
                 </div>
-                
+
                 <NavLink
                   to="/profile"
                   onClick={() => setIsDropdownOpen(false)}
@@ -100,4 +120,3 @@ export function Topbar() {
     </header>
   );
 }
-

@@ -289,7 +289,7 @@ export default function DataTable<T>({
         </div>
 
         {/* Actions Menu */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end sm:justify-start w-full sm:w-auto">
           {!hideFilter && (
             <button
               onClick={() => setShowFilters(!showFilters)}

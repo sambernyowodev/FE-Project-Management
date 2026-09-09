@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { useProfile, useLogout } from '@/modules/auth/hooks/useAuth';
@@ -8,12 +8,19 @@ export function Layout() {
   const token = localStorage.getItem('token');
   const { isLoading, isError } = useProfile();
   const { logout } = useLogout();
+  const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!token || isError) {
       logout();
     }
   }, [token, isError, logout]);
+
+  // Close mobile menu whenever the route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   if (!token || isLoading) {
     return (
@@ -25,10 +32,13 @@ export function Layout() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex-1 flex flex-col md:ml-64 relative min-w-0">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 min-w-0">
+      <Sidebar
+        isMobileOpen={isMobileMenuOpen}
+        onCloseMobile={() => setIsMobileMenuOpen(false)}
+      />
+      <div className="flex-1 flex flex-col md:ml-64 relative min-w-0 w-full">
+        <Topbar onToggleMobileMenu={() => setIsMobileMenuOpen(prev => !prev)} />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-8 min-w-0">
           <div className="max-w-[1440px] mx-auto w-full">
             <Outlet />
           </div>
@@ -37,4 +47,3 @@ export function Layout() {
     </div>
   );
 }
-

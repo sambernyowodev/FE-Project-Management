@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Save, CheckSquare, AlertCircle } from 'lucide-react';
 import {
   useCreateProjectActivity,
   useUpdateProjectActivity
 } from '@/modules/projects/hooks/useProjectActivities';
 import { useGetResourceWorkloadMap } from '@/modules/resources/hooks/useResources';
+import { useGetHolidays } from '@/modules/master/holidays/hooks/useHolidays';
 import { formatDateInput } from '@/shared/lib/formatter';
+import {
+  calculateWorkingMandays,
+  calculateCalendarDays,
+  isNationalHoliday,
+  createHolidayMap
+} from '@/shared/lib/project-calculations';
 import type { ProjectActivity } from '@/modules/projects/types';
 
 const PHASE_OPTIONS = [
@@ -36,6 +43,8 @@ export function ActivityFormModal({
   const createMutation = useCreateProjectActivity(projectId);
   const updateMutation = useUpdateProjectActivity(projectId);
   const { data: workloadMap = {} } = useGetResourceWorkloadMap();
+  const { data: holidays = [] } = useGetHolidays();
+  const holidayMap = useMemo(() => createHolidayMap(holidays), [holidays]);
 
   const [formData, setFormData] = useState({
     activityName: '',
@@ -100,12 +109,35 @@ export function ActivityFormModal({
     }
   }, [isOpen, activity, parentId, activities]);
 
+  const startHoliday = useMemo(() => isNationalHoliday(formData.startDate, holidayMap), [formData.startDate, holidayMap]);
+  const endHoliday = useMemo(() => isNationalHoliday(formData.endDate, holidayMap), [formData.endDate, holidayMap]);
+
   if (!isOpen) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    setFormData(prev => ({ ...prev, [name]: val }));
+    
+    setFormData(prev => {
+      const next = { ...prev, [name]: val };
+      
+      // If start date or end date changed, auto-calculate duration and working mandays
+      if ((name === 'startDate' || name === 'endDate') && typeof val === 'string') {
+        const sDate = name === 'startDate' ? val : prev.startDate;
+        const eDate = name === 'endDate' ? val : prev.endDate;
+
+        if (sDate && eDate) {
+          const calDays = calculateCalendarDays(sDate, eDate);
+          const workDays = calculateWorkingMandays(sDate, eDate, holidayMap);
+          if (calDays >= 0) {
+            next.durationDays = String(calDays);
+            next.mandays = String(workDays);
+          }
+        }
+      }
+
+      return next;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -296,25 +328,47 @@ export function ActivityFormModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Start Date */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-on-background">Tanggal Mulai</label>
+              <label className="text-sm font-semibold text-on-background flex items-center justify-between">
+                <span>Tanggal Mulai</span>
+                {startHoliday && (
+                  <span className="text-[11px] font-bold text-red-600 bg-red-500/10 px-2 py-0.5 rounded-md border border-red-500/20">
+                    Libur: {startHoliday.name}
+                  </span>
+                )}
+              </label>
               <input
                 type="date"
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className={`w-full px-4 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 transition-all ${
+                  startHoliday
+                    ? 'border-red-500/60 focus:ring-red-500/20 focus:border-red-500'
+                    : 'border-outline-variant focus:ring-primary/20 focus:border-primary'
+                }`}
               />
             </div>
 
             {/* End Date */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-on-background">Tanggal Selesai</label>
+              <label className="text-sm font-semibold text-on-background flex items-center justify-between">
+                <span>Tanggal Selesai</span>
+                {endHoliday && (
+                  <span className="text-[11px] font-bold text-red-600 bg-red-500/10 px-2 py-0.5 rounded-md border border-red-500/20">
+                    Libur: {endHoliday.name}
+                  </span>
+                )}
+              </label>
               <input
                 type="date"
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className={`w-full px-4 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 transition-all ${
+                  endHoliday
+                    ? 'border-red-500/60 focus:ring-red-500/20 focus:border-red-500'
+                    : 'border-outline-variant focus:ring-primary/20 focus:border-primary'
+                }`}
               />
             </div>
 
@@ -335,7 +389,10 @@ export function ActivityFormModal({
 
             {/* Mandays */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-on-background">Mandays (Hari Kerja Efektif)</label>
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-semibold text-on-background">Mandays (Hari Kerja)</label>
+                <span className="text-[10px] text-secondary font-medium">(Exclude Weekend & Libur)</span>
+              </div>
               <input
                 type="number"
                 name="mandays"
@@ -343,7 +400,7 @@ export function ActivityFormModal({
                 step="1"
                 value={formData.mandays}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold text-primary"
                 placeholder="e.g. 3"
               />
             </div>

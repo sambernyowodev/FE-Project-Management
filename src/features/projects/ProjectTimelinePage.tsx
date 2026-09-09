@@ -18,6 +18,7 @@ import { ManageMembersModal } from './components/ManageMembersModal';
 import { ExcelImportModal } from './components/ExcelImportModal';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import { ProjectStatus } from '@/shared/constants/enums';
+import { calculateProjectProgress, calculateProjectSchedule } from '@/shared/lib/project-calculations';
 import {
   Calendar,
   Database,
@@ -33,7 +34,7 @@ import {
   Upload,
   FileSpreadsheet
 } from 'lucide-react';
-import { formatDate, parseLocalDate } from '@/shared/lib/formatter';
+import { formatDate } from '@/shared/lib/formatter';
 import {
   generateTimelineExcelTemplate,
   exportTimelineGanttToExcel,
@@ -76,51 +77,14 @@ export function ProjectTimelinePage() {
   // Calculate dynamic metrics from activities (Progress, Mandays, Actual Schedule)
   const calculatedMetrics = useMemo(() => {
     const totalInputMandays = activities.reduce((acc, curr) => acc + Math.round(curr.mandays || 0), 0);
-    
-    let calculatedProgress = 0;
-    if (activities.length > 0) {
-      if (totalInputMandays > 0) {
-        const weightedProgress = activities.reduce((acc, curr) => acc + ((curr.progressPct || 0) * Math.round(curr.mandays || 0)), 0);
-        calculatedProgress = Math.round((weightedProgress / totalInputMandays) * 10) / 10;
-      } else {
-        const avgProgress = activities.reduce((acc, curr) => acc + (curr.progressPct || 0), 0) / activities.length;
-        calculatedProgress = Math.round(avgProgress * 10) / 10;
-      }
-    } else {
-      calculatedProgress = project?.progressPct || 0;
-    }
-
-    // Determine actual start & actual end from timeline activities
-    let calculatedActualStart: string | null = null;
-    let calculatedActualEnd: string | null = null;
-
-    const validStartDates = activities
-      .map(a => a.startDate ? parseLocalDate(a.startDate) : null)
-      .filter((d): d is Date => d !== null);
-
-    const validEndDates = activities
-      .map(a => a.endDate ? parseLocalDate(a.endDate) : null)
-      .filter((d): d is Date => d !== null);
-
-    if (validStartDates.length > 0) {
-      const minStart = new Date(Math.min(...validStartDates.map(d => d.getTime())));
-      calculatedActualStart = formatDate(minStart, 'input');
-    } else {
-      calculatedActualStart = project?.actualStart || project?.startDate || null;
-    }
-
-    if (validEndDates.length > 0) {
-      const maxEnd = new Date(Math.max(...validEndDates.map(d => d.getTime())));
-      calculatedActualEnd = formatDate(maxEnd, 'input');
-    } else {
-      calculatedActualEnd = project?.actualEnd || project?.endDate || null;
-    }
+    const calculatedProgress = calculateProjectProgress(activities);
+    const { actualStart, actualEnd } = calculateProjectSchedule(activities, project?.startDate, project?.endDate);
 
     return {
       progressPct: calculatedProgress,
       totalInputMandays: Math.round(totalInputMandays),
-      actualStart: calculatedActualStart,
-      actualEnd: calculatedActualEnd,
+      actualStart,
+      actualEnd,
     };
   }, [activities, project]);
 

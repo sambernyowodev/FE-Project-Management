@@ -2,9 +2,14 @@ import { supabase } from '@/shared/api/supabase';
 import type { Project, ProjectMember } from '../types';
 import type { components } from '@/shared/types/api';
 import type { CreateProject, UpdateProject } from '../types';
+import { calculateProjectProgress, calculateProjectSchedule } from '@/shared/lib/project-calculations';
 
 const mapProject = (p: any): Project => {
   const poProject = p.po_projects && p.po_projects.length > 0 ? p.po_projects[0] : null;
+  const activities = p.project_activities || [];
+  const progressPct = calculateProjectProgress(activities);
+  const { actualStart, actualEnd } = calculateProjectSchedule(activities, p.start_date, p.end_date);
+
   return {
     ...p,
     id: p.id,
@@ -22,9 +27,9 @@ const mapProject = (p: any): Project => {
     totalMandays: Number(p.total_mandays),
     startDate: p.start_date,
     endDate: p.end_date,
-    actualStart: p.actual_start,
-    actualEnd: p.actual_end,
-    progressPct: Number(p.progress_pct),
+    actualStart,
+    actualEnd,
+    progressPct,
     repositoryLink: p.repository_link,
     timelineLink: p.timeline_link,
     remarks: p.remarks,
@@ -41,20 +46,20 @@ const mapProject = (p: any): Project => {
 
 export const projectsApi = {
   getProjects: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: Project[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
-    let selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*)';
+    let selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), project_activities(mandays, progress_pct, start_date, end_date)';
     if (params?.filter) {
       try {
         const filters = JSON.parse(params.filter);
         if (filters.poId) {
-          selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects!inner(po_id, purchase_orders(po_number))';
+          selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects!inner(po_id, purchase_orders(po_number)), project_activities(mandays, progress_pct, start_date, end_date)';
         } else {
-          selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))';
+          selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number)), project_activities(mandays, progress_pct, start_date, end_date)';
         }
       } catch (e) {
-        selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))';
+        selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number)), project_activities(mandays, progress_pct, start_date, end_date)';
       }
     } else {
-      selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))';
+      selectQuery = '*, project:master_projects!inner(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number)), project_activities(mandays, progress_pct, start_date, end_date)';
     }
 
     let query = supabase.from('projects').select(selectQuery, { count: 'exact' });
@@ -82,8 +87,6 @@ export const projectsApi = {
               query = query.ilike('project.name', `%${val}%`);
             } else if (key === 'startDate') {
               query = query.eq('start_date', val);
-            } else if (key === 'progressPct') {
-              query = query.eq('progress_pct', Number(val));
             } else if (key === 'poId') {
               query = query.eq('po_projects.po_id', val);
             }
@@ -100,11 +103,14 @@ export const projectsApi = {
       let dbColumn = column;
       if (column === 'projectCode') dbColumn = 'project(project_code)';
       else if (column === 'totalMandays') dbColumn = 'total_mandays';
-      else if (column === 'progressPct') dbColumn = 'progress_pct';
       else if (column === 'startDate') dbColumn = 'start_date';
       else if (column === 'endDate') dbColumn = 'end_date';
 
-      query = query.order(dbColumn, { ascending: !isDesc });
+      if (column !== 'progressPct') {
+        query = query.order(dbColumn, { ascending: !isDesc });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
     } else {
       query = query.order('created_at', { ascending: false });
     }
@@ -131,7 +137,7 @@ export const projectsApi = {
   getProjectById: async (id: string): Promise<Project> => {
     const { data, error } = await supabase
       .from('projects')
-      .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))')
+      .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number)), project_activities(mandays, progress_pct, start_date, end_date)')
       .eq('id', id)
       .single();
     if (error) throw error;
@@ -159,7 +165,7 @@ export const projectsApi = {
         timeline_link: data.timelineLink,
         timeline_remark: data.timelineRemark,
       })
-      .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))')
+      .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number)), project_activities(mandays, progress_pct, start_date, end_date)')
       .single();
     if (error) throw error;
 
@@ -201,7 +207,7 @@ export const projectsApi = {
         timeline_remark: data.timelineRemark,
       })
       .eq('id', id)
-      .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))')
+      .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number)), project_activities(mandays, progress_pct, start_date, end_date)')
       .single();
     if (error) throw error;
 

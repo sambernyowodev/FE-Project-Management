@@ -6,6 +6,12 @@ import {
   isAfter
 } from 'date-fns';
 import { formatDate, parseLocalDate } from '@/shared/lib/formatter';
+import { 
+  calculateProjectProgress, 
+  calculateProjectSchedule,
+  calculateWorkingMandays,
+  calculateCalendarDays 
+} from '@/shared/lib/project-calculations';
 import type { ProjectActivity, ProjectMember, Project } from '@/modules/projects/types';
 
 export interface ParsedExcelRow {
@@ -277,10 +283,14 @@ export function parseTimelineExcel(
           if (endDate && endDate.includes('T')) endDate = endDate.split('T')[0];
 
           const durationDaysVal = getVal(['Duration Days', 'Duration', 'Durasi']);
-          const durationDays = durationDaysVal ? Math.round(Number(durationDaysVal)) : undefined;
+          const durationDays = durationDaysVal 
+            ? Math.round(Number(durationDaysVal)) 
+            : (startDate && endDate ? calculateCalendarDays(startDate, endDate) : undefined);
 
           const mandaysVal = getVal(['Mandays', 'Man Days']);
-          const mandays = mandaysVal ? Math.round(Number(mandaysVal)) : undefined;
+          const mandays = mandaysVal 
+            ? Math.round(Number(mandaysVal)) 
+            : (startDate && endDate ? calculateWorkingMandays(startDate, endDate) : undefined);
 
           const assignedToName = getVal(['Assigned Resource', 'Resource', 'Petugas', 'Assigned To']);
 
@@ -821,33 +831,10 @@ export function exportTimelineGanttToExcel(
   const completedCount = activities.filter(a => a.progressPct === 100).length;
   const milestoneCount = activities.filter(a => a.isMilestone).length;
 
-  let calculatedProgress = 0;
-  if (activities.length > 0) {
-    if (totalInputMandays > 0) {
-      const weightedProgress = activities.reduce((acc, curr) => acc + ((curr.progressPct || 0) * Math.round(curr.mandays || 0)), 0);
-      calculatedProgress = Math.round((weightedProgress / totalInputMandays) * 10) / 10;
-    } else {
-      const avgProgress = activities.reduce((acc, curr) => acc + (curr.progressPct || 0), 0) / activities.length;
-      calculatedProgress = Math.round(avgProgress * 10) / 10;
-    }
-  } else {
-    calculatedProgress = project.progressPct || 0;
-  }
-
-  const validActStarts = activities
-    .map(a => a.startDate ? parseLocalDate(a.startDate) : null)
-    .filter((d): d is Date => d !== null);
-  const validActEnds = activities
-    .map(a => a.endDate ? parseLocalDate(a.endDate) : null)
-    .filter((d): d is Date => d !== null);
-
-  const actualStartStr = validActStarts.length > 0
-    ? formatDate(new Date(Math.min(...validActStarts.map(d => d.getTime()))), 'short')
-    : (formatDate(project.actualStart, 'short') || '-');
-
-  const actualEndStr = validActEnds.length > 0
-    ? formatDate(new Date(Math.max(...validActEnds.map(d => d.getTime()))), 'short')
-    : (formatDate(project.actualEnd, 'short') || '-');
+  const calculatedProgress = calculateProjectProgress(activities);
+  const { actualStart, actualEnd } = calculateProjectSchedule(activities, project.startDate, project.endDate);
+  const actualStartStr = formatDate(actualStart, 'short') || '-';
+  const actualEndStr = formatDate(actualEnd, 'short') || '-';
 
   const overviewRows = [
     { 'Attribute': 'Project Name', 'Value': project.name },

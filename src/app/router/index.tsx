@@ -29,6 +29,7 @@ import { DepartmentListPage } from '@/features/master/departments/DepartmentList
 import { DepartmentFormPage } from '@/features/master/departments/DepartmentFormPage';
 import { BusinessOwnerListPage } from '@/features/master/business-owners/BusinessOwnerListPage';
 import { BusinessOwnerFormPage } from '@/features/master/business-owners/BusinessOwnerFormPage';
+import { HolidayListPage } from '@/features/master/holidays/HolidayListPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { RegisterPage } from '@/features/auth/RegisterPage';
 import { ProfilePage } from '@/features/auth/ProfilePage';
@@ -186,6 +187,10 @@ export const router = createBrowserRouter([
           {
             path: 'members/:id',
             element: <MemberFormPage />
+          },
+          {
+            path: 'holidays',
+            element: <HolidayListPage />
           }
         ]
       },

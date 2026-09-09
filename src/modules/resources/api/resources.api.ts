@@ -6,6 +6,7 @@ import type {
   MemberProjectDetail,
   MemberSupportDetail
 } from '../types';
+import { calculateProjectProgress } from '@/shared/lib/project-calculations';
 
 export const resourcesApi = {
   getResources: async (params?: ResourceFilterParams): Promise<ResourceMember[]> => {
@@ -20,7 +21,7 @@ export const resourcesApi = {
     // 2. Fetch all project_members with project & role details
     const { data: rawProjectMembers, error: pmErr } = await supabase
       .from('project_members')
-      .select('id, member_id, role_id, assigned_mandays, actual_mandays, is_active, role:roles(id, code, name), project:projects(id, status, customer, start_date, end_date, progress_pct, total_mandays, project_master:master_projects(id, project_code, name, platform))');
+      .select('id, member_id, role_id, assigned_mandays, actual_mandays, is_active, role:roles(id, code, name), project:projects(id, status, customer, start_date, end_date, total_mandays, project_master:master_projects(id, project_code, name, platform), project_activities(mandays, progress_pct))');
 
     if (pmErr) throw pmErr;
 
@@ -57,7 +58,7 @@ export const resourcesApi = {
         status: projStatus,
         startDate: proj?.start_date,
         endDate: proj?.end_date,
-        progressPct: Number(proj?.progress_pct || 0),
+        progressPct: calculateProjectProgress(proj?.project_activities),
         roleId: pm.role_id,
         roleName: pm.role?.name || '',
         roleCode: pm.role?.code || '',

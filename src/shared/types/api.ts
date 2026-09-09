@@ -66,6 +66,39 @@ export type Database = {
         }
         Relationships: []
       }
+      master_holidays: {
+        Row: {
+          id: string
+          holiday_date: string
+          name: string
+          year: number
+          created_at: string
+          updated_at: string
+          created_by: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          holiday_date: string
+          name: string
+          year: number
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          holiday_date?: string
+          name?: string
+          year?: number
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       billing_details: {
         Row: {
           billing_id: string
@@ -654,8 +687,6 @@ export type Database = {
       }
       projects: {
         Row: {
-          actual_end: string | null
-          actual_start: string | null
           created_at: string
           created_by: string | null
           customer: string | null
@@ -666,7 +697,6 @@ export type Database = {
           parent_project_id: string | null
           pic_client: string | null
           pic_internal: string | null
-          progress_pct: number
           project_id: string
           remarks: string | null
           repository_link: string | null
@@ -679,8 +709,6 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
-          actual_end?: string | null
-          actual_start?: string | null
           created_at?: string
           created_by?: string | null
           customer?: string | null
@@ -691,7 +719,6 @@ export type Database = {
           parent_project_id?: string | null
           pic_client?: string | null
           pic_internal?: string | null
-          progress_pct?: number
           project_id: string
           remarks?: string | null
           repository_link?: string | null
@@ -704,8 +731,6 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
-          actual_end?: string | null
-          actual_start?: string | null
           created_at?: string
           created_by?: string | null
           customer?: string | null
@@ -716,7 +741,6 @@ export type Database = {
           parent_project_id?: string | null
           pic_client?: string | null
           pic_internal?: string | null
-          progress_pct?: number
           project_id?: string
           remarks?: string | null
           repository_link?: string | null

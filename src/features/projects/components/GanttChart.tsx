@@ -8,6 +8,9 @@ import {
 import { formatDate, parseLocalDate } from '@/shared/lib/formatter';
 import { Milestone, User, Calendar, CheckCircle2 } from 'lucide-react';
 import type { ProjectActivity, ProjectMember } from '@/modules/projects/types';
+import type { Holiday } from '@/modules/master/holidays/types';
+import { useGetHolidays } from '@/modules/master/holidays/hooks/useHolidays';
+import { createHolidayMap } from '@/shared/lib/project-calculations';
 
 interface GanttChartProps {
   project: {
@@ -17,9 +20,14 @@ interface GanttChartProps {
   };
   activities: ProjectActivity[];
   members: ProjectMember[];
+  holidays?: Holiday[];
 }
 
-export function GanttChart({ project, activities = [], members = [] }: GanttChartProps) {
+export function GanttChart({ project, activities = [], members = [], holidays }: GanttChartProps) {
+  const { data: fetchedHolidays = [] } = useGetHolidays();
+  const allHolidays = holidays || fetchedHolidays;
+  const holidayMap = useMemo(() => createHolidayMap(allHolidays), [allHolidays]);
+
   // 1. Calculate Timeline Start and End Dates based on project and activities
   const { timelineStart, days, monthGroups } = useMemo(() => {
     const validDates: Date[] = [];
@@ -216,23 +224,35 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
                 {days.map((day) => {
                   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                   const isTodayDate = day.toDateString() === new Date().toDateString();
+                  const dayIso = formatDate(day, 'iso');
+                  const holiday = holidayMap.get(dayIso);
+                  const isHoliday = Boolean(holiday);
                   const dayNameShort = ['Mg', 'Sn', 'Sl', 'Rb', 'Km', 'Jm', 'Sb'][day.getDay()];
+
+                  let titleText = formatDate(day, 'long');
+                  if (holiday) {
+                    titleText += ` • ${holiday.name} (Hari Libur)`;
+                  }
 
                   return (
                     <div 
                       key={day.toISOString()} 
-                      className={`flex-1 text-center border-r border-outline-variant/40 py-1.5 flex flex-col items-center justify-center min-w-[36px] ${
+                      className={`flex-1 text-center border-r border-outline-variant/40 py-1.5 flex flex-col items-center justify-center min-w-[36px] transition-colors ${
                         isTodayDate
                           ? 'bg-red-500/10'
+                          : isHoliday
+                          ? 'bg-red-500/15 border-b-2 border-b-red-500'
                           : isWeekend
                           ? 'bg-surface-container-high/40'
                           : 'bg-surface-container-low/20'
                       }`}
-                      title={formatDate(day, 'long')}
+                      title={titleText}
                     >
                       <span className={`text-[9px] ${
                         isTodayDate 
                           ? 'text-red-600 font-bold' 
+                          : isHoliday
+                          ? 'text-red-600 font-bold'
                           : isWeekend 
                           ? 'text-secondary/60 font-medium' 
                           : 'text-secondary font-medium'
@@ -242,12 +262,17 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
                       <span className={`text-[11px] font-mono leading-tight ${
                         isTodayDate 
                           ? 'text-red-600 font-extrabold' 
+                          : isHoliday
+                          ? 'text-red-600 font-extrabold'
                           : isWeekend 
                           ? 'text-secondary/70 font-semibold' 
                           : 'text-on-background font-semibold'
                       }`}>
                         {day.getDate()}
                       </span>
+                      {isHoliday && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-600 mt-0.5 shrink-0" />
+                      )}
                     </div>
                   );
                 })}
@@ -286,13 +311,17 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
               const actEnd = act.endDate ? parseLocalDate(act.endDate) : null;
               const actOverdue = isOverdue(act);
 
-              // Calculate contiguous active weekday segments (merged adjacent days, weekends empty)
+              // Calculate contiguous active working day segments (merged adjacent days, weekends and holidays empty)
               const segments: { startIdx: number; endIdx: number; count: number }[] = [];
               if (actStart && actEnd && !act.isMilestone) {
                 let currentStartIdx: number | null = null;
                 days.forEach((day, idx) => {
                   const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-                  const isActive = day >= actStart && day <= actEnd && !isWeekend;
+                  const dayIso = formatDate(day, 'iso');
+                  const holiday = holidayMap.get(dayIso);
+                  const isHoliday = Boolean(holiday);
+                  const isNonWorkingDay = isWeekend || isHoliday;
+                  const isActive = day >= actStart && day <= actEnd && !isNonWorkingDay;
 
                   if (isActive) {
                     if (currentStartIdx === null) {
@@ -367,11 +396,14 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
                   {/* Right Column: Timeline Area with Merged Bars and Weekend Backgrounds */}
                   <div className="flex-1 h-full relative flex items-center" style={{ minWidth: `${days.length * dayColWidth}px` }}>
                     
-                    {/* Background Day Columns & Weekend Grid */}
+                    {/* Background Day Columns, Holiday Tint, & Weekend Grid */}
                     <div className="absolute inset-0 flex pointer-events-none">
                       {days.map((day) => {
                         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                         const isTodayDate = day.toDateString() === new Date().toDateString();
+                        const dayIso = formatDate(day, 'iso');
+                        const holiday = holidayMap.get(dayIso);
+                        const isHoliday = Boolean(holiday);
 
                         return (
                           <div 
@@ -379,6 +411,8 @@ export function GanttChart({ project, activities = [], members = [] }: GanttChar
                             className={`flex-1 min-w-[36px] h-full border-r border-outline-variant/25 ${
                               isTodayDate 
                                 ? 'bg-red-500/[0.04]' 
+                                : isHoliday
+                                ? 'bg-red-500/[0.08]'
                                 : isWeekend 
                                 ? 'bg-surface-container-high/30' 
                                 : ''

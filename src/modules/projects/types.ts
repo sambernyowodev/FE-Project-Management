@@ -13,6 +13,9 @@ export type Project = Entity<'ProjectResponseDto'> & {
   company?: { id: string; name: string; code: string } | null;
   department?: { id: string; name: string } | null;
   businessOwner?: { id: string; name: string; title?: string | null } | null;
+  progressPct?: number;
+  actualStart?: string | null;
+  actualEnd?: string | null;
 };
 export type ProjectMember = Omit<Entity<'ProjectMemberResponseDto'>, 'projectId' | 'userId' | 'roleId'> & {
   projectId: string;
