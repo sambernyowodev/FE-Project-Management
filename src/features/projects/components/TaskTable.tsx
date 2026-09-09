@@ -147,7 +147,7 @@ export function TaskTable({
                       {isMilestone ? (
                         <span className="text-secondary text-xs">-</span>
                       ) : (
-                        act.mandays !== undefined ? act.mandays : '0'
+                        act.mandays !== undefined ? Math.round(Number(act.mandays)) : '0'
                       )}
                     </td>
 

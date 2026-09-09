@@ -155,7 +155,7 @@ export function ResourceDetailModal({ isOpen, onClose, resource }: ResourceDetai
                     <span>Project yang Belum Close ({resource.activeProjects.length})</span>
                   </span>
                   <span className="text-[11px] font-medium text-secondary">
-                    Total Mandays: {resource.totalAssignedMandays.toFixed(1)} md
+                    Total Mandays: {Math.round(resource.totalAssignedMandays)} md
                   </span>
                 </h4>
 
@@ -205,7 +205,7 @@ export function ResourceDetailModal({ isOpen, onClose, resource }: ResourceDetai
                             </span>
                             {proj.assignedMandays ? (
                               <span className="text-secondary font-mono">
-                                {proj.assignedMandays} md
+                                {Math.round(proj.assignedMandays)} md
                               </span>
                             ) : null}
                           </div>

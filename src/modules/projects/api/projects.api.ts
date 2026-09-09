@@ -154,13 +154,10 @@ export const projectsApi = {
         total_mandays: data.totalMandays,
         start_date: data.startDate,
         end_date: data.endDate,
-        actual_start: data.actualStart,
-        actual_end: data.actualEnd,
         remarks: data.remarks,
         repository_link: data.repositoryLink,
         timeline_link: data.timelineLink,
         timeline_remark: data.timelineRemark,
-        progress_pct: data.progressPct,
       })
       .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))')
       .single();
@@ -198,13 +195,10 @@ export const projectsApi = {
         total_mandays: data.totalMandays,
         start_date: data.startDate,
         end_date: data.endDate,
-        actual_start: data.actualStart,
-        actual_end: data.actualEnd,
         remarks: data.remarks,
         repository_link: data.repositoryLink,
         timeline_link: data.timelineLink,
         timeline_remark: data.timelineRemark,
-        progress_pct: data.progressPct,
       })
       .eq('id', id)
       .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number))')

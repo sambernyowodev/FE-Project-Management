@@ -61,6 +61,7 @@ export const projectActivitiesApi = {
       .select('*, assignedTo:members(*)')
       .single();
     if (error) throw error;
+
     return mapActivity(act);
   },
 
@@ -89,6 +90,7 @@ export const projectActivitiesApi = {
       .select('*, assignedTo:members(*)')
       .single();
     if (error) throw error;
+
     return mapActivity(act);
   },
 
@@ -107,6 +109,7 @@ export const projectActivitiesApi = {
       .select('*, assignedTo:members(*)')
       .single();
     if (error) throw error;
+
     return mapActivity(act);
   },
 
@@ -136,6 +139,7 @@ export const projectActivitiesApi = {
       .select('*, assignedTo:members(*)');
 
     if (error) throw error;
+
     return (data || []).map(mapActivity);
   },
 

@@ -99,25 +99,28 @@ export const masterProjectsApi = {
   },
 
   createMasterProject: async (data: CreateMasterProject): Promise<MasterProject> => {
-    // Automatically generate project_code format HCM-YYYY-XXX
-    const year = new Date().getFullYear();
-    const { data: list } = await supabase
-      .from('master_projects')
-      .select('project_code')
-      .like('project_code', `HCM-${year}-%`);
-    
-    let nextNum = 1;
-    if (list && list.length > 0) {
-      const numbers = list.map(item => {
-        const parts = item.project_code.split('-');
-        if (parts.length === 3) {
-          return parseInt(parts[2], 10);
-        }
-        return 0;
-      });
-      nextNum = Math.max(...numbers) + 1;
+    let projectCode = data.projectCode?.trim();
+    if (!projectCode) {
+      // Automatically generate project_code format HCM-YYYY-XXX
+      const year = new Date().getFullYear();
+      const { data: list } = await supabase
+        .from('master_projects')
+        .select('project_code')
+        .like('project_code', `HCM-${year}-%`);
+      
+      let nextNum = 1;
+      if (list && list.length > 0) {
+        const numbers = list.map(item => {
+          const parts = item.project_code.split('-');
+          if (parts.length === 3) {
+            return parseInt(parts[2], 10);
+          }
+          return 0;
+        });
+        nextNum = Math.max(...numbers) + 1;
+      }
+      projectCode = `HCM-${year}-${String(nextNum).padStart(3, '0')}`;
     }
-    const projectCode = `HCM-${year}-${String(nextNum).padStart(3, '0')}`;
 
     const { data: newProj, error } = await supabase
       .from('master_projects')
@@ -136,13 +139,19 @@ export const masterProjectsApi = {
   },
 
   updateMasterProject: async (id: string, data: UpdateMasterProject): Promise<MasterProject> => {
+    const updatePayload: any = {
+      name: data.name,
+      description: data.description,
+      platform: data.platform,
+    };
+
+    if (data.projectCode !== undefined) {
+      updatePayload.project_code = data.projectCode.trim();
+    }
+
     const { data: updatedProj, error } = await supabase
       .from('master_projects')
-      .update({
-        name: data.name,
-        description: data.description,
-        platform: data.platform,
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();

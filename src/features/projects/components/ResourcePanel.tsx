@@ -33,7 +33,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
   const getUserCalculatedMandays = (userId: string) => {
     return activities
       .filter(act => act.assignedToId === userId)
-      .reduce((sum, act) => sum + (act.mandays || 0), 0);
+      .reduce((sum, act) => sum + Math.round(act.mandays || 0), 0);
   };
 
   const getRoleCalculatedMandays = (roleMembers: ProjectMember[]) => {
@@ -132,7 +132,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
           <span className="text-[9px] text-secondary font-medium">Active</span>
         </div>
         <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-surface border border-outline-variant text-center" title="Total Mandays dari Tasks">
-          <span className="text-base font-bold text-primary font-mono">{totalAktual.toFixed(1)}</span>
+          <span className="text-base font-bold text-primary font-mono">{Math.round(totalAktual)}</span>
           <span className="text-[9px] text-secondary font-medium">Mandays</span>
         </div>
       </div>
@@ -150,7 +150,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                   {roleMapping?.label || roleCode}
                 </span>
                 <span className="text-[10px] text-secondary font-medium bg-surface-container-high/40 px-2 py-0.5 rounded-md border border-outline-variant/30">
-                  {roleMembers.length} orang • {getRoleCalculatedMandays(roleMembers).toFixed(1)} md
+                  {roleMembers.length} orang • {Math.round(getRoleCalculatedMandays(roleMembers))} md
                 </span>
               </div>
               
@@ -183,17 +183,17 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                       <div className="shrink-0 pl-2 flex flex-col items-end gap-1">
                         {tasks > 0 ? (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                             {tasks} Task
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                            <AlertCircle className="w-3 h-3 text-amber-600" />
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
                             Idle
                           </span>
                         )}
                         <span className="text-[10px] font-mono text-primary font-bold">
-                          {getUserCalculatedMandays(member.memberId).toFixed(1)} md
+                          {Math.round(getUserCalculatedMandays(member.memberId))} md
                         </span>
                       </div>
                     </div>
@@ -212,7 +212,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                 Other Resources
               </span>
               <span className="text-[10px] text-secondary font-medium bg-surface-container-high/40 px-2 py-0.5 rounded-md border border-outline-variant/30">
-                {otherMembers.length} orang • {getRoleCalculatedMandays(otherMembers).toFixed(1)} md
+                {otherMembers.length} orang • {Math.round(getRoleCalculatedMandays(otherMembers))} md
               </span>
             </div>
             
@@ -237,17 +237,17 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                     <div className="shrink-0 pl-2 flex flex-col items-end gap-1">
                       {tasks > 0 ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                           {tasks} Task
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          <AlertCircle className="w-3 h-3 text-amber-600" />
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
                           Idle
                         </span>
                       )}
                       <span className="text-[10px] font-mono text-primary font-bold">
-                        {getUserCalculatedMandays(member.memberId).toFixed(1)} md
+                        {Math.round(getUserCalculatedMandays(member.memberId))} md
                       </span>
                     </div>
                   </div>

@@ -132,7 +132,7 @@ export function ResourceManagementPage() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-secondary" />
           <input
             type="text"
-            placeholder="Cari nama, NIP, project, support..."
+            placeholder="Cari nama, email, project, support..."
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-xs border border-outline-variant rounded-lg bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -264,7 +264,7 @@ export function ResourceManagementPage() {
                               )}
                             </div>
                             <span className="text-[11px] text-secondary font-mono truncate">
-                              {resource.employeeId} • {resource.email}
+                              {resource.email}
                             </span>
                           </div>
                         </div>

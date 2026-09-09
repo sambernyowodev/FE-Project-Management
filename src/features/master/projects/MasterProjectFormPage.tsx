@@ -23,6 +23,7 @@ export function MasterProjectFormPage() {
   const deleteMutation = useDeleteMasterProject();
 
   const [formData, setFormData] = useState({
+    projectCode: '',
     name: '',
     platform: '',
     description: '',
@@ -34,6 +35,7 @@ export function MasterProjectFormPage() {
   useEffect(() => {
     if (project && isEditing) {
       setFormData({
+        projectCode: project.projectCode || '',
         name: project.name || '',
         platform: project.platform || '',
         description: project.description || '',
@@ -57,6 +59,7 @@ export function MasterProjectFormPage() {
     }
 
     const payload = {
+      projectCode: formData.projectCode.trim() || undefined,
       name: formData.name,
       platform: formData.platform || undefined,
       description: formData.description || undefined,
@@ -162,6 +165,29 @@ export function MasterProjectFormPage() {
             </h2>
 
             <div className="flex flex-col gap-5">
+              {/* Project Code */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="projectCode" className="text-sm font-semibold text-on-background">
+                    Kode Project (Project Code)
+                  </label>
+                  {!isEditing && (
+                    <span className="text-[11px] text-secondary">
+                      Opsional (otomatis digenerate jika kosong)
+                    </span>
+                  )}
+                </div>
+                <input
+                  id="projectCode"
+                  name="projectCode"
+                  type="text"
+                  value={formData.projectCode}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                  placeholder="e.g. HCM-2026-103"
+                />
+              </div>
+
               {/* Project Name */}
               <div className="flex flex-col gap-2">
                 <label htmlFor="name" className="text-sm font-semibold text-on-background">

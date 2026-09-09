@@ -2,7 +2,6 @@ import XLSX from 'xlsx-js-style';
 import {
   startOfWeek,
   endOfWeek,
-  addWeeks,
   addDays,
   isAfter
 } from 'date-fns';
@@ -278,21 +277,21 @@ export function parseTimelineExcel(
           if (endDate && endDate.includes('T')) endDate = endDate.split('T')[0];
 
           const durationDaysVal = getVal(['Duration Days', 'Duration', 'Durasi']);
-          const durationDays = durationDaysVal ? Number(durationDaysVal) : undefined;
+          const durationDays = durationDaysVal ? Math.round(Number(durationDaysVal)) : undefined;
 
           const mandaysVal = getVal(['Mandays', 'Man Days']);
-          const mandays = mandaysVal ? Number(mandaysVal) : undefined;
+          const mandays = mandaysVal ? Math.round(Number(mandaysVal)) : undefined;
 
           const assignedToName = getVal(['Assigned Resource', 'Resource', 'Petugas', 'Assigned To']);
 
           const progressVal = getVal(['Progress (%)', 'Progress', 'Progress Pct']);
-          const progressPct = progressVal !== '' ? Math.min(100, Math.max(0, Number(progressVal))) : 0;
+          const progressPct = progressVal !== '' ? Math.round(Math.min(100, Math.max(0, Number(progressVal)))) : 0;
 
           const milestoneVal = getVal(['Is Milestone (YES/NO)', 'Is Milestone', 'Milestone']).toUpperCase();
           const isMilestone = milestoneVal === 'YES' || milestoneVal === 'TRUE' || milestoneVal === '1' || milestoneVal === 'YA';
 
           const sortOrderVal = getVal(['Sort Order', 'Urutan']);
-          const sortOrder = sortOrderVal ? Number(sortOrderVal) : idx + 1;
+          const sortOrder = sortOrderVal ? Math.round(Number(sortOrderVal)) : idx + 1;
 
           if (!activityName) {
             errors.push('Nama Aktivitas tidak boleh kosong');
@@ -387,40 +386,113 @@ export function exportTimelineGanttToExcel(
     return end ? isAfter(new Date(), end) : false;
   };
 
-  // 2. Calculate Timeline Weeks for Gantt Matrix Columns
-  let start = parseLocalDate(project.startDate) || new Date();
-  let end = parseLocalDate(project.endDate) || addDays(new Date(), 60);
+  // 2. Calculate Timeline Days for Gantt Matrix Columns
+  const validDates: Date[] = [];
+  const projStart = parseLocalDate(project.startDate);
+  const projEnd = parseLocalDate(project.endDate);
+  if (projStart) validDates.push(projStart);
+  if (projEnd) validDates.push(projEnd);
 
   activities.forEach(act => {
     if (act.startDate) {
       const actStart = parseLocalDate(act.startDate);
-      if (actStart && actStart < start) start = actStart;
+      if (actStart) validDates.push(actStart);
     }
     if (act.endDate) {
       const actEnd = parseLocalDate(act.endDate);
-      if (actEnd && actEnd > end) end = actEnd;
+      if (actEnd) validDates.push(actEnd);
     }
   });
 
-  const paddedStart = startOfWeek(start, { weekStartsOn: 1 });
-  const paddedEnd = endOfWeek(end, { weekStartsOn: 1 });
+  let minDate: Date;
+  let maxDate: Date;
 
-  const weeks: { start: Date; end: Date; label: string }[] = [];
-  let currentWeek = paddedStart;
-  let weekIndex = 1;
-  while (currentWeek <= paddedEnd && weeks.length < 52) { // cap at 52 weeks max
-    const weekEnd = endOfWeek(currentWeek, { weekStartsOn: 1 });
-    weeks.push({
-      start: currentWeek,
-      end: weekEnd,
-      label: `W${weekIndex} (${formatDate(currentWeek, 'short')})`
-    });
-    currentWeek = addWeeks(currentWeek, 1);
-    weekIndex++;
+  if (validDates.length > 0) {
+    const timestamps = validDates.map(d => d.getTime());
+    minDate = new Date(Math.min(...timestamps));
+    maxDate = new Date(Math.max(...timestamps));
+  } else {
+    minDate = new Date();
+    maxDate = addDays(new Date(), 30);
   }
 
-  // 3. Build Gantt Timeline Rows
-  const ganttRows = sortedActivities.map((act, idx) => {
+  if (minDate > maxDate) {
+    maxDate = minDate;
+  }
+
+  const paddedStart = startOfWeek(minDate, { weekStartsOn: 1 });
+  const paddedEnd = endOfWeek(maxDate, { weekStartsOn: 1 });
+
+  const days: { date: Date; dateStr: string; label: string; isWeekend: boolean }[] = [];
+  let currentDay = paddedStart;
+  while (currentDay <= paddedEnd && days.length < 180) { // cap at 180 days max for Excel
+    const dStr = formatDate(currentDay, 'input');
+    const dayNameShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][currentDay.getDay()];
+    const dLabel = `${dayNameShort}, ${formatDate(currentDay, 'short')}`;
+    days.push({
+      date: currentDay,
+      dateStr: dStr,
+      label: dLabel,
+      isWeekend: currentDay.getDay() === 0 || currentDay.getDay() === 6
+    });
+    currentDay = addDays(currentDay, 1);
+  }
+
+  // Group days by Month & Year for the 2-tier top header
+  const monthGroups: { label: string; yearMonth: string; startCol: number; endCol: number; dayCount: number }[] = [];
+  days.forEach((d, dIdx) => {
+    const ym = `${d.date.getFullYear()}-${d.date.getMonth()}`;
+    const colIdx = 13 + dIdx;
+    const existing = monthGroups.find(g => g.yearMonth === ym);
+    if (existing) {
+      existing.dayCount++;
+      existing.endCol = colIdx;
+    } else {
+      const monthName = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(d.date);
+      monthGroups.push({
+        label: monthName,
+        yearMonth: ym,
+        startCol: colIdx,
+        endCol: colIdx,
+        dayCount: 1
+      });
+    }
+  });
+
+  // 3. Build Gantt Timeline Rows with 2-Tier Header
+  const baseHeaderNames = [
+    'No',
+    'Activity Name',
+    'Feature / Module',
+    'Sub Feature',
+    'Details',
+    'Start Date',
+    'End Date',
+    'Duration (Days)',
+    'Mandays',
+    'Assigned Resource',
+    'Progress',
+    'Status',
+    'Is Milestone',
+  ];
+
+  // Header Row 0 (Top: Month & Year)
+  const headerRow0: (string | number)[] = [...baseHeaderNames];
+  days.forEach((_, dIdx) => {
+    const colIdx = 13 + dIdx;
+    const group = monthGroups.find(g => g.startCol === colIdx);
+    headerRow0.push(group ? group.label : '');
+  });
+
+  // Header Row 1 (Bottom: Day Name & Date)
+  const headerRow1: (string | number)[] = [...baseHeaderNames];
+  days.forEach((d) => {
+    const dayNameShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][d.date.getDay()];
+    headerRow1.push(`${dayNameShort} ${d.date.getDate()}`);
+  });
+
+  // Data Rows (Row 2 onwards)
+  const dataRows: (string | number)[][] = sortedActivities.map((act, idx) => {
     const actStart = act.startDate ? parseLocalDate(act.startDate) : null;
     const actEnd = act.endDate ? parseLocalDate(act.endDate) : null;
     const overdue = isOverdue(act);
@@ -436,62 +508,78 @@ export function exportTimelineGanttToExcel(
       statusText = 'In Progress';
     }
 
-    const rowObj: Record<string, any> = {
-      'No': idx + 1,
-      'Level': act.parentId ? 'Sub-Task' : 'Main Task',
-      'Activity Name': act.parentId ? `  ↳ ${act.activityName}` : act.activityName,
-      'Parent Activity': act.parentId ? parentMap.get(act.parentId) || '' : '',
-      'Phase': act.phase || 'DEVELOPMENT',
-      'Feature / Module': act.feature || '',
-      'Sub Feature': act.subFeature || '',
-      'Details': act.details || '',
-      'Start Date': act.startDate ? act.startDate.split('T')[0] : '',
-      'End Date': act.endDate ? act.endDate.split('T')[0] : '',
-      'Duration (Days)': act.durationDays !== undefined ? act.durationDays : '',
-      'Mandays': act.mandays !== undefined ? act.mandays : '',
-      'Assigned Resource': act.assignedToId ? memberMap.get(act.assignedToId) || '' : 'Unassigned',
-      'Progress': `${act.progressPct || 0}%`,
-      'Status': statusText,
-      'Is Milestone': act.isMilestone ? 'YES' : 'NO',
-    };
+    const rowData: (string | number)[] = [
+      idx + 1,
+      act.parentId ? `  ↳ ${act.activityName}` : act.activityName,
+      act.feature || '',
+      act.subFeature || '',
+      act.details || '',
+      act.startDate ? act.startDate.split('T')[0] : '',
+      act.endDate ? act.endDate.split('T')[0] : '',
+      act.durationDays !== undefined ? Math.round(Number(act.durationDays)) : '',
+      act.mandays !== undefined ? Math.round(Number(act.mandays)) : '',
+      act.assignedToId ? memberMap.get(act.assignedToId) || '' : 'Unassigned',
+      `${Math.round(act.progressPct || 0)}%`,
+      statusText,
+      act.isMilestone ? 'YES' : 'NO',
+    ];
 
-    // Add Gantt Chart visual columns for each week
-    weeks.forEach(w => {
+    days.forEach((d) => {
+      // Weekends (Sabtu/Minggu) are strictly empty (dikosongi)
+      if (d.isWeekend) {
+        rowData.push('');
+        return;
+      }
+
       let cellValue = '';
       if (act.isMilestone) {
         const mDate = actStart || actEnd;
-        if (mDate && mDate >= w.start && mDate <= w.end) {
-          cellValue = '◆ Milestone';
+        if (mDate && formatDate(mDate, 'input') === d.dateStr) {
+          cellValue = '◆';
         }
       } else if (actStart && actEnd) {
-        // Overlaps if actStart <= w.end and actEnd >= w.start
-        if (actStart <= w.end && actEnd >= w.start) {
+        if (actStart <= d.date && actEnd >= d.date) {
           if (act.progressPct === 100) {
-            cellValue = '100%';
+            cellValue = '✓';
           } else if (overdue) {
-            cellValue = `${act.progressPct || 0}% (Overdue)`;
+            cellValue = '!';
           } else {
-            cellValue = `${act.progressPct || 0}%`;
+            cellValue = '■';
           }
         }
       }
-      rowObj[w.label] = cellValue;
+      rowData.push(cellValue);
     });
 
-    return rowObj;
+    return rowData;
   });
 
-  const ganttSheet = XLSX.utils.json_to_sheet(ganttRows.length > 0 ? ganttRows : [{ 'Info': 'Tidak ada data aktivitas' }]);
+  const ganttSheet = XLSX.utils.aoa_to_sheet(
+    dataRows.length > 0 ? [headerRow0, headerRow1, ...dataRows] : [headerRow0, headerRow1]
+  );
 
-  // Style Header Row (row 0)
-  const headerKeys = Object.keys(ganttRows[0] || {});
-  headerKeys.forEach((_, colIdx) => {
-    const cellRef = XLSX.utils.encode_cell({ r: 0, c: colIdx });
-    const isWeekCol = colIdx >= 16;
-    if (ganttSheet[cellRef]) {
+  // Define Merges for 2-Tier Header
+  const merges: XLSX.Range[] = [];
+  // Merge info columns (0 - 12) vertically across Row 0 and Row 1
+  for (let c = 0; c < 13; c++) {
+    merges.push({ s: { r: 0, c }, e: { r: 1, c } });
+  }
+  // Merge month groups horizontally in Row 0
+  monthGroups.forEach(mg => {
+    if (mg.endCol > mg.startCol) {
+      merges.push({ s: { r: 0, c: mg.startCol }, e: { r: 0, c: mg.endCol } });
+    }
+  });
+  ganttSheet['!merges'] = merges;
+
+  // Style Info Column Headers (r = 0 and r = 1, cols 0 to 12)
+  for (let c = 0; c < 13; c++) {
+    [0, 1].forEach((r) => {
+      const cellRef = XLSX.utils.encode_cell({ r, c });
+      if (!ganttSheet[cellRef]) ganttSheet[cellRef] = { t: 's', v: '' };
       ganttSheet[cellRef].s = {
-        fill: { fgColor: { rgb: isWeekCol ? '1E3A8A' : '1E293B' } }, // Dark Indigo for Weeks, Slate-800 for Info
-        font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 10 },
+        fill: { fgColor: { rgb: '1E293B' } }, // Slate-800
+        font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 9 },
         alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
         border: {
           top: { style: 'thin', color: { rgb: '334155' } },
@@ -500,29 +588,65 @@ export function exportTimelineGanttToExcel(
           right: { style: 'thin', color: { rgb: '334155' } }
         }
       };
-    }
+    });
+  }
+
+  // Style Month Group Headers in Row 0 (col 13 onwards)
+  days.forEach((_, dIdx) => {
+    const c = 13 + dIdx;
+    const cellRef = XLSX.utils.encode_cell({ r: 0, c });
+    if (!ganttSheet[cellRef]) ganttSheet[cellRef] = { t: 's', v: '' };
+    ganttSheet[cellRef].s = {
+      fill: { fgColor: { rgb: '1E3A8A' } }, // Blue-900 / Dark Indigo
+      font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 10 },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      border: {
+        top: { style: 'thin', color: { rgb: '172554' } },
+        bottom: { style: 'thin', color: { rgb: '172554' } },
+        left: { style: 'thin', color: { rgb: '172554' } },
+        right: { style: 'thin', color: { rgb: '172554' } }
+      }
+    };
+  });
+
+  // Style Day Headers in Row 1 (col 13 onwards)
+  days.forEach((d, dIdx) => {
+    const c = 13 + dIdx;
+    const cellRef = XLSX.utils.encode_cell({ r: 1, c });
+    if (!ganttSheet[cellRef]) ganttSheet[cellRef] = { t: 's', v: '' };
+    ganttSheet[cellRef].s = {
+      fill: { fgColor: { rgb: d.isWeekend ? '475569' : '1E293B' } }, // Slate-600 for weekend header, Slate-800 for weekday
+      font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 8 },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      border: {
+        top: { style: 'thin', color: { rgb: '334155' } },
+        bottom: { style: 'medium', color: { rgb: '0F172A' } },
+        left: { style: 'thin', color: { rgb: '334155' } },
+        right: { style: 'thin', color: { rgb: '334155' } }
+      }
+    };
   });
 
   // Style Data Rows & Color Blocks for Timeline
   sortedActivities.forEach((act, actIdx) => {
-    const r = actIdx + 1; // 1-indexed row in sheet
+    const r = actIdx + 2; // Data rows start at row index 2 (Row 3 in Excel)
     const actStart = act.startDate ? parseLocalDate(act.startDate) : null;
     const actEnd = act.endDate ? parseLocalDate(act.endDate) : null;
     const overdue = isOverdue(act);
     const isChild = Boolean(act.parentId);
 
-    // Style standard info columns (cols 0 - 15)
-    for (let c = 0; c < 16; c++) {
+    // Style standard info columns (cols 0 - 12)
+    for (let c = 0; c < 13; c++) {
       const cellRef = XLSX.utils.encode_cell({ r, c });
       if (!ganttSheet[cellRef]) {
         ganttSheet[cellRef] = { t: 's', v: '' };
       }
 
-      const isStatusCol = c === 14;
-      const isProgressCol = c === 13;
-      const isMilestoneCol = c === 15;
-      const isNumCol = c === 0 || c === 10 || c === 11;
-      const isDateCol = c === 8 || c === 9;
+      const isStatusCol = c === 11;
+      const isProgressCol = c === 10;
+      const isMilestoneCol = c === 12;
+      const isNumCol = c === 0 || c === 7 || c === 8;
+      const isDateCol = c === 5 || c === 6;
 
       const cellStyle: any = {
         font: { sz: 9, color: { rgb: isChild ? '334155' : '0F172A' }, bold: !isChild },
@@ -559,36 +683,52 @@ export function exportTimelineGanttToExcel(
       ganttSheet[cellRef].s = cellStyle;
     }
 
-    // Style Timeline Week Columns (col 16 onwards) - Matching Application Gantt Chart Colors
-    weeks.forEach((w, wIdx) => {
-      const c = 16 + wIdx;
+    // Style Timeline Day Columns (col 13 onwards) - Matching Application Gantt Chart Colors
+    days.forEach((d, dIdx) => {
+      const c = 13 + dIdx;
       const cellRef = XLSX.utils.encode_cell({ r, c });
       if (!ganttSheet[cellRef]) {
         ganttSheet[cellRef] = { t: 's', v: '' };
       }
 
-      const mDate = actStart || actEnd;
-      const isMilestoneInWeek = act.isMilestone && mDate && mDate >= w.start && mDate <= w.end;
-      const isActiveInWeek = !act.isMilestone && actStart && actEnd && (actStart <= w.end && actEnd >= w.start);
-
-      if (isMilestoneInWeek) {
-        // Milestone -> Matching app Gantt chart: Amber (#F59E0B)
-        ganttSheet[cellRef].v = '◆ Milestone';
+      // Weekends are strictly empty (dikosongi)
+      if (d.isWeekend) {
+        ganttSheet[cellRef].v = '';
         ganttSheet[cellRef].s = {
-          fill: { fgColor: { rgb: 'F59E0B' } }, // Amber-500
-          font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 9 },
+          fill: { fgColor: { rgb: 'F1F5F9' } }, // Soft slate background for weekends
           alignment: { horizontal: 'center', vertical: 'center' },
           border: {
-            top: { style: 'medium', color: { rgb: 'D97706' } },
-            bottom: { style: 'medium', color: { rgb: 'D97706' } },
-            left: { style: 'medium', color: { rgb: 'D97706' } },
-            right: { style: 'medium', color: { rgb: 'D97706' } }
+            top: { style: 'hair', color: { rgb: 'E2E8F0' } },
+            bottom: { style: 'hair', color: { rgb: 'E2E8F0' } },
+            left: { style: 'hair', color: { rgb: 'E2E8F0' } },
+            right: { style: 'hair', color: { rgb: 'E2E8F0' } }
           }
         };
-      } else if (isActiveInWeek) {
+        return;
+      }
+
+      const mDate = actStart || actEnd;
+      const isMilestoneOnDay = act.isMilestone && mDate && formatDate(mDate, 'input') === d.dateStr;
+      const isActiveOnDay = !act.isMilestone && actStart && actEnd && (actStart <= d.date && actEnd >= d.date);
+
+      if (isMilestoneOnDay) {
+        // Milestone -> Matching app Gantt chart: Amber (#F59E0B)
+        ganttSheet[cellRef].v = '◆';
+        ganttSheet[cellRef].s = {
+          fill: { fgColor: { rgb: 'F59E0B' } }, // Amber-500
+          font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 10 },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'thin', color: { rgb: 'D97706' } },
+            bottom: { style: 'thin', color: { rgb: 'D97706' } },
+            left: { style: 'thin', color: { rgb: 'D97706' } },
+            right: { style: 'thin', color: { rgb: 'D97706' } }
+          }
+        };
+      } else if (isActiveOnDay) {
         if (act.progressPct === 100) {
           // Completed (Selesai) -> Matching app Gantt: Emerald / Teal (#10B981)
-          ganttSheet[cellRef].v = '100%';
+          ganttSheet[cellRef].v = '✓';
           ganttSheet[cellRef].s = {
             fill: { fgColor: { rgb: '10B981' } }, // Emerald-500
             font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 10 },
@@ -602,10 +742,10 @@ export function exportTimelineGanttToExcel(
           };
         } else if (overdue) {
           // Overdue -> Matching app Gantt: Rose / Red (#EF4444)
-          ganttSheet[cellRef].v = `${act.progressPct || 0}% (Overdue)`;
+          ganttSheet[cellRef].v = '!';
           ganttSheet[cellRef].s = {
             fill: { fgColor: { rgb: 'EF4444' } }, // Red-500
-            font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 9 },
+            font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 10 },
             alignment: { horizontal: 'center', vertical: 'center' },
             border: {
               top: { style: 'thin', color: { rgb: 'DC2626' } },
@@ -616,7 +756,7 @@ export function exportTimelineGanttToExcel(
           };
         } else {
           // On Progress -> Matching app Gantt: Blue / Indigo (#3B82F6)
-          ganttSheet[cellRef].v = `${act.progressPct || 0}%`;
+          ganttSheet[cellRef].v = '■';
           ganttSheet[cellRef].s = {
             fill: { fgColor: { rgb: '3B82F6' } }, // Blue-500
             font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 10 },
@@ -630,7 +770,7 @@ export function exportTimelineGanttToExcel(
           };
         }
       } else {
-        // Inactive week for this activity
+        // Inactive day for this activity
         ganttSheet[cellRef].s = {
           fill: { fgColor: { rgb: actIdx % 2 === 0 ? 'F8FAFC' : 'FFFFFF' } },
           alignment: { horizontal: 'center', vertical: 'center' },
@@ -648,31 +788,66 @@ export function exportTimelineGanttToExcel(
   // Auto-set column widths for Gantt sheet
   const baseCols = [
     { wch: 6 },  // No
-    { wch: 12 }, // Level
-    { wch: 45 }, // Activity Name
-    { wch: 30 }, // Parent Activity
-    { wch: 16 }, // Phase
+    { wch: 42 }, // Activity Name
     { wch: 20 }, // Feature
     { wch: 20 }, // Sub Feature
-    { wch: 40 }, // Details
-    { wch: 14 }, // Start Date
-    { wch: 14 }, // End Date
-    { wch: 15 }, // Duration
-    { wch: 12 }, // Mandays
-    { wch: 25 }, // Assigned Resource
-    { wch: 12 }, // Progress
-    { wch: 15 }, // Status
-    { wch: 14 }, // Is Milestone
+    { wch: 35 }, // Details
+    { wch: 13 }, // Start Date
+    { wch: 13 }, // End Date
+    { wch: 14 }, // Duration
+    { wch: 11 }, // Mandays
+    { wch: 24 }, // Assigned Resource
+    { wch: 11 }, // Progress
+    { wch: 14 }, // Status
+    { wch: 13 }, // Is Milestone
   ];
-  const weekCols = weeks.map(() => ({ wch: 18 }));
-  ganttSheet['!cols'] = [...baseCols, ...weekCols];
+  const dayCols = days.map(() => ({ wch: 8 }));
+  ganttSheet['!cols'] = [...baseCols, ...dayCols];
 
-  XLSX.utils.book_append_sheet(workbook, ganttSheet, 'Gantt Timeline');
+  // Freeze Panes: Freeze No (col A) and Activity Name (col B), plus Header rows (row 1 & row 2)
+  ganttSheet['!views'] = [
+    {
+      state: 'frozen',
+      xSplit: 2,
+      ySplit: 2,
+      topLeftCell: 'C3',
+      activePane: 'bottomRight'
+    }
+  ];
+  (ganttSheet as any)['!freeze'] = { xSplit: 2, ySplit: 2, topLeftCell: 'C3' };
 
   // 4. Build Project Overview Sheet
-  const totalInputMandays = activities.reduce((acc, curr) => acc + (curr.mandays || 0), 0);
+  const totalInputMandays = activities.reduce((acc, curr) => acc + Math.round(curr.mandays || 0), 0);
   const completedCount = activities.filter(a => a.progressPct === 100).length;
   const milestoneCount = activities.filter(a => a.isMilestone).length;
+
+  let calculatedProgress = 0;
+  if (activities.length > 0) {
+    if (totalInputMandays > 0) {
+      const weightedProgress = activities.reduce((acc, curr) => acc + ((curr.progressPct || 0) * Math.round(curr.mandays || 0)), 0);
+      calculatedProgress = Math.round((weightedProgress / totalInputMandays) * 10) / 10;
+    } else {
+      const avgProgress = activities.reduce((acc, curr) => acc + (curr.progressPct || 0), 0) / activities.length;
+      calculatedProgress = Math.round(avgProgress * 10) / 10;
+    }
+  } else {
+    calculatedProgress = project.progressPct || 0;
+  }
+
+  const validActStarts = activities
+    .map(a => a.startDate ? parseLocalDate(a.startDate) : null)
+    .filter((d): d is Date => d !== null);
+  const validActEnds = activities
+    .map(a => a.endDate ? parseLocalDate(a.endDate) : null)
+    .filter((d): d is Date => d !== null);
+
+  const actualStartStr = validActStarts.length > 0
+    ? formatDate(new Date(Math.min(...validActStarts.map(d => d.getTime()))), 'short')
+    : (formatDate(project.actualStart, 'short') || '-');
+
+  const actualEndStr = validActEnds.length > 0
+    ? formatDate(new Date(Math.max(...validActEnds.map(d => d.getTime()))), 'short')
+    : (formatDate(project.actualEnd, 'short') || '-');
 
   const overviewRows = [
     { 'Attribute': 'Project Name', 'Value': project.name },
@@ -680,11 +855,11 @@ export function exportTimelineGanttToExcel(
     { 'Attribute': 'Customer', 'Value': project.customer || '-' },
     { 'Attribute': 'Platform', 'Value': project.platform || '-' },
     { 'Attribute': 'Status', 'Value': project.status || '-' },
-    { 'Attribute': 'Overall Progress', 'Value': `${project.progressPct || 0}%` },
-    { 'Attribute': 'Planned Mandays', 'Value': `${project.totalMandays || 0} md` },
-    { 'Attribute': 'Total Input Mandays', 'Value': `${totalInputMandays.toFixed(1)} md` },
+    { 'Attribute': 'Overall Progress', 'Value': `${calculatedProgress}%` },
+    { 'Attribute': 'Planned Mandays', 'Value': `${Math.round(project.totalMandays || 0)} md` },
+    { 'Attribute': 'Total Input Mandays', 'Value': `${Math.round(totalInputMandays)} md` },
     { 'Attribute': 'Planned Schedule', 'Value': `${formatDate(project.startDate, 'short')} - ${formatDate(project.endDate, 'short')}` },
-    { 'Attribute': 'Actual Schedule', 'Value': `${formatDate(project.actualStart, 'short')} - ${formatDate(project.actualEnd, 'short')}` },
+    { 'Attribute': 'Actual Schedule', 'Value': `${actualStartStr} - ${actualEndStr}` },
     { 'Attribute': 'Client PIC', 'Value': project.picClient || '-' },
     { 'Attribute': 'Internal PIC', 'Value': project.picInternal || '-' },
     { 'Attribute': 'Timeline Remark', 'Value': project.timelineRemark || '-' },
@@ -742,14 +917,16 @@ export function exportTimelineGanttToExcel(
     }
   });
 
+  // Append sheets in required order: 1. Project Overview, 2. Gantt Timeline, 3. Resource Allocation
   XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Project Overview');
+  XLSX.utils.book_append_sheet(workbook, ganttSheet, 'Gantt Timeline');
 
   // 5. Build Resource Allocation Sheet
   const resourceRows = members.map((m, idx) => {
     const memberId = m.memberId || m.user?.id;
     const memberName = m.user?.fullName || m.user?.email || 'N/A';
     const assignedActs = activities.filter(a => a.assignedToId === memberId || (a as any).assignedTo?.id === memberId);
-    const memberMandays = assignedActs.reduce((acc, curr) => acc + (curr.mandays || 0), 0);
+    const memberMandays = assignedActs.reduce((acc, curr) => acc + Math.round(curr.mandays || 0), 0);
 
     return {
       'No': idx + 1,
@@ -757,7 +934,7 @@ export function exportTimelineGanttToExcel(
       'Role': m.role?.name || 'Team Member',
       'Email': m.user?.email || '-',
       'Assigned Activities': assignedActs.length,
-      'Total Mandays': memberMandays.toFixed(1),
+      'Total Mandays': Math.round(memberMandays),
       'Tasks Summary': assignedActs.map(a => a.activityName).join('; ') || 'None'
     };
   });

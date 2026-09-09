@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   useGetProject,
@@ -33,7 +33,7 @@ import {
   Upload,
   FileSpreadsheet
 } from 'lucide-react';
-import { formatDate } from '@/shared/lib/formatter';
+import { formatDate, parseLocalDate } from '@/shared/lib/formatter';
 import {
   generateTimelineExcelTemplate,
   exportTimelineGanttToExcel,
@@ -72,6 +72,57 @@ export function ProjectTimelinePage() {
 
   // 4. View Modes (Gantt vs Table List)
   const [activeTab, setActiveTab] = useState<'gantt' | 'list'>('gantt');
+
+  // Calculate dynamic metrics from activities (Progress, Mandays, Actual Schedule)
+  const calculatedMetrics = useMemo(() => {
+    const totalInputMandays = activities.reduce((acc, curr) => acc + Math.round(curr.mandays || 0), 0);
+    
+    let calculatedProgress = 0;
+    if (activities.length > 0) {
+      if (totalInputMandays > 0) {
+        const weightedProgress = activities.reduce((acc, curr) => acc + ((curr.progressPct || 0) * Math.round(curr.mandays || 0)), 0);
+        calculatedProgress = Math.round((weightedProgress / totalInputMandays) * 10) / 10;
+      } else {
+        const avgProgress = activities.reduce((acc, curr) => acc + (curr.progressPct || 0), 0) / activities.length;
+        calculatedProgress = Math.round(avgProgress * 10) / 10;
+      }
+    } else {
+      calculatedProgress = project?.progressPct || 0;
+    }
+
+    // Determine actual start & actual end from timeline activities
+    let calculatedActualStart: string | null = null;
+    let calculatedActualEnd: string | null = null;
+
+    const validStartDates = activities
+      .map(a => a.startDate ? parseLocalDate(a.startDate) : null)
+      .filter((d): d is Date => d !== null);
+
+    const validEndDates = activities
+      .map(a => a.endDate ? parseLocalDate(a.endDate) : null)
+      .filter((d): d is Date => d !== null);
+
+    if (validStartDates.length > 0) {
+      const minStart = new Date(Math.min(...validStartDates.map(d => d.getTime())));
+      calculatedActualStart = formatDate(minStart, 'input');
+    } else {
+      calculatedActualStart = project?.actualStart || project?.startDate || null;
+    }
+
+    if (validEndDates.length > 0) {
+      const maxEnd = new Date(Math.max(...validEndDates.map(d => d.getTime())));
+      calculatedActualEnd = formatDate(maxEnd, 'input');
+    } else {
+      calculatedActualEnd = project?.actualEnd || project?.endDate || null;
+    }
+
+    return {
+      progressPct: calculatedProgress,
+      totalInputMandays: Math.round(totalInputMandays),
+      actualStart: calculatedActualStart,
+      actualEnd: calculatedActualEnd,
+    };
+  }, [activities, project]);
 
   // 5. Activity Form Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -226,14 +277,14 @@ export function ProjectTimelinePage() {
                   <div className="flex-1 bg-surface-container-high rounded-full h-3 overflow-hidden">
                     <div
                       className="bg-primary h-3 rounded-full transition-all duration-300"
-                      style={{ width: `${project.progressPct || 0}%` }}
+                      style={{ width: `${calculatedMetrics.progressPct}%` }}
                     ></div>
                   </div>
-                  <span className="text-sm font-bold text-on-background font-mono">{project.progressPct || 0}%</span>
+                  <span className="text-sm font-bold text-on-background font-mono">{calculatedMetrics.progressPct}%</span>
                 </div>
                 <div className="text-xs text-secondary mt-1 flex justify-between font-medium">
-                  <span>Mandays Rencana: <strong>{project.totalMandays || 0} md</strong></span>
-                  <span>Mandays Terinput: <strong>{activities.reduce((acc, curr) => acc + (curr.mandays || 0), 0).toFixed(1)} md</strong></span>
+                  <span>Mandays Rencana: <strong>{Math.round(project.totalMandays || 0)} md</strong></span>
+                  <span>Mandays Terinput: <strong>{Math.round(calculatedMetrics.totalInputMandays)} md</strong></span>
                 </div>
               </div>
 
@@ -252,9 +303,9 @@ export function ProjectTimelinePage() {
                 <span className="text-xs font-bold text-secondary uppercase tracking-wider">Jadwal Realisasi (Actual)</span>
                 <div className="flex items-center gap-2 text-sm font-semibold text-on-background">
                   <Calendar className="w-4 h-4 text-primary shrink-0" />
-                  <span>{formatDate(project.actualStart, 'short')} - {formatDate(project.actualEnd, 'short')}</span>
+                  <span>{formatDate(calculatedMetrics.actualStart, 'short')} - {formatDate(calculatedMetrics.actualEnd, 'short')}</span>
                 </div>
-                <span className="text-[10px] text-secondary font-medium">Realisasi pengerjaan di lapangan</span>
+                <span className="text-[10px] text-secondary font-medium">Otomatis dari awal & akhir task timeline</span>
               </div>
 
               {/* Team PIC Allocation */}
@@ -411,9 +462,9 @@ export function ProjectTimelinePage() {
             </div>
 
             {/* Right Column - Team Resources Sidebar */}
-            <div className="lg:col-span-1 h-full lg:sticky lg:top-6">
+            <div className="lg:col-span-1 h-[676px] lg:sticky lg:top-6">
               {isMembersLoading ? (
-                <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-12 text-center text-secondary h-64 flex flex-col items-center justify-center gap-2">
+                <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-12 text-center text-secondary h-full flex flex-col items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                   <span>Memuat alokasi team...</span>
                 </div>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save } from 'lucide-react';
-import { 
-  useCreateProjectActivity, 
-  useUpdateProjectActivity 
+import { X, Save, CheckSquare, AlertCircle } from 'lucide-react';
+import {
+  useCreateProjectActivity,
+  useUpdateProjectActivity
 } from '@/modules/projects/hooks/useProjectActivities';
 import { useGetResourceWorkloadMap } from '@/modules/resources/hooks/useResources';
 import { formatDateInput } from '@/shared/lib/formatter';
@@ -23,12 +23,12 @@ interface ActivityFormModalProps {
   activities: ProjectActivity[];
 }
 
-export function ActivityFormModal({ 
-  isOpen, 
-  onClose, 
-  projectId, 
-  activity, 
-  parentId, 
+export function ActivityFormModal({
+  isOpen,
+  onClose,
+  projectId,
+  activity,
+  parentId,
   members,
   activities
 }: ActivityFormModalProps) {
@@ -127,16 +127,16 @@ export function ActivityFormModal({
       feature: formData.feature || undefined,
       subFeature: formData.subFeature || undefined,
       details: formData.details || undefined,
-      durationDays: formData.durationDays ? Number(formData.durationDays) : undefined,
-      mandays: formData.mandays ? Number(formData.mandays) : undefined,
+      durationDays: formData.durationDays ? Math.round(Number(formData.durationDays)) : undefined,
+      mandays: formData.mandays ? Math.round(Number(formData.mandays)) : undefined,
       startDate: formData.startDate || undefined,
       endDate: formData.endDate || undefined,
-      progressPct: Number(formData.progressPct),
+      progressPct: Math.round(Number(formData.progressPct)),
       phase: formData.phase,
       assignedToId: formData.assignedToId || null,
       parentId: formData.parentId || null,
       isMilestone: formData.isMilestone,
-      sortOrder: Number(formData.sortOrder)
+      sortOrder: Math.round(Number(formData.sortOrder))
     };
 
     if (isEditing && activity) {
@@ -146,7 +146,7 @@ export function ActivityFormModal({
           onSuccess: () => {
             onClose();
           },
-          onError: (err) => {
+          onError: (err: any) => {
             setError(err.message || 'Gagal memperbarui aktivitas');
           }
         }
@@ -156,7 +156,7 @@ export function ActivityFormModal({
         onSuccess: () => {
           onClose();
         },
-        onError: (err) => {
+        onError: (err: any) => {
           setError(err.message || 'Gagal membuat aktivitas');
         }
       });
@@ -164,69 +164,75 @@ export function ActivityFormModal({
   };
 
   // Filter parents to avoid circular dependency
-  const availableParents = activities.filter(act => {
+  const parentOptions = activities.filter(act => {
     if (isEditing && activity) {
-      return act.id !== activity.id && !act.parentId; // Can't be parent of itself, and nesting is max 2 levels
+      return act.id !== activity.id && !act.parentId;
     }
-    return !act.parentId; // Only top level tasks can be parents
+    return !act.parentId;
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
-      <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
-        
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant bg-surface-container-low">
-          <div>
-            <h3 className="text-lg font-bold text-on-background">
-              {isEditing ? 'Ubah Aktivitas' : formData.parentId ? 'Tambah Sub-Aktivitas' : 'Tambah Aktivitas'}
-            </h3>
-            <p className="text-xs text-secondary mt-0.5">
-              {isEditing ? 'Perbarui data aktivitas project.' : 'Masukkan rincian untuk aktivitas baru.'}
-            </p>
+        <div className="px-6 py-4 border-b border-outline-variant flex items-center justify-between bg-surface-container-low">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary/10 text-primary rounded-lg">
+              <CheckSquare className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-on-background">
+                {isEditing ? 'Edit Aktivitas / Task' : (parentId ? 'Tambah Sub-Aktivitas' : 'Tambah Aktivitas Baru')}
+              </h2>
+              <p className="text-xs text-secondary">
+                {isEditing ? 'Perbarui detail rencana pengerjaan aktivitas ini.' : 'Daftarkan aktivitas pekerjaan ke dalam timeline.'}
+              </p>
+            </div>
           </div>
-          <button 
+          <button
             onClick={onClose}
-            className="p-1.5 hover:bg-surface-container-high rounded-full transition-colors text-secondary cursor-pointer"
+            className="p-1 hover:bg-surface-container-high rounded-lg text-secondary hover:text-on-background transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="flex flex-col overflow-y-auto p-6 gap-5">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
           {error && (
-            <div className="p-3 bg-error-container text-error text-sm rounded-lg border border-error/20 font-medium">
-              {error}
+            <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 
           {/* Activity Name */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-on-background">Nama Aktivitas *</label>
+            <label className="text-sm font-semibold text-on-background">Nama Aktivitas / Task *</label>
             <input
               type="text"
-              name="activityName"
               required
+              name="activityName"
               value={formData.activityName}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-              placeholder="e.g. Analisis Kebutuhan Sistem"
+              placeholder="e.g. Desain Database & ERD"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Parent Activity */}
+            {/* Parent Task Selection */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-on-background">Aktivitas Utama (Parent)</label>
+              <label className="text-sm font-semibold text-on-background">Parent Task (Opsional)</label>
               <select
                 name="parentId"
                 value={formData.parentId}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
               >
-                <option value="">-- Tanpa Parent (Top Level) --</option>
-                {availableParents.map(act => (
+                <option value="">-- Main Activity (Root Level) --</option>
+                {parentOptions.map(act => (
                   <option key={act.id} value={act.id}>{act.activityName}</option>
                 ))}
               </select>
@@ -319,6 +325,7 @@ export function ActivityFormModal({
                 type="number"
                 name="durationDays"
                 min="0"
+                step="1"
                 value={formData.durationDays}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
@@ -333,11 +340,11 @@ export function ActivityFormModal({
                 type="number"
                 name="mandays"
                 min="0"
-                step="0.1"
+                step="1"
                 value={formData.mandays}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="e.g. 3.5"
+                placeholder="e.g. 3"
               />
             </div>
 

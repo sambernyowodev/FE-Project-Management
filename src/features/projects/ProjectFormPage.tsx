@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Trash2, Calendar, Link as LinkIcon, User, Layers } from 'lucide-react';
+import { ArrowLeft, Save, Trash2, Calendar, Link as LinkIcon, User, Layers, CalendarDays } from 'lucide-react';
 import {
   useGetProject,
   useCreateProject,
@@ -62,8 +62,6 @@ export function ProjectFormPage() {
     timelineRemark: '',
     startDate: '',
     endDate: '',
-    actualStart: '',
-    actualEnd: '',
     totalMandays: '',
     progressPct: '0',
     repositoryLink: '',
@@ -91,8 +89,6 @@ export function ProjectFormPage() {
         timelineRemark: project.timelineRemark || '',
         startDate: project.startDate ? project.startDate.split('T')[0] : '',
         endDate: project.endDate ? project.endDate.split('T')[0] : '',
-        actualStart: project.actualStart ? project.actualStart.split('T')[0] : '',
-        actualEnd: project.actualEnd ? project.actualEnd.split('T')[0] : '',
         totalMandays: project.totalMandays !== undefined && project.totalMandays !== null ? String(project.totalMandays) : '',
         progressPct: project.progressPct !== undefined && project.progressPct !== null ? String(project.progressPct) : '0',
         repositoryLink: project.repositoryLink || '',
@@ -195,15 +191,12 @@ export function ProjectFormPage() {
         customer: formData.customer || undefined,
         startDate: formData.startDate || undefined,
         endDate: formData.endDate || undefined,
-        totalMandays: formData.totalMandays ? Number(String(formData.totalMandays).replace(',', '.')) : undefined,
+        totalMandays: formData.totalMandays ? Math.round(Number(String(formData.totalMandays).replace(',', '.'))) : undefined,
         status: formData.status,
         timelineRemark: formData.timelineRemark || undefined,
-        progressPct: formData.progressPct ? Number(formData.progressPct) : 0,
         repositoryLink: formData.repositoryLink || undefined,
         timelineLink: formData.timelineLink || undefined,
         remarks: formData.remarks || undefined,
-        actualStart: formData.actualStart || undefined,
-        actualEnd: formData.actualEnd || undefined,
         poId: formData.poId || undefined,
       };
 
@@ -275,15 +268,26 @@ export function ProjectFormPage() {
           </div>
         </div>
         {isEditing && (
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="flex items-center gap-2 px-4 py-2 border border-error/30 text-error rounded-lg hover:bg-error/5 transition-colors text-sm font-semibold shadow-sm cursor-pointer disabled:opacity-50"
-            disabled={deleteMutation.isPending}
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>Delete Project</span>
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate(`/projects/${id}/timeline`)}
+              className="flex items-center gap-2 px-3.5 py-2 bg-primary/10 text-primary border border-primary/25 rounded-lg hover:bg-primary/20 transition-all text-sm font-semibold shadow-xs cursor-pointer"
+              title="Buka Halaman Project Timeline & Gantt"
+            >
+              <CalendarDays className="w-4 h-4" />
+              <span>Project Timeline & Gantt</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="flex items-center gap-2 px-3.5 py-2 border border-error/30 text-error rounded-lg hover:bg-error/5 transition-colors text-sm font-semibold shadow-sm cursor-pointer disabled:opacity-50"
+              disabled={deleteMutation.isPending}
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete Project</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -554,7 +558,7 @@ export function ProjectFormPage() {
                     id="totalMandays"
                     name="totalMandays"
                     type="number"
-                    step="any"
+                    step="1"
                     min="0"
                     value={formData.totalMandays}
                     onChange={handleChange}
@@ -683,6 +687,7 @@ export function ProjectFormPage() {
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between items-center">
                         <label htmlFor="progressPct" className="text-sm font-semibold text-on-background">Progress ({formData.progressPct}%)</label>
+                        <span className="text-[11px] text-secondary font-medium">(Otomatis dari Timeline)</span>
                       </div>
                       <input
                         id="progressPct"
@@ -690,9 +695,9 @@ export function ProjectFormPage() {
                         type="range"
                         min="0"
                         max="100"
+                        disabled
                         value={formData.progressPct}
-                        onChange={handleChange}
-                        className="w-full accent-primary h-2 bg-surface-container-high rounded-lg cursor-pointer"
+                        className="w-full accent-primary h-2 bg-surface-container-high rounded-lg opacity-60 cursor-not-allowed"
                       />
                     </div>
 
@@ -739,37 +744,6 @@ export function ProjectFormPage() {
                     />
                   </div>
                 </div>
-
-                {/* Actual Schedule (Only on edit) */}
-                {isEditing && (
-                  <div className="border-t border-outline-variant pt-4 flex flex-col gap-4">
-                    <h3 className="text-sm font-bold text-secondary uppercase tracking-wider">Actual Schedule</h3>
-
-                    <div className="flex flex-col gap-2">
-                      <label htmlFor="actualStart" className="text-sm font-semibold text-on-background">Actual Start</label>
-                      <input
-                        id="actualStart"
-                        name="actualStart"
-                        type="date"
-                        value={formData.actualStart}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                      />
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <label htmlFor="actualEnd" className="text-sm font-semibold text-on-background">Actual End</label>
-                      <input
-                        id="actualEnd"
-                        name="actualEnd"
-                        type="date"
-                        value={formData.actualEnd}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
-                      />
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>

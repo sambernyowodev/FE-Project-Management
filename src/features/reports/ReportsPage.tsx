@@ -768,7 +768,7 @@ export function ReportsPage() {
                         </div>
                         <div>
                           <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">Total Mandays Semua Project</span>
-                          <span className="text-xl font-bold text-primary">{overallTotalProjectMandays.toFixed(1)} md</span>
+                          <span className="text-xl font-bold text-primary">{Math.round(overallTotalProjectMandays)} md</span>
                           <span className="text-[10px] text-secondary block mt-0.5">Dari {overallProjectsFiltered.length} project</span>
                         </div>
                       </div>
@@ -803,7 +803,7 @@ export function ReportsPage() {
                                       <StatusBadge status={p.status || 'PLANNING'} />
                                     </td>
                                     <td className="px-6 py-4 text-center font-mono text-secondary">{p.memberCount} orang</td>
-                                    <td className="px-6 py-4 text-right font-mono font-bold text-primary">{p.totalMandays.toFixed(1)} md</td>
+                                    <td className="px-6 py-4 text-right font-mono font-bold text-primary">{Math.round(p.totalMandays)} md</td>
                                   </tr>
                                 ))
                               ) : (
@@ -820,7 +820,7 @@ export function ReportsPage() {
                                     {overallProjectsFiltered.reduce((sum, p) => sum + p.memberCount, 0)} orang
                                   </td>
                                   <td className="px-6 py-4 text-right font-mono text-primary">
-                                    {overallTotalProjectMandays.toFixed(1)} md
+                                    {Math.round(overallTotalProjectMandays)} md
                                   </td>
                                 </tr>
                               )}
@@ -886,7 +886,7 @@ export function ReportsPage() {
                             </div>
                             <div>
                               <span className="text-[11px] font-bold text-secondary uppercase tracking-wider block">Total Mandays</span>
-                              <span className="text-xl font-bold text-emerald-600">{projectTotalAktual.toFixed(1)} md</span>
+                              <span className="text-xl font-bold text-emerald-600">{Math.round(projectTotalAktual)} md</span>
                             </div>
                           </div>
                         </div>
@@ -925,7 +925,7 @@ export function ReportsPage() {
                                       {m.activityCount}
                                     </td>
                                     <td className="px-6 py-4 text-right font-mono font-bold text-primary">
-                                      {m.actualMandays.toFixed(1)} md
+                                      {Math.round(m.actualMandays)} md
                                     </td>
                                   </tr>
                                 ))}
@@ -935,7 +935,7 @@ export function ReportsPage() {
                                     {activities.filter(a => a.assignedToId).length} tasks
                                   </td>
                                   <td className="px-6 py-4 text-right font-mono text-primary">
-                                    {projectTotalAktual.toFixed(1)} md
+                                    {Math.round(projectTotalAktual)} md
                                   </td>
                                 </tr>
                               </tbody>
@@ -965,7 +965,7 @@ export function ReportsPage() {
                                   <tr key={index} className="hover:bg-surface-container-low/30 transition-colors">
                                     <td className="px-6 py-4 font-bold text-on-background">{r.roleName}</td>
                                     <td className="px-6 py-4 text-center font-mono text-secondary">{r.count} orang</td>
-                                    <td className="px-6 py-4 text-right font-mono font-bold text-primary">{r.aktual.toFixed(1)} md</td>
+                                    <td className="px-6 py-4 text-right font-mono font-bold text-primary">{Math.round(r.aktual)} md</td>
                                   </tr>
                                 ))}
                               </tbody>
