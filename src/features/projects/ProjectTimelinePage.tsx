@@ -10,6 +10,7 @@ import {
 import {
   useGetProjectMembers
 } from '@/modules/projects/hooks/useProjects';
+import { useGetHolidays } from '@/modules/master/holidays/hooks/useHolidays';
 import { GanttChart } from './components/GanttChart';
 import { TaskTable } from './components/TaskTable';
 import { ResourcePanel } from './components/ResourcePanel';
@@ -67,9 +68,10 @@ export function ProjectTimelinePage() {
   // 2. Fetch Details for Selected Project
   const { data: project, isLoading: isProjectLoading } = useGetProject(selectedProjectId || '');
 
-  // 3. Fetch Activities & Members
+  // 3. Fetch Activities & Members & Master Holidays
   const { data: activities = [], isLoading: isActivitiesLoading } = useGetProjectActivities(selectedProjectId || '');
   const { data: members = [], isLoading: isMembersLoading } = useGetProjectMembers(selectedProjectId || '');
+  const { data: holidays = [] } = useGetHolidays();
 
   // 4. View Modes (Gantt vs Table List)
   const [activeTab, setActiveTab] = useState<'gantt' | 'list'>('gantt');
@@ -109,7 +111,7 @@ export function ProjectTimelinePage() {
 
   const handleDownloadGanttExcel = () => {
     if (!project) return;
-    exportTimelineGanttToExcel(project, activities, members);
+    exportTimelineGanttToExcel(project, activities, members, holidays);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,7 +250,7 @@ export function ProjectTimelinePage() {
                 </div>
                 <div className="text-xs text-secondary mt-1 flex justify-between font-medium">
                   <span>Mandays Rencana: <strong>{Math.round(project.totalMandays || 0)} md</strong></span>
-                  <span>Mandays Terinput: <strong>{Math.round(calculatedMetrics.totalInputMandays)} md</strong></span>
+                  <span>Mandays Actual: <strong>{Math.round(calculatedMetrics.totalInputMandays)} md</strong></span>
                 </div>
               </div>
 
@@ -413,6 +415,7 @@ export function ProjectTimelinePage() {
                   }}
                   activities={activities}
                   members={members}
+                  holidays={holidays}
                 />
               ) : (
                 <TaskTable

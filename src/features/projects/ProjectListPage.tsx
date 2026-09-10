@@ -105,6 +105,16 @@ export function ProjectListPage() {
       ),
     },
     {
+      id: 'actualMandays',
+      header: 'Mandays Actual',
+      accessorKey: 'actualMandays',
+      cell: ({ row }) => (
+        <span className="font-mono font-bold text-primary">
+          {Math.round(row.original.actualMandays || 0)} md
+        </span>
+      ),
+    },
+    {
       id: 'progressPct',
       header: 'Progress',
       accessorKey: 'progressPct',

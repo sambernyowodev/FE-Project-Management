@@ -16,6 +16,7 @@ export type Project = Entity<'ProjectResponseDto'> & {
   progressPct?: number;
   actualStart?: string | null;
   actualEnd?: string | null;
+  actualMandays?: number;
 };
 export type ProjectMember = Omit<Entity<'ProjectMemberResponseDto'>, 'projectId' | 'userId' | 'roleId'> & {
   projectId: string;

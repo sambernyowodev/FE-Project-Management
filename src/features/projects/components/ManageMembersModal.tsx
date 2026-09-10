@@ -32,9 +32,22 @@ export function ManageMembersModal({ isOpen, onClose, projectId, members, activi
   const getCalculatedMandays = (memberOrUserId: any) => {
     const targetUserId = typeof memberOrUserId === 'object' ? getUserId(memberOrUserId) : memberOrUserId;
     if (!targetUserId) return 0;
-    return activities
-      .filter((act: any) => act.assignedToId === targetUserId)
-      .reduce((sum: number, act: any) => sum + (act.mandays || 0), 0);
+    const actMandays = activities
+      .filter((act: any) => {
+        const aId = String(act.assignedToId || act.assignedTo?.id || act.assigned_to || '');
+        return aId === String(targetUserId);
+      })
+      .reduce((sum: number, act: any) => sum + (Number(act.mandays) || 0), 0);
+
+    if (actMandays > 0) return actMandays;
+    if (typeof memberOrUserId === 'object' && memberOrUserId) {
+      return Number(memberOrUserId.assignedMandays || memberOrUserId.assigned_mandays || 0);
+    }
+    const foundMember = members.find(m => String(getUserId(m)) === String(targetUserId));
+    if (foundMember) {
+      return Number(foundMember.assignedMandays || foundMember.assigned_mandays || 0);
+    }
+    return 0;
   };
 
   if (!isOpen) return null;

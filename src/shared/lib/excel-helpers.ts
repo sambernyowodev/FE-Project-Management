@@ -6,13 +6,15 @@ import {
   isAfter
 } from 'date-fns';
 import { formatDate, parseLocalDate } from '@/shared/lib/formatter';
-import { 
-  calculateProjectProgress, 
+import {
+  calculateProjectProgress,
   calculateProjectSchedule,
   calculateWorkingMandays,
-  calculateCalendarDays 
+  calculateCalendarDays,
+  createHolidayMap
 } from '@/shared/lib/project-calculations';
 import type { ProjectActivity, ProjectMember, Project } from '@/modules/projects/types';
+import type { Holiday } from '@/modules/master/holidays/types';
 
 export interface ParsedExcelRow {
   rowIndex: number;
@@ -283,13 +285,13 @@ export function parseTimelineExcel(
           if (endDate && endDate.includes('T')) endDate = endDate.split('T')[0];
 
           const durationDaysVal = getVal(['Duration Days', 'Duration', 'Durasi']);
-          const durationDays = durationDaysVal 
-            ? Math.round(Number(durationDaysVal)) 
+          const durationDays = durationDaysVal
+            ? Math.round(Number(durationDaysVal))
             : (startDate && endDate ? calculateCalendarDays(startDate, endDate) : undefined);
 
           const mandaysVal = getVal(['Mandays', 'Man Days']);
-          const mandays = mandaysVal 
-            ? Math.round(Number(mandaysVal)) 
+          const mandays = mandaysVal
+            ? Math.round(Number(mandaysVal))
             : (startDate && endDate ? calculateWorkingMandays(startDate, endDate) : undefined);
 
           const assignedToName = getVal(['Assigned Resource', 'Resource', 'Petugas', 'Assigned To']);
@@ -353,9 +355,11 @@ export function parseTimelineExcel(
 export function exportTimelineGanttToExcel(
   project: Project,
   activities: ProjectActivity[],
-  members: ProjectMember[]
+  members: ProjectMember[],
+  holidays?: Holiday[] | Map<string, Holiday>
 ) {
   const workbook = XLSX.utils.book_new();
+  const holidayMap = holidays instanceof Map ? holidays : createHolidayMap(holidays || []);
 
   // 1. Sort activities hierarchically
   const rootActivities = activities
@@ -433,17 +437,31 @@ export function exportTimelineGanttToExcel(
   const paddedStart = startOfWeek(minDate, { weekStartsOn: 1 });
   const paddedEnd = endOfWeek(maxDate, { weekStartsOn: 1 });
 
-  const days: { date: Date; dateStr: string; label: string; isWeekend: boolean }[] = [];
+  const days: {
+    date: Date;
+    dateStr: string;
+    dateIso: string;
+    label: string;
+    isWeekend: boolean;
+    isHoliday: boolean;
+    holidayName: string;
+  }[] = [];
   let currentDay = paddedStart;
   while (currentDay <= paddedEnd && days.length < 180) { // cap at 180 days max for Excel
     const dStr = formatDate(currentDay, 'input');
+    const dIso = formatDate(currentDay, 'iso');
+    const holiday = holidayMap.get(dIso);
+    const isHoliday = Boolean(holiday);
     const dayNameShort = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][currentDay.getDay()];
     const dLabel = `${dayNameShort}, ${formatDate(currentDay, 'short')}`;
     days.push({
       date: currentDay,
       dateStr: dStr,
+      dateIso: dIso,
       label: dLabel,
-      isWeekend: currentDay.getDay() === 0 || currentDay.getDay() === 6
+      isWeekend: currentDay.getDay() === 0 || currentDay.getDay() === 6,
+      isHoliday,
+      holidayName: holiday?.name || ''
     });
     currentDay = addDays(currentDay, 1);
   }
@@ -535,8 +553,8 @@ export function exportTimelineGanttToExcel(
     ];
 
     days.forEach((d) => {
-      // Weekends (Sabtu/Minggu) are strictly empty (dikosongi)
-      if (d.isWeekend) {
+      // Non-working days (Weekends and National Holidays) are strictly empty (dikosongi)
+      if (d.isWeekend || d.isHoliday) {
         rowData.push('');
         return;
       }
@@ -619,20 +637,33 @@ export function exportTimelineGanttToExcel(
     };
   });
 
-  // Style Day Headers in Row 1 (col 13 onwards)
+  // Style Day Headers in Row 1 (col 13 onwards) - Highlight Holidays in Red
   days.forEach((d, dIdx) => {
     const c = 13 + dIdx;
     const cellRef = XLSX.utils.encode_cell({ r: 1, c });
     if (!ganttSheet[cellRef]) ganttSheet[cellRef] = { t: 's', v: '' };
+
+    let headerBg = '1E293B'; // Slate-800 for weekday
+    let topBorderColor = '334155';
+    let bottomBorderColor = '0F172A';
+
+    if (d.isHoliday) {
+      headerBg = 'DC2626'; // Red-600 for holiday header (matching web Gantt)
+      topBorderColor = 'B91C1C';
+      bottomBorderColor = '991B1B';
+    } else if (d.isWeekend) {
+      headerBg = '475569'; // Slate-600 for weekend header
+    }
+
     ganttSheet[cellRef].s = {
-      fill: { fgColor: { rgb: d.isWeekend ? '475569' : '1E293B' } }, // Slate-600 for weekend header, Slate-800 for weekday
+      fill: { fgColor: { rgb: headerBg } },
       font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 8 },
       alignment: { horizontal: 'center', vertical: 'center' },
       border: {
-        top: { style: 'thin', color: { rgb: '334155' } },
-        bottom: { style: 'medium', color: { rgb: '0F172A' } },
-        left: { style: 'thin', color: { rgb: '334155' } },
-        right: { style: 'thin', color: { rgb: '334155' } }
+        top: { style: 'thin', color: { rgb: topBorderColor } },
+        bottom: { style: 'medium', color: { rgb: bottomBorderColor } },
+        left: { style: 'thin', color: { rgb: topBorderColor } },
+        right: { style: 'thin', color: { rgb: topBorderColor } }
       }
     };
   });
@@ -699,6 +730,22 @@ export function exportTimelineGanttToExcel(
       const cellRef = XLSX.utils.encode_cell({ r, c });
       if (!ganttSheet[cellRef]) {
         ganttSheet[cellRef] = { t: 's', v: '' };
+      }
+
+      // Holidays are strictly empty and tinted soft red (matching web Gantt chart)
+      if (d.isHoliday) {
+        ganttSheet[cellRef].v = '';
+        ganttSheet[cellRef].s = {
+          fill: { fgColor: { rgb: 'FEF2F2' } }, // Soft red tint for national holiday
+          alignment: { horizontal: 'center', vertical: 'center' },
+          border: {
+            top: { style: 'hair', color: { rgb: 'FECACA' } },
+            bottom: { style: 'hair', color: { rgb: 'FECACA' } },
+            left: { style: 'hair', color: { rgb: 'FECACA' } },
+            right: { style: 'hair', color: { rgb: 'FECACA' } }
+          }
+        };
+        return;
       }
 
       // Weekends are strictly empty (dikosongi)
@@ -844,7 +891,7 @@ export function exportTimelineGanttToExcel(
     { 'Attribute': 'Status', 'Value': project.status || '-' },
     { 'Attribute': 'Overall Progress', 'Value': `${calculatedProgress}%` },
     { 'Attribute': 'Planned Mandays', 'Value': `${Math.round(project.totalMandays || 0)} md` },
-    { 'Attribute': 'Total Input Mandays', 'Value': `${Math.round(totalInputMandays)} md` },
+    { 'Attribute': 'Actual Mandays', 'Value': `${Math.round(totalInputMandays)} md` },
     { 'Attribute': 'Planned Schedule', 'Value': `${formatDate(project.startDate, 'short')} - ${formatDate(project.endDate, 'short')}` },
     { 'Attribute': 'Actual Schedule', 'Value': `${actualStartStr} - ${actualEndStr}` },
     { 'Attribute': 'Client PIC', 'Value': project.picClient || '-' },

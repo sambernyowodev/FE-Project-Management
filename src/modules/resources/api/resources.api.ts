@@ -21,7 +21,7 @@ export const resourcesApi = {
     // 2. Fetch all project_members with project & role details
     const { data: rawProjectMembers, error: pmErr } = await supabase
       .from('project_members')
-      .select('id, member_id, role_id, assigned_mandays, actual_mandays, is_active, role:roles(id, code, name), project:projects(id, status, customer, start_date, end_date, total_mandays, project_master:master_projects(id, project_code, name, platform), project_activities(mandays, progress_pct))');
+      .select('id, member_id, role_id, assigned_mandays, actual_mandays, is_active, role:roles(id, code, name), project:projects(id, status, customer, start_date, end_date, total_mandays, project_master:master_projects(id, project_code, name, platform), project_activities(id, mandays, assigned_to, progress_pct))');
 
     if (pmErr) throw pmErr;
 
@@ -48,6 +48,18 @@ export const resourcesApi = {
         normalizedProjStatus !== 'CANCELLED' &&
         normalizedProjStatus !== 'CANCELED';
 
+      const memberActivities = (proj?.project_activities || []).filter((act: any) =>
+        String(act.assigned_to) === String(memberId) ||
+        (pm.id && String(act.assigned_to) === String(pm.id))
+      );
+      const calculatedMandaysFromActivities = memberActivities.reduce(
+        (sum: number, act: any) => sum + (Number(act.mandays) || 0),
+        0
+      );
+      const assignedMandays = calculatedMandaysFromActivities > 0
+        ? calculatedMandaysFromActivities
+        : Number(pm.assigned_mandays || 0);
+
       const detail: MemberProjectDetail = {
         id: pm.id,
         projectId: proj?.id || '',
@@ -62,7 +74,7 @@ export const resourcesApi = {
         roleId: pm.role_id,
         roleName: pm.role?.name || '',
         roleCode: pm.role?.code || '',
-        assignedMandays: Number(pm.assigned_mandays || 0),
+        assignedMandays,
         actualMandays: Number(pm.actual_mandays || 0),
         isProjectActive,
       };

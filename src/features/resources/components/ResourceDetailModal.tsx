@@ -203,7 +203,7 @@ export function ResourceDetailModal({ isOpen, onClose, resource }: ResourceDetai
                             <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 font-semibold">
                               {proj.roleName || 'Resource'}
                             </span>
-                            {proj.assignedMandays ? (
+                            {proj.assignedMandays !== undefined && proj.assignedMandays !== null ? (
                               <span className="text-secondary font-mono">
                                 {Math.round(proj.assignedMandays)} md
                               </span>

@@ -25,20 +25,33 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
   // Count tasks per user ID
   const taskCounts: Record<string, number> = {};
   activities.forEach(act => {
-    if (act.assignedToId) {
-      taskCounts[act.assignedToId] = (taskCounts[act.assignedToId] || 0) + 1;
+    const actAny = act as any;
+    const aId = String(act.assignedToId || (typeof actAny.assignedTo === 'object' ? actAny.assignedTo?.id : actAny.assignedTo) || actAny.assigned_to || '');
+    if (aId) {
+      taskCounts[aId] = (taskCounts[aId] || 0) + 1;
     }
   });
 
-  const getUserCalculatedMandays = (userId: string) => {
-    return activities
-      .filter(act => act.assignedToId === userId)
-      .reduce((sum, act) => sum + Math.round(act.mandays || 0), 0);
+  const getUserCalculatedMandays = (userId: string, member?: ProjectMember) => {
+    if (!userId) return 0;
+    const actMandays = activities
+      .filter(act => {
+        const actAny = act as any;
+        const aId = String(act.assignedToId || (typeof actAny.assignedTo === 'object' ? actAny.assignedTo?.id : actAny.assignedTo) || actAny.assigned_to || '');
+        return aId === String(userId);
+      })
+      .reduce((sum, act) => sum + (Number(act.mandays) || 0), 0);
+
+    if (actMandays > 0) return actMandays;
+    if (member && member.assignedMandays) return Number(member.assignedMandays);
+    return 0;
   };
 
   const getRoleCalculatedMandays = (roleMembers: ProjectMember[]) => {
-    const uniqueUserIds = Array.from(new Set(roleMembers.map(m => m.memberId)));
-    return uniqueUserIds.reduce((sum, userId) => sum + getUserCalculatedMandays(userId), 0);
+    return roleMembers.reduce((sum, member) => {
+      const userId = member.memberId || member.user?.id || '';
+      return sum + getUserCalculatedMandays(userId, member);
+    }, 0);
   };
 
   // Group members by role code (using role.code)
@@ -65,10 +78,15 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
   });
 
   const totalResources = members.length;
-  const activeResources = members.filter(m => (taskCounts[m.memberId] || 0) > 0).length;
+  const activeResources = members.filter(m => {
+    const uId = m.memberId || m.user?.id || '';
+    return (taskCounts[uId] || 0) > 0;
+  }).length;
 
-  const totalAktual = Array.from(new Set(members.map(m => m.memberId)))
-    .reduce((sum, userId) => sum + getUserCalculatedMandays(userId), 0);
+  const totalAktual = members.reduce((sum, member) => {
+    const uId = member.memberId || member.user?.id || '';
+    return sum + getUserCalculatedMandays(uId, member);
+  }, 0);
 
   const getInitials = (name: string) => {
     if (!name) return '??';
@@ -156,24 +174,25 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
               
               <div className="flex flex-col gap-2">
                 {roleMembers.map(member => {
-                  const tasks = taskCounts[member.memberId] || 0;
-                  const userName = member.user?.fullName || `User ID: ${member.memberId}`;
+                  const uId = member.memberId || member.user?.id || member.id || '';
+                  const tasks = (uId ? taskCounts[uId] : 0) || (member.memberId ? taskCounts[member.memberId] : 0) || (member.user?.id ? taskCounts[member.user.id] : 0) || 0;
+                  const userName = member.user?.fullName || `User ID: ${uId || member.memberId}`;
                   const userEmail = member.user?.email || '';
                   
                   return (
                     <div key={member.id} className="flex items-center justify-between p-2 rounded-lg bg-surface hover:bg-surface-container-low/50 border border-outline-variant/60 transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Avatar */}
-                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(member.memberId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
+                        <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(uId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
                           {getInitials(userName)}
                         </div>
                         {/* Details */}
                         <div className="flex flex-col min-w-0">
                           <span className="text-sm font-semibold text-on-background truncate">{userName}</span>
                           <span className="text-[10px] text-secondary truncate">{userEmail}</span>
-                          {workloadMap[member.memberId] && (
+                          {workloadMap[uId] && (
                             <span className="text-[9px] text-secondary font-medium truncate">
-                              Beban: <strong className={workloadMap[member.memberId].isIdle ? 'text-emerald-600' : 'text-amber-600'}>{workloadMap[member.memberId].workloadLabel}</strong>
+                              Beban: <strong className={workloadMap[uId].isIdle ? 'text-emerald-600' : 'text-amber-600'}>{workloadMap[uId].workloadLabel}</strong>
                             </span>
                           )}
                         </div>
@@ -193,7 +212,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                           </span>
                         )}
                         <span className="text-[10px] font-mono text-primary font-bold">
-                          {Math.round(getUserCalculatedMandays(member.memberId))} md
+                          {Math.round(getUserCalculatedMandays(uId, member))} md
                         </span>
                       </div>
                     </div>
@@ -218,14 +237,15 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
             
             <div className="flex flex-col gap-2">
               {otherMembers.map(member => {
-                const tasks = taskCounts[member.memberId] || 0;
-                const userName = member.user?.fullName || `User ID: ${member.memberId}`;
+                const uId = member.memberId || member.user?.id || member.id || '';
+                const tasks = (uId ? taskCounts[uId] : 0) || (member.memberId ? taskCounts[member.memberId] : 0) || (member.user?.id ? taskCounts[member.user.id] : 0) || 0;
+                const userName = member.user?.fullName || `User ID: ${uId || member.memberId}`;
                 const roleName = member.role?.name || 'Resource';
                 
                 return (
                   <div key={member.id} className="flex items-center justify-between p-2 rounded-lg bg-surface hover:bg-surface-container-low/50 border border-outline-variant/60 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(member.memberId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
+                      <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${getAvatarBg(uId)} text-white text-xs font-bold flex items-center justify-center shadow-inner shrink-0`}>
                         {getInitials(userName)}
                       </div>
                       <div className="flex flex-col min-w-0">
@@ -247,7 +267,7 @@ export function ResourcePanel({ members = [], activities = [], onManageTeam }: R
                         </span>
                       )}
                       <span className="text-[10px] font-mono text-primary font-bold">
-                        {Math.round(getUserCalculatedMandays(member.memberId))} md
+                        {Math.round(getUserCalculatedMandays(uId, member))} md
                       </span>
                     </div>
                   </div>

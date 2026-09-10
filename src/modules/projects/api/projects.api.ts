@@ -9,6 +9,7 @@ const mapProject = (p: any): Project => {
   const activities = p.project_activities || [];
   const progressPct = calculateProjectProgress(activities);
   const { actualStart, actualEnd } = calculateProjectSchedule(activities, p.start_date, p.end_date);
+  const actualMandays = activities.reduce((acc: number, curr: any) => acc + Math.round(Number(curr.mandays) || 0), 0);
 
   return {
     ...p,
@@ -24,7 +25,8 @@ const mapProject = (p: any): Project => {
     company: p.company ? { id: p.company.id, name: p.company.name, code: p.company.code } : null,
     department: p.department ? { id: p.department.id, name: p.department.name } : null,
     businessOwner: p.business_owner ? { id: p.business_owner.id, name: p.business_owner.name, title: p.business_owner.title } : null,
-    totalMandays: Number(p.total_mandays),
+    totalMandays: Number(p.total_mandays || 0),
+    actualMandays,
     startDate: p.start_date,
     endDate: p.end_date,
     actualStart,
