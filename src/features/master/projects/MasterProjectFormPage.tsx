@@ -7,8 +7,8 @@ import {
   useUpdateMasterProject,
   useDeleteMasterProject,
 } from '@/modules/master/projects/hooks/useMasterProjects';
-import { formatDate } from '@/shared/lib/formatter';
 import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
+import { AuditInfo } from '@/shared/components/common/AuditInfo';
 
 export function MasterProjectFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -272,12 +272,14 @@ export function MasterProjectFormPage() {
                     <p className="font-semibold text-on-background mb-1">ℹ️ Metadata:</p>
                     <p>Project Code: <span className="font-mono font-semibold">{project?.projectCode}</span></p>
                     <p className="mt-1">Project ID: <span className="font-mono font-semibold">{project?.id}</span></p>
-                    {project?.createdAt && (
-                      <p className="mt-1">
-                        Terdaftar: {formatDate(project.createdAt, 'short')}
-                      </p>
-                    )}
                   </div>
+
+                  <AuditInfo
+                    createdBy={project?.createdBy}
+                    createdAt={project?.createdAt}
+                    updatedBy={project?.updatedBy}
+                    updatedAt={project?.updatedAt}
+                  />
                 </>
               ) : (
                 <div className="text-xs text-secondary leading-relaxed bg-surface-container-low p-4 rounded-lg border border-outline-variant/60">

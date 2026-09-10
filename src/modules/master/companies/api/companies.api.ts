@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/api/supabase';
 import type { Company, CreateCompanyDto, UpdateCompanyDto } from '../types';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 const mapCompany = (c: any): Company => ({
   id: c.id,
@@ -36,14 +37,16 @@ export const companiesApi = {
   },
 
   createCompany: async (dto: CreateCompanyDto): Promise<Company> => {
+    const payload = await withAuditCreated({
+      code: dto.code,
+      name: dto.name,
+      address: dto.address,
+      is_active: dto.isActive ?? true,
+    });
+
     const { data, error } = await supabase
       .from('companies')
-      .insert({
-        code: dto.code,
-        name: dto.name,
-        address: dto.address,
-        is_active: dto.isActive ?? true,
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -52,11 +55,13 @@ export const companiesApi = {
   },
 
   updateCompany: async (id: string, dto: UpdateCompanyDto): Promise<Company> => {
-    const payload: any = {};
-    if (dto.code !== undefined) payload.code = dto.code;
-    if (dto.name !== undefined) payload.name = dto.name;
-    if (dto.address !== undefined) payload.address = dto.address;
-    if (dto.isActive !== undefined) payload.is_active = dto.isActive;
+    const rawPayload: any = {};
+    if (dto.code !== undefined) rawPayload.code = dto.code;
+    if (dto.name !== undefined) rawPayload.name = dto.name;
+    if (dto.address !== undefined) rawPayload.address = dto.address;
+    if (dto.isActive !== undefined) rawPayload.is_active = dto.isActive;
+
+    const payload = await withAuditUpdated(rawPayload);
 
     const { data, error } = await supabase
       .from('companies')

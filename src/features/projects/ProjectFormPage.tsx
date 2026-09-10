@@ -15,6 +15,7 @@ import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartm
 import { useGetBusinessOwners } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 import { ProjectStatus } from '@/shared/constants/enums';
 import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
+import { AuditInfo } from '@/shared/components/common/AuditInfo';
 
 
 const STATUS_OPTIONS = Object.values(ProjectStatus);
@@ -26,7 +27,7 @@ export function ProjectFormPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: project, isLoading: isProjectLoading } = useGetProject(id || '');
-  const { data: masterProjectsRes } = useGetMasterProjects({ perPage: 100 });
+  const { data: masterProjectsRes } = useGetMasterProjects({ perPage: 1000 });
   const masterProjects = masterProjectsRes?.data || [];
 
   const createMutation = useCreateProject();
@@ -748,6 +749,16 @@ export function ProjectFormPage() {
             </div>
           </div>
         </div>
+
+        {/* Audit Information */}
+        {isEditing && project && (
+          <AuditInfo
+            createdBy={(project as any).createdBy}
+            createdAt={(project as any).createdAt}
+            updatedBy={(project as any).updatedBy}
+            updatedAt={(project as any).updatedAt}
+          />
+        )}
 
         {/* Submit Actions */}
         <div className="flex justify-end gap-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm">

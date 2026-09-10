@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/api/supabase';
 import type { Holiday, CreateHolidayInput, UpdateHolidayInput } from '../types';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 const mapHoliday = (h: any): Holiday => ({
   id: String(h.id),
@@ -8,6 +9,8 @@ const mapHoliday = (h: any): Holiday => ({
   year: Number(h.year),
   createdAt: h.created_at,
   updatedAt: h.updated_at,
+  createdBy: h.created_by,
+  updatedBy: h.updated_by,
 });
 
 export const holidaysApi = {
@@ -54,13 +57,15 @@ export const holidaysApi = {
   createHoliday: async (input: CreateHolidayInput): Promise<Holiday> => {
     const year = input.year || (input.holidayDate ? new Date(input.holidayDate).getFullYear() : new Date().getFullYear());
 
+    const payload = await withAuditCreated({
+      name: input.name,
+      holiday_date: input.holidayDate,
+      year,
+    });
+
     const { data, error } = await supabase
       .from('master_holidays')
-      .insert({
-        name: input.name,
-        holiday_date: input.holidayDate,
-        year,
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -69,14 +74,16 @@ export const holidaysApi = {
   },
 
   updateHoliday: async (id: string, input: UpdateHolidayInput): Promise<Holiday> => {
-    const payload: any = {};
-    if (input.name !== undefined) payload.name = input.name;
+    const rawPayload: any = {};
+    if (input.name !== undefined) rawPayload.name = input.name;
     if (input.holidayDate !== undefined) {
-      payload.holiday_date = input.holidayDate;
-      payload.year = input.year || new Date(input.holidayDate).getFullYear();
+      rawPayload.holiday_date = input.holidayDate;
+      rawPayload.year = input.year || new Date(input.holidayDate).getFullYear();
     } else if (input.year !== undefined) {
-      payload.year = input.year;
+      rawPayload.year = input.year;
     }
+
+    const payload = await withAuditUpdated(rawPayload);
 
     const { data, error } = await supabase
       .from('master_holidays')

@@ -139,4 +139,12 @@ export function useChangePassword() {
   });
 }
 
+export function useAppUsers() {
+  return useQuery({
+    queryKey: ['auth', 'app-users'],
+    queryFn: authApi.getAppUsers,
+    staleTime: 10 * 60 * 1000, // 10 minutes cache
+  });
+}
+
 

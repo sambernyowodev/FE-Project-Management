@@ -311,18 +311,44 @@ export function ResourceDetailModal({ isOpen, onClose, resource }: ResourceDetai
                     {resource.completedProjects.map(proj => (
                       <div
                         key={proj.id}
-                        className="bg-surface-container-low/60 border border-outline-variant/60 rounded-xl p-4 flex flex-col justify-between gap-2"
+                        className="bg-surface-container-low/60 border border-outline-variant/60 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-primary/40 transition-all shadow-sm"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="text-xs font-mono text-secondary">{proj.projectCode}</span>
-                            <h5 className="text-sm font-bold text-on-background">{proj.projectName}</h5>
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-mono text-secondary">{proj.projectCode}</span>
+                              <h5 className="text-sm font-bold text-on-background leading-snug">{proj.projectName}</h5>
+                            </div>
+                            <StatusBadge status={proj.status} />
                           </div>
-                          <StatusBadge status={proj.status} />
+                          {proj.customer && (
+                            <span className="text-[11px] text-secondary">Client: <strong>{proj.customer}</strong></span>
+                          )}
                         </div>
-                        <div className="text-[11px] text-secondary flex justify-between">
-                          <span>Role: <strong>{proj.roleName || '-'}</strong></span>
-                          <span>Mandays: <strong>{proj.assignedMandays || 0} md</strong></span>
+
+                        {/* Footer details & Action */}
+                        <div className="pt-2 border-t border-outline-variant/60 flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 font-semibold">
+                              {proj.roleName || 'Resource'}
+                            </span>
+                            {proj.assignedMandays !== undefined && proj.assignedMandays !== null ? (
+                              <span className="text-secondary font-mono">
+                                {Math.round(proj.assignedMandays)} md
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              onClose();
+                              navigate(`/projects/${proj.projectId}/timeline`);
+                            }}
+                            className="flex items-center gap-1 text-primary hover:underline font-bold cursor-pointer"
+                          >
+                            <span>Buka Timeline</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -346,20 +372,44 @@ export function ResourceDetailModal({ isOpen, onClose, resource }: ResourceDetai
                     {resource.completedSupports.map(sup => (
                       <div
                         key={sup.id}
-                        className="bg-surface-container-low/60 border border-outline-variant/60 rounded-xl p-4 flex flex-col justify-between gap-2"
+                        className="bg-surface-container-low/60 border border-outline-variant/60 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-purple-500/40 transition-all shadow-sm"
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="text-xs font-mono text-purple-600 font-bold">{sup.ticketCode}</span>
-                            <h5 className="text-sm font-bold text-on-background">{sup.issueTitle}</h5>
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-mono text-purple-600 font-bold">{sup.ticketCode}</span>
+                              <h5 className="text-sm font-bold text-on-background leading-snug">{sup.issueTitle}</h5>
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                              DONE
+                            </span>
                           </div>
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                            DONE
-                          </span>
+                          {sup.projectName && (
+                            <span className="text-[11px] text-secondary">Project: <strong>{sup.projectName}</strong></span>
+                          )}
                         </div>
-                        <div className="text-[11px] text-secondary flex justify-between">
-                          <span>Project: <strong>{sup.projectName || '-'}</strong></span>
-                          <span>Jam Kerja: <strong>{sup.hoursSpent || 0} jam</strong></span>
+
+                        {/* Footer details & Action */}
+                        <div className="pt-2 border-t border-outline-variant/60 flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-700 border border-purple-500/20 font-semibold">
+                              {sup.roleName || 'Assignee'}
+                            </span>
+                            <span className="text-secondary font-mono">
+                              {sup.hoursSpent || 0} jam
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              onClose();
+                              navigate(`/support/${sup.ticketId}/timeline`);
+                            }}
+                            className="flex items-center gap-1 text-purple-600 hover:underline font-bold cursor-pointer"
+                          >
+                            <span>Buka Support</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
                         </div>
                       </div>
                     ))}

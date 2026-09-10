@@ -12,6 +12,8 @@ const mapBilling = (b: any): Billing => ({
   billingType: b.billing_type,
   createdAt: b.created_at,
   updatedAt: b.updated_at,
+  createdBy: b.created_by,
+  updatedBy: b.updated_by,
 } as any);
 
 export const billingApi = {
@@ -295,6 +297,7 @@ export const billingApi = {
         total_amount: preview.totalAmount,
         remarks: dto.remarks || null,
         created_by: user?.id || null,
+        updated_by: user?.id || null,
       })
       .select()
       .single();
@@ -319,6 +322,8 @@ export const billingApi = {
       mandays: r.mandays,
       rate_per_manday: r.ratePerManday,
       subtotal: r.subtotal,
+      created_by: user?.id || null,
+      updated_by: user?.id || null,
     }));
 
     const { error: detErr } = await supabase.from('billing_details').insert(details);

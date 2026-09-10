@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/api/supabase';
 import type { BusinessOwner, CreateBusinessOwnerDto, UpdateBusinessOwnerDto } from '../types';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 const mapBusinessOwner = (b: any): BusinessOwner => ({
   id: b.id,
@@ -63,16 +64,18 @@ export const businessOwnersApi = {
   },
 
   createBusinessOwner: async (dto: CreateBusinessOwnerDto): Promise<BusinessOwner> => {
+    const payload = await withAuditCreated({
+      department_id: dto.departmentId,
+      name: dto.name,
+      title: dto.title,
+      email: dto.email,
+      phone: dto.phone,
+      is_active: dto.isActive ?? true,
+    });
+
     const { data, error } = await supabase
       .from('business_owners')
-      .insert({
-        department_id: dto.departmentId,
-        name: dto.name,
-        title: dto.title,
-        email: dto.email,
-        phone: dto.phone,
-        is_active: dto.isActive ?? true,
-      })
+      .insert(payload)
       .select('*, department:departments(*, company:companies(*))')
       .single();
 
@@ -81,13 +84,15 @@ export const businessOwnersApi = {
   },
 
   updateBusinessOwner: async (id: string, dto: UpdateBusinessOwnerDto): Promise<BusinessOwner> => {
-    const payload: any = {};
-    if (dto.departmentId !== undefined) payload.department_id = dto.departmentId;
-    if (dto.name !== undefined) payload.name = dto.name;
-    if (dto.title !== undefined) payload.title = dto.title;
-    if (dto.email !== undefined) payload.email = dto.email;
-    if (dto.phone !== undefined) payload.phone = dto.phone;
-    if (dto.isActive !== undefined) payload.is_active = dto.isActive;
+    const rawPayload: any = {};
+    if (dto.departmentId !== undefined) rawPayload.department_id = dto.departmentId;
+    if (dto.name !== undefined) rawPayload.name = dto.name;
+    if (dto.title !== undefined) rawPayload.title = dto.title;
+    if (dto.email !== undefined) rawPayload.email = dto.email;
+    if (dto.phone !== undefined) rawPayload.phone = dto.phone;
+    if (dto.isActive !== undefined) rawPayload.is_active = dto.isActive;
+
+    const payload = await withAuditUpdated(rawPayload);
 
     const { data, error } = await supabase
       .from('business_owners')

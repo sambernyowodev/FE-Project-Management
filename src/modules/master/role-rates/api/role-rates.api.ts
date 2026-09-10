@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/api/supabase';
 import type { RoleRate } from '../types';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 const mapRoleRate = (r: any): RoleRate => ({
   id: r.id,
@@ -101,15 +102,17 @@ export const roleRatesApi = {
   },
 
   createRoleRate: async (data: Omit<RoleRate, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy' | 'role' | 'project'>): Promise<RoleRate> => {
+    const payload = await withAuditCreated({
+      role_id: data.roleId,
+      rate_per_manday_project: data.ratePerMandayProject,
+      rate_per_manday_support: data.ratePerMandaySupport,
+      currency: data.currency,
+      is_active: data.isActive,
+    });
+
     const { data: newRate, error } = await supabase
       .from('role_rates')
-      .insert({
-        role_id: data.roleId,
-        rate_per_manday_project: data.ratePerMandayProject,
-        rate_per_manday_support: data.ratePerMandaySupport,
-        currency: data.currency,
-        is_active: data.isActive,
-      })
+      .insert(payload)
       .select('*, roles(*)')
       .single();
 
@@ -118,15 +121,17 @@ export const roleRatesApi = {
   },
 
   updateRoleRate: async (id: string, data: Partial<Omit<RoleRate, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy' | 'role' | 'project'>>): Promise<RoleRate> => {
+    const payload = await withAuditUpdated({
+      role_id: data.roleId,
+      rate_per_manday_project: data.ratePerMandayProject,
+      rate_per_manday_support: data.ratePerMandaySupport,
+      currency: data.currency,
+      is_active: data.isActive,
+    });
+
     const { data: updatedRate, error } = await supabase
       .from('role_rates')
-      .update({
-        role_id: data.roleId,
-        rate_per_manday_project: data.ratePerMandayProject,
-        rate_per_manday_support: data.ratePerMandaySupport,
-        currency: data.currency,
-        is_active: data.isActive,
-      })
+      .update(payload)
       .eq('id', id)
       .select('*, roles(*)')
       .single();

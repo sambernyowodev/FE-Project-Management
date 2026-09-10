@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/api/supabase';
 import type { Role } from '../types';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 const mapRole = (r: any): Role => ({
   id: r.id,
@@ -35,13 +36,15 @@ export const rolesApi = {
   },
 
   createRole: async (data: Omit<Role, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>): Promise<Role> => {
+    const payload = await withAuditCreated({
+      code: data.code,
+      name: data.name,
+      description: data.description,
+    });
+
     const { data: newRole, error } = await supabase
       .from('roles')
-      .insert({
-        code: data.code,
-        name: data.name,
-        description: data.description,
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -50,13 +53,15 @@ export const rolesApi = {
   },
 
   updateRole: async (id: string, data: Partial<Omit<Role, 'id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>>): Promise<Role> => {
+    const payload = await withAuditUpdated({
+      code: data.code,
+      name: data.name,
+      description: data.description,
+    });
+
     const { data: updatedRole, error } = await supabase
       .from('roles')
-      .update({
-        code: data.code,
-        name: data.name,
-        description: data.description,
-      })
+      .update(payload)
       .eq('id', id)
       .select()
       .single();

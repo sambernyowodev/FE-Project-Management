@@ -144,7 +144,20 @@ export const authApi = {
       success: true,
       data: null
     };
-  }
+  },
+
+  getAppUsers: async (): Promise<{ id: string; fullName: string; email: string; role: string }[]> => {
+    const { data, error } = await supabase
+      .from('app_users')
+      .select('id, full_name, email, role');
+    if (error) throw error;
+    return (data || []).map((u: any) => ({
+      id: u.id,
+      fullName: u.full_name,
+      email: u.email,
+      role: u.role,
+    }));
+  },
 };
 
 

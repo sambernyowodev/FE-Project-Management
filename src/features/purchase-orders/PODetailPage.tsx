@@ -20,6 +20,7 @@ import {
   useRemoveProjectFromPO
 } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
 import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
+import { AuditInfo } from '@/shared/components/common/AuditInfo';
 
 export function PODetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -399,6 +400,16 @@ export function PODetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Audit Information */}
+      {po && (
+        <AuditInfo
+          createdBy={(po as any).createdBy}
+          createdAt={(po as any).createdAt}
+          updatedBy={(po as any).updatedBy}
+          updatedAt={(po as any).updatedAt}
+        />
+      )}
 
       {/* Confirm Dialog for Removing Project from PO */}
       <ConfirmDialog

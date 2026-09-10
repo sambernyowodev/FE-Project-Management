@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/api/supabase';
 import type { PurchaseOrder } from '../types';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 const mapPO = (p: any): PurchaseOrder => {
   const allocatedMandays = p.po_projects ? p.po_projects.reduce((sum: number, pop: any) => sum + Number(pop.allocated_mandays || 0), 0) : 0;
@@ -22,6 +23,8 @@ const mapPO = (p: any): PurchaseOrder => {
     isActive: p.is_active,
     createdAt: p.created_at,
     updatedAt: p.updated_at,
+    createdBy: p.created_by,
+    updatedBy: p.updated_by,
     allocatedMandays: allocatedMandays,
     remainingMandays: totalMandays - allocatedMandays,
     poProjects: p.po_projects ? p.po_projects.map((pop: any) => ({
@@ -140,21 +143,23 @@ export const poApi = {
       }
     }
 
+    const payload = await withAuditCreated({
+      po_number: poNumber,
+      po_name: data.poName,
+      company_id: data.companyId || null,
+      department_id: data.departmentId || null,
+      customer: data.customer || null,
+      total_mandays: data.totalMandays,
+      total_amount: data.totalAmount,
+      description: data.description,
+      start_date: data.startDate || null,
+      end_date: data.endDate || null,
+      is_active: true,
+    });
+
     const { data: newPo, error } = await supabase
       .from('purchase_orders')
-      .insert({
-        po_number: poNumber,
-        po_name: data.poName,
-        company_id: data.companyId || null,
-        department_id: data.departmentId || null,
-        customer: data.customer || null,
-        total_mandays: data.totalMandays,
-        total_amount: data.totalAmount,
-        description: data.description,
-        start_date: data.startDate || null,
-        end_date: data.endDate || null,
-        is_active: true,
-      })
+      .insert(payload)
       .select('*, companies(*), departments(*), po_projects(*, projects(*, master_projects(name)))')
       .single();
 
@@ -163,20 +168,22 @@ export const poApi = {
   },
 
   updatePurchaseOrder: async (id: string, data: Partial<{ poNumber?: string; poName: string; companyId?: string | null; departmentId?: string | null; customer?: string; totalMandays: number; totalAmount: number; description?: string; startDate?: string; endDate?: string }>): Promise<PurchaseOrder> => {
+    const payload = await withAuditUpdated({
+      po_number: data.poNumber,
+      po_name: data.poName,
+      company_id: data.companyId !== undefined ? data.companyId : undefined,
+      department_id: data.departmentId !== undefined ? data.departmentId : undefined,
+      customer: data.customer,
+      total_mandays: data.totalMandays,
+      total_amount: data.totalAmount,
+      description: data.description,
+      start_date: data.startDate || null,
+      end_date: data.endDate || null,
+    });
+
     const { data: updatedPo, error } = await supabase
       .from('purchase_orders')
-      .update({
-        po_number: data.poNumber,
-        po_name: data.poName,
-        company_id: data.companyId !== undefined ? data.companyId : undefined,
-        department_id: data.departmentId !== undefined ? data.departmentId : undefined,
-        customer: data.customer,
-        total_mandays: data.totalMandays,
-        total_amount: data.totalAmount,
-        description: data.description,
-        start_date: data.startDate || null,
-        end_date: data.endDate || null,
-      })
+      .update(payload)
       .eq('id', id)
       .select('*, companies(*), departments(*), po_projects(*, projects(*, master_projects(name)))')
       .single();

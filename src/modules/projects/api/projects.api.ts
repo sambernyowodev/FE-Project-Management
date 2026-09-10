@@ -3,6 +3,7 @@ import type { Project, ProjectMember } from '../types';
 import type { components } from '@/shared/types/api';
 import type { CreateProject, UpdateProject } from '../types';
 import { calculateProjectProgress, calculateProjectSchedule } from '@/shared/lib/project-calculations';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 const mapProject = (p: any): Project => {
   const poProject = p.po_projects && p.po_projects.length > 0 ? p.po_projects[0] : null;
@@ -43,6 +44,10 @@ const mapProject = (p: any): Project => {
     projectCode: p.project?.project_code || `PRJ-${p.id}`,
     poId: poProject?.po_id || undefined,
     poNumber: poProject?.purchase_orders ? (Array.isArray(poProject.purchase_orders) ? poProject.purchase_orders[0]?.po_number : poProject.purchase_orders.po_number) : undefined,
+    createdBy: p.created_by,
+    updatedBy: p.updated_by,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
   };
 };
 
@@ -147,26 +152,28 @@ export const projectsApi = {
   },
 
   createProject: async (data: CreateProject & { poId?: string; companyId?: string; departmentId?: string; businessOwnerId?: string }): Promise<Project> => {
+    const payload = await withAuditCreated({
+      project_id: data.projectId,
+      pic_client: data.picClient,
+      customer: data.customer,
+      pic_internal: data.picInternal,
+      parent_project_id: data.parentProjectId,
+      company_id: data.companyId || null,
+      department_id: data.departmentId || null,
+      business_owner_id: data.businessOwnerId || null,
+      status: data.status,
+      total_mandays: data.totalMandays,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      remarks: data.remarks,
+      repository_link: data.repositoryLink,
+      timeline_link: data.timelineLink,
+      timeline_remark: data.timelineRemark,
+    });
+
     const { data: proj, error } = await supabase
       .from('projects')
-      .insert({
-        project_id: data.projectId,
-        pic_client: data.picClient,
-        customer: data.customer,
-        pic_internal: data.picInternal,
-        parent_project_id: data.parentProjectId,
-        company_id: data.companyId || null,
-        department_id: data.departmentId || null,
-        business_owner_id: data.businessOwnerId || null,
-        status: data.status,
-        total_mandays: data.totalMandays,
-        start_date: data.startDate,
-        end_date: data.endDate,
-        remarks: data.remarks,
-        repository_link: data.repositoryLink,
-        timeline_link: data.timelineLink,
-        timeline_remark: data.timelineRemark,
-      })
+      .insert(payload)
       .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number)), project_activities(mandays, progress_pct, start_date, end_date)')
       .single();
     if (error) throw error;
@@ -188,26 +195,28 @@ export const projectsApi = {
   },
 
   updateProject: async (id: string, data: UpdateProject & { poId?: string; companyId?: string; departmentId?: string; businessOwnerId?: string }): Promise<Project> => {
+    const payload = await withAuditUpdated({
+      project_id: data.projectId,
+      pic_client: data.picClient,
+      customer: data.customer,
+      pic_internal: data.picInternal,
+      parent_project_id: data.parentProjectId,
+      company_id: data.companyId !== undefined ? (data.companyId || null) : undefined,
+      department_id: data.departmentId !== undefined ? (data.departmentId || null) : undefined,
+      business_owner_id: data.businessOwnerId !== undefined ? (data.businessOwnerId || null) : undefined,
+      status: data.status,
+      total_mandays: data.totalMandays,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      remarks: data.remarks,
+      repository_link: data.repositoryLink,
+      timeline_link: data.timelineLink,
+      timeline_remark: data.timelineRemark,
+    });
+
     const { data: proj, error } = await supabase
       .from('projects')
-      .update({
-        project_id: data.projectId,
-        pic_client: data.picClient,
-        customer: data.customer,
-        pic_internal: data.picInternal,
-        parent_project_id: data.parentProjectId,
-        company_id: data.companyId !== undefined ? (data.companyId || null) : undefined,
-        department_id: data.departmentId !== undefined ? (data.departmentId || null) : undefined,
-        business_owner_id: data.businessOwnerId !== undefined ? (data.businessOwnerId || null) : undefined,
-        status: data.status,
-        total_mandays: data.totalMandays,
-        start_date: data.startDate,
-        end_date: data.endDate,
-        remarks: data.remarks,
-        repository_link: data.repositoryLink,
-        timeline_link: data.timelineLink,
-        timeline_remark: data.timelineRemark,
-      })
+      .update(payload)
       .eq('id', id)
       .select('*, project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), po_projects(po_id, purchase_orders(po_number)), project_activities(mandays, progress_pct, start_date, end_date)')
       .single();
@@ -269,14 +278,15 @@ export const projectsApi = {
   },
 
   addProjectMember: async (projectId: string, data: components['schemas']['AddProjectMemberDto']): Promise<ProjectMember> => {
+    const payload = await withAuditCreated({
+      project_id: projectId,
+      member_id: data.userId as any,
+      role_id: data.roleId as any,
+      assigned_mandays: data.assignedMandays || 0,
+    });
     const { data: member, error } = await supabase
       .from('project_members')
-      .insert({
-        project_id: projectId,
-        member_id: data.userId as any,
-        role_id: data.roleId as any,
-        assigned_mandays: data.assignedMandays || 0,
-      })
+      .insert(payload)
       .select('*, user:members(*), role:roles(*)')
       .single();
     if (error) throw error;
@@ -374,14 +384,15 @@ export const projectsApi = {
             const empId = `EMP-${name.toUpperCase().replace(/[^A-Z0-9]/g, '')}`.slice(0, 50);
             const email = `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@mii.co.id`;
             
-            const { data: newMember, error: createErr } = await supabase
-              .from('members')
-              .insert({
+            const memberPayload = await withAuditCreated({
                 full_name: name,
                 email: email,
                 employee_id: empId,
                 is_active: true
-              })
+              });
+            const { data: newMember, error: createErr } = await supabase
+              .from('members')
+              .insert(memberPayload)
               .select('id')
               .single();
 
@@ -401,19 +412,21 @@ export const projectsApi = {
             .maybeSingle();
 
           if (!existingPm) {
+            const pmPayload = await withAuditCreated({
+              project_id: projectId,
+              member_id: userId,
+              role_id: targetRoleId,
+              assigned_mandays: 0
+            });
             await supabase
               .from('project_members')
-              .insert({
-                project_id: projectId,
-                member_id: userId,
-                role_id: targetRoleId,
-                assigned_mandays: 0
-              });
+              .insert(pmPayload);
           } else if (existingPm.role_id !== targetRoleId && targetRoleName) {
             // Update role if explicitly provided in Excel
+            const pmUpdate = await withAuditUpdated({ role_id: targetRoleId });
             await supabase
               .from('project_members')
-              .update({ role_id: targetRoleId })
+              .update(pmUpdate)
               .eq('id', existingPm.id);
           }
 

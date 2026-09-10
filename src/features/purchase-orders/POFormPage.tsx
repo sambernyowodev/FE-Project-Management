@@ -8,6 +8,7 @@ import {
 } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
 import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
 import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
+import { AuditInfo } from '@/shared/components/common/AuditInfo';
 
 export function POFormPage() {
   const navigate = useNavigate();
@@ -306,6 +307,16 @@ export function POFormPage() {
             </div>
           </div>
         </div>
+
+        {/* Audit Information */}
+        {isEditMode && po && (
+          <AuditInfo
+            createdBy={(po as any).createdBy}
+            createdAt={(po as any).createdAt}
+            updatedBy={(po as any).updatedBy}
+            updatedAt={(po as any).updatedAt}
+          />
+        )}
 
         {/* Submit Actions */}
         <div className="flex justify-end gap-4 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm">

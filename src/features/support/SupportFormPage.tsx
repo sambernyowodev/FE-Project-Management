@@ -14,6 +14,7 @@ import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartm
 import { useGetBusinessOwners } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 import { SupportTicketStatus } from '@/shared/constants/enums';
 import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
+import { AuditInfo } from '@/shared/components/common/AuditInfo';
 
 const STATUS_OPTIONS = Object.values(SupportTicketStatus);
 
@@ -24,7 +25,7 @@ export function SupportFormPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: ticket, isLoading: isTicketLoading } = useGetSupportTicket(id || '');
-  const { data: masterProjectsRes, isLoading: isMasterProjectsLoading } = useGetMasterProjects({ perPage: 200 });
+  const { data: masterProjectsRes, isLoading: isMasterProjectsLoading } = useGetMasterProjects({ perPage: 1000 });
   const masterProjects = masterProjectsRes?.data || [];
 
   const { data: poData } = useGetPurchaseOrders({ perPage: 100 });
@@ -74,7 +75,8 @@ export function SupportFormPage() {
   };
 
   const filteredProjects = masterProjects.filter(p =>
-    p.name.toLowerCase().includes(projectSearchQuery.toLowerCase())
+    p.name.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
+    (p.projectCode && p.projectCode.toLowerCase().includes(projectSearchQuery.toLowerCase()))
   );
 
   const createMutation = useCreateSupportTicket();
@@ -651,6 +653,16 @@ export function SupportFormPage() {
               )}
             </div>
           </div>
+
+          {/* Audit Information */}
+          {isEditing && ticket && (
+            <AuditInfo
+              createdBy={(ticket as any).createdBy}
+              createdAt={(ticket as any).createdAt}
+              updatedBy={(ticket as any).updatedBy}
+              updatedAt={(ticket as any).updatedAt}
+            />
+          )}
 
           {/* Submit Actions */}
           <div className="flex flex-col gap-3 bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-sm">

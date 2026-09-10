@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/api/supabase';
 import type { MasterProject, CreateMasterProject, UpdateMasterProject } from '../types';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 const mapMasterProject = (p: any): MasterProject => ({
   id: p.id,
@@ -122,15 +123,17 @@ export const masterProjectsApi = {
       projectCode = `HCM-${year}-${String(nextNum).padStart(3, '0')}`;
     }
 
+    const payload = await withAuditCreated({
+      project_code: projectCode,
+      name: data.name,
+      description: data.description,
+      platform: data.platform,
+      is_active: true,
+    });
+
     const { data: newProj, error } = await supabase
       .from('master_projects')
-      .insert({
-        project_code: projectCode,
-        name: data.name,
-        description: data.description,
-        platform: data.platform,
-        is_active: true,
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -139,15 +142,17 @@ export const masterProjectsApi = {
   },
 
   updateMasterProject: async (id: string, data: UpdateMasterProject): Promise<MasterProject> => {
-    const updatePayload: any = {
+    const rawUpdatePayload: any = {
       name: data.name,
       description: data.description,
       platform: data.platform,
     };
 
     if (data.projectCode !== undefined) {
-      updatePayload.project_code = data.projectCode.trim();
+      rawUpdatePayload.project_code = data.projectCode.trim();
     }
+
+    const updatePayload = await withAuditUpdated(rawUpdatePayload);
 
     const { data: updatedProj, error } = await supabase
       .from('master_projects')

@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/api/supabase';
 import type { SupportTicket, CreateSupportTicket, UpdateSupportTicket, SupportTicketAssignee, CreateSupportTicketAssignee, UpdateSupportTicketAssignee } from '../types';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 let hasPoIdSupportColumn: boolean | null = null;
 async function checkPoIdSupportColumn(): Promise<boolean> {
@@ -50,6 +51,10 @@ const mapTicket = (t: any): SupportTicket => {
     isActive: t.is_active,
     projectName: t.master_project?.name || '',
     projectId: t.master_project_id || '',
+    createdBy: t.created_by,
+    updatedBy: t.updated_by,
+    createdAt: t.created_at,
+    updatedAt: t.updated_at,
   };
 };
 
@@ -164,15 +169,17 @@ export const supportApi = {
         const seq = (count || 0) + 1;
         const projectCode = `HCM-${year}-${String(seq).padStart(3, '0')}`;
 
+        const masterPayload = await withAuditCreated({
+          project_code: projectCode,
+          name: data.masterProjectName,
+          description: `Created automatically during support ticket creation for ${data.masterProjectName}`,
+          platform: 'OS',
+          is_active: true,
+        });
+
         const { data: newMaster, error: mErr } = await supabase
           .from('master_projects')
-          .insert({
-            project_code: projectCode,
-            name: data.masterProjectName,
-            description: `Created automatically during support ticket creation for ${data.masterProjectName}`,
-            platform: 'OS',
-            is_active: true,
-          })
+          .insert(masterPayload)
           .select('id')
           .single();
         if (mErr) throw mErr;
@@ -186,7 +193,7 @@ export const supportApi = {
     const ticketCode = `SUP-${year}-${String(ticketSeq).padStart(4, '0')}`;
 
     const canUsePo = await checkPoIdSupportColumn();
-    const insertPayload: any = {
+    const rawInsertPayload: any = {
       ticket_code: ticketCode,
       master_project_id: masterProjectId,
       customer: data.customer,
@@ -204,8 +211,10 @@ export const supportApi = {
     };
 
     if (canUsePo && data.poId !== undefined) {
-      insertPayload.po_id = data.poId || null;
+      rawInsertPayload.po_id = data.poId || null;
     }
+
+    const insertPayload = await withAuditCreated(rawInsertPayload);
 
     const selectQuery = canUsePo
       ? '*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), purchase_orders:purchase_orders(*)'
@@ -238,15 +247,17 @@ export const supportApi = {
         const seq = (count || 0) + 1;
         const projectCode = `HCM-${year}-${String(seq).padStart(3, '0')}`;
 
+        const masterPayload = await withAuditCreated({
+          project_code: projectCode,
+          name: data.masterProjectName,
+          description: `Created automatically during support ticket update for ${data.masterProjectName}`,
+          platform: 'OS',
+          is_active: true,
+        });
+
         const { data: newMaster, error: mErr } = await supabase
           .from('master_projects')
-          .insert({
-            project_code: projectCode,
-            name: data.masterProjectName,
-            description: `Created automatically during support ticket update for ${data.masterProjectName}`,
-            platform: 'OS',
-            is_active: true,
-          })
+          .insert(masterPayload)
           .select('id')
           .single();
         if (mErr) throw mErr;
@@ -255,7 +266,7 @@ export const supportApi = {
     }
 
     const canUsePo = await checkPoIdSupportColumn();
-    const updatePayload: any = {
+    const rawUpdatePayload: any = {
       master_project_id: masterProjectId,
       customer: data.customer,
       pic_client: data.picClient,
@@ -274,8 +285,10 @@ export const supportApi = {
     };
 
     if (canUsePo && data.poId !== undefined) {
-      updatePayload.po_id = data.poId || null;
+      rawUpdatePayload.po_id = data.poId || null;
     }
+
+    const updatePayload = await withAuditUpdated(rawUpdatePayload);
 
     const selectQuery = canUsePo
       ? '*, master_project:master_projects(*), company:companies(*), department:departments(*), business_owner:business_owners(*), purchase_orders:purchase_orders(*)'
@@ -325,18 +338,20 @@ export const supportApi = {
   },
 
   addTicketAssignee: async (ticketId: string, data: CreateSupportTicketAssignee): Promise<SupportTicketAssignee> => {
+    const payload = await withAuditCreated({
+      support_ticket_id: ticketId,
+      member_id: data.userId as any,
+      role_id: data.roleId as any,
+      hours_spent: data.hoursSpent || 0,
+      status: data.status || 'OPEN',
+      start_date: data.startDate,
+      end_date: data.endDate,
+      notes: data.notes,
+    });
+
     const { data: member, error } = await supabase
       .from('support_ticket_assignees')
-      .insert({
-        support_ticket_id: ticketId,
-        member_id: data.userId as any,
-        role_id: data.roleId as any,
-        hours_spent: data.hoursSpent || 0,
-        status: data.status || 'OPEN',
-        start_date: data.startDate,
-        end_date: data.endDate,
-        notes: data.notes,
-      })
+      .insert(payload)
       .select('*, user:members(*), role:roles(*)')
       .single();
     if (error) throw error;
@@ -364,16 +379,18 @@ export const supportApi = {
   },
 
   updateTicketAssignee: async (ticketId: string, assigneeId: string, data: UpdateSupportTicketAssignee): Promise<SupportTicketAssignee> => {
+    const payload = await withAuditUpdated({
+      role_id: data.roleId as any,
+      hours_spent: data.hoursSpent,
+      status: data.status,
+      start_date: data.startDate,
+      end_date: data.endDate,
+      notes: data.notes,
+    });
+
     const { data: member, error } = await supabase
       .from('support_ticket_assignees')
-      .update({
-        role_id: data.roleId as any,
-        hours_spent: data.hoursSpent,
-        status: data.status,
-        start_date: data.startDate,
-        end_date: data.endDate,
-        notes: data.notes,
-      })
+      .update(payload)
       .eq('support_ticket_id', ticketId)
       .eq('id', assigneeId)
       .select('*, user:members(*), role:roles(*)')

@@ -8,6 +8,7 @@ import type {
   MemberSupportRelation,
   MemberActivityRelation
 } from '../types';
+import { withAuditCreated, withAuditUpdated } from '@/shared/utils/audit';
 
 const mapUser = (m: any): User => ({
   id: m.id,
@@ -18,6 +19,8 @@ const mapUser = (m: any): User => ({
   isActive: m.is_active,
   createdAt: m.created_at,
   updatedAt: m.updated_at,
+  createdBy: m.created_by,
+  updatedBy: m.updated_by,
   roles: m.member_roles ? m.member_roles.map((ur: any) => ur.role || ur.roles) : [],
 } as any);
 
@@ -99,14 +102,16 @@ export const usersApi = {
   createUser: async (data: CreateUser): Promise<User> => {
     const employeeId = data.employeeId || `EMP-${data.fullName.toUpperCase().replace(/[^A-Z0-9]/g, '')}`.slice(0, 50);
 
+    const payload = await withAuditCreated({
+      email: data.email,
+      full_name: data.fullName,
+      employee_id: employeeId,
+      is_active: true,
+    });
+
     const { data: member, error: memberError } = await supabase
       .from('members')
-      .insert({
-        email: data.email,
-        full_name: data.fullName,
-        employee_id: employeeId,
-        is_active: true,
-      })
+      .insert(payload)
       .select()
       .single();
 
@@ -131,14 +136,16 @@ export const usersApi = {
   },
 
   updateUser: async (id: string, data: UpdateUser): Promise<User> => {
+    const payload = await withAuditUpdated({
+      full_name: data.fullName,
+      email: data.email,
+      employee_id: data.employeeId,
+      is_active: data.isActive,
+    });
+
     const { data: updatedMember, error } = await supabase
       .from('members')
-      .update({
-        full_name: data.fullName,
-        email: data.email,
-        employee_id: data.employeeId,
-        is_active: data.isActive,
-      })
+      .update(payload)
       .eq('id', id)
       .select('id, email, full_name, employee_id, avatar_url, is_active, created_at, updated_at, member_roles(role:roles(code, name))')
       .single();
@@ -148,9 +155,10 @@ export const usersApi = {
   },
 
   toggleUserStatus: async (id: string, isActive: boolean): Promise<void> => {
+    const payload = await withAuditUpdated({ is_active: isActive });
     const { error } = await supabase
       .from('members')
-      .update({ is_active: isActive })
+      .update(payload)
       .eq('id', id);
 
     if (error) throw error;

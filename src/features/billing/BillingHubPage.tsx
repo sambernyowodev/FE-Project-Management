@@ -17,6 +17,7 @@ import { cn } from '@/shared/lib/utils';
 import { exportBillingToExcel } from '@/shared/lib/excel';
 import { useGetBillings, useGetBillingById, useDeleteBilling } from '@/modules/billing/hooks/useBilling';
 import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
+import { AuditInfo } from '@/shared/components/common/AuditInfo';
 
 export function BillingHubPage() {
   const navigate = useNavigate();
@@ -359,6 +360,13 @@ export function BillingHubPage() {
                       </tfoot>
                     </table>
                   </div>
+
+                  <AuditInfo
+                    createdBy={(billingDetail as any).createdBy}
+                    createdAt={(billingDetail as any).createdAt}
+                    updatedBy={(billingDetail as any).updatedBy}
+                    updatedAt={(billingDetail as any).updatedAt}
+                  />
                 </>
               )}
             </div>
