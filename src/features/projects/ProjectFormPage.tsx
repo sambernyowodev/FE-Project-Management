@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, Calendar, Link as LinkIcon, User, Layers, CalendarDays } from 'lucide-react';
 import {
@@ -13,6 +13,13 @@ import { useGetPurchaseOrders } from '@/modules/purchase-orders/hooks/usePurchas
 import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
 import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
 import { useGetBusinessOwners } from '@/modules/master/business-owners/hooks/useBusinessOwners';
+import { useGetHolidays } from '@/modules/master/holidays/hooks/useHolidays';
+import {
+  calculateWorkingMandays,
+  calculateCalendarDays,
+  isNationalHoliday,
+  createHolidayMap
+} from '@/shared/lib/project-calculations';
 import { ProjectStatus } from '@/shared/constants/enums';
 import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
 import { AuditInfo } from '@/shared/components/common/AuditInfo';
@@ -48,6 +55,8 @@ export function ProjectFormPage() {
   const activeMembers = (usersRes?.data || []).filter((u: any) => u.isActive);
 
   const { data: companies = [] } = useGetCompanies();
+  const { data: holidays = [] } = useGetHolidays();
+  const holidayMap = useMemo(() => createHolidayMap(holidays), [holidays]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -63,6 +72,7 @@ export function ProjectFormPage() {
     timelineRemark: '',
     startDate: '',
     endDate: '',
+    duration: '',
     totalMandays: '',
     progressPct: '0',
     repositoryLink: '',
@@ -76,6 +86,10 @@ export function ProjectFormPage() {
 
   useEffect(() => {
     if (project && isEditing) {
+      const sDate = project.startDate ? project.startDate.split('T')[0] : '';
+      const eDate = project.endDate ? project.endDate.split('T')[0] : '';
+      const calDays = (sDate && eDate) ? calculateCalendarDays(sDate, eDate) : '';
+
       setFormData({
         name: project.name || '',
         description: project.description || '',
@@ -88,8 +102,9 @@ export function ProjectFormPage() {
         customer: project.customer || '',
         status: project.status || ProjectStatus.PLANNING,
         timelineRemark: project.timelineRemark || '',
-        startDate: project.startDate ? project.startDate.split('T')[0] : '',
-        endDate: project.endDate ? project.endDate.split('T')[0] : '',
+        startDate: sDate,
+        endDate: eDate,
+        duration: calDays ? String(calDays) : '',
         totalMandays: project.totalMandays !== undefined && project.totalMandays !== null ? String(project.totalMandays) : '',
         progressPct: project.progressPct !== undefined && project.progressPct !== null ? String(project.progressPct) : '0',
         repositoryLink: project.repositoryLink || '',
@@ -120,9 +135,32 @@ export function ProjectFormPage() {
     member.fullName.toLowerCase().includes(formData.picInternal.toLowerCase())
   );
 
+  const startHoliday = useMemo(() => isNationalHoliday(formData.startDate, holidayMap), [formData.startDate, holidayMap]);
+  const endHoliday = useMemo(() => isNationalHoliday(formData.endDate, holidayMap), [formData.endDate, holidayMap]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+
+      if ((name === 'startDate' || name === 'endDate') && typeof value === 'string') {
+        const sDate = name === 'startDate' ? value : prev.startDate;
+        const eDate = name === 'endDate' ? value : prev.endDate;
+
+        if (sDate && eDate) {
+          const calDays = calculateCalendarDays(sDate, eDate);
+          const workDays = calculateWorkingMandays(sDate, eDate, holidayMap);
+          if (calDays >= 0) {
+            next.duration = String(calDays);
+            next.totalMandays = String(workDays);
+          }
+        } else {
+          next.duration = '';
+        }
+      }
+
+      return next;
+    });
   };
 
   const handleMasterSelection = (value: string) => {
@@ -554,7 +592,10 @@ export function ProjectFormPage() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label htmlFor="totalMandays" className="text-sm font-semibold text-on-background">Total Mandays (Plan)</label>
+                  <div className="flex justify-between items-center">
+                    <label htmlFor="totalMandays" className="text-sm font-semibold text-on-background">Total Mandays (Plan)</label>
+                    <span className="text-[10px] text-secondary font-medium">(Exclude Weekend & Libur)</span>
+                  </div>
                   <input
                     id="totalMandays"
                     name="totalMandays"
@@ -563,7 +604,7 @@ export function ProjectFormPage() {
                     min="0"
                     value={formData.totalMandays}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                    className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background font-semibold text-primary"
                     placeholder="e.g. 120"
                   />
                 </div>
@@ -722,26 +763,65 @@ export function ProjectFormPage() {
                   <h3 className="text-sm font-bold text-secondary uppercase tracking-wider">Planned Schedule</h3>
 
                   <div className="flex flex-col gap-2">
-                    <label htmlFor="startDate" className="text-sm font-semibold text-on-background">Start Date</label>
+                    <label htmlFor="startDate" className="text-sm font-semibold text-on-background flex items-center justify-between">
+                      <span>Start Date</span>
+                      {startHoliday && (
+                        <span className="text-[11px] font-bold text-red-600 bg-red-500/10 px-2 py-0.5 rounded-md border border-red-500/20">
+                          Libur: {startHoliday.name}
+                        </span>
+                      )}
+                    </label>
                     <input
                       id="startDate"
                       name="startDate"
                       type="date"
                       value={formData.startDate}
                       onChange={handleChange}
-                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                      className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 bg-background transition-all ${
+                        startHoliday
+                          ? 'border-red-500/60 focus:ring-red-500/20 focus:border-red-500'
+                          : 'border-outline-variant focus:ring-primary/20 focus:border-primary'
+                      }`}
                     />
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <label htmlFor="endDate" className="text-sm font-semibold text-on-background">End Date</label>
+                    <label htmlFor="endDate" className="text-sm font-semibold text-on-background flex items-center justify-between">
+                      <span>End Date</span>
+                      {endHoliday && (
+                        <span className="text-[11px] font-bold text-red-600 bg-red-500/10 px-2 py-0.5 rounded-md border border-red-500/20">
+                          Libur: {endHoliday.name}
+                        </span>
+                      )}
+                    </label>
                     <input
                       id="endDate"
                       name="endDate"
                       type="date"
                       value={formData.endDate}
                       onChange={handleChange}
-                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-background"
+                      className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 bg-background transition-all ${
+                        endHoliday
+                          ? 'border-red-500/60 focus:ring-red-500/20 focus:border-red-500'
+                          : 'border-outline-variant focus:ring-primary/20 focus:border-primary'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Duration (Hari Kalender) - Disabled */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <label htmlFor="duration" className="text-sm font-semibold text-on-background">Durasi (Hari Kalender)</label>
+                      <span className="text-[10px] text-secondary font-medium">(Otomatis dari Tanggal)</span>
+                    </div>
+                    <input
+                      id="duration"
+                      name="duration"
+                      type="number"
+                      disabled
+                      value={formData.duration}
+                      className="w-full px-4 py-2.5 border border-outline-variant rounded-lg text-sm bg-surface-container-high/50 text-secondary cursor-not-allowed focus:outline-none"
+                      placeholder="Otomatis"
                     />
                   </div>
                 </div>

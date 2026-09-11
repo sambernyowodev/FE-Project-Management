@@ -70,13 +70,17 @@ export function ActivityFormModal({
     if (isOpen) {
       setError('');
       if (activity) {
+        const calDays = (activity.startDate && activity.endDate)
+          ? calculateCalendarDays(activity.startDate, activity.endDate)
+          : (activity.durationDays !== undefined ? activity.durationDays : '');
+
         setFormData({
           activityName: activity.activityName || '',
           description: activity.description || '',
           feature: activity.feature || '',
           subFeature: activity.subFeature || '',
           details: activity.details || '',
-          durationDays: activity.durationDays !== undefined ? String(activity.durationDays) : '',
+          durationDays: calDays !== '' ? String(calDays) : '',
           mandays: activity.mandays !== undefined ? String(activity.mandays) : '',
           startDate: activity.startDate ? formatDateInput(activity.startDate) : '',
           endDate: activity.endDate ? formatDateInput(activity.endDate) : '',
@@ -133,6 +137,8 @@ export function ActivityFormModal({
             next.durationDays = String(calDays);
             next.mandays = String(workDays);
           }
+        } else {
+          next.durationDays = '';
         }
       }
 
@@ -159,7 +165,6 @@ export function ActivityFormModal({
       feature: formData.feature || undefined,
       subFeature: formData.subFeature || undefined,
       details: formData.details || undefined,
-      durationDays: formData.durationDays ? Math.round(Number(formData.durationDays)) : undefined,
       mandays: formData.mandays ? Math.round(Number(formData.mandays)) : undefined,
       startDate: formData.startDate || undefined,
       endDate: formData.endDate || undefined,
@@ -374,16 +379,17 @@ export function ActivityFormModal({
 
             {/* Duration Days */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-semibold text-on-background">Durasi (Hari Kalender)</label>
+              <div className="flex justify-between items-center">
+                <label className="text-sm font-semibold text-on-background">Durasi (Hari Kalender)</label>
+                <span className="text-[10px] text-secondary font-medium">(Otomatis dari Tanggal)</span>
+              </div>
               <input
                 type="number"
                 name="durationDays"
-                min="0"
-                step="1"
+                disabled
                 value={formData.durationDays}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                placeholder="e.g. 5"
+                className="w-full px-4 py-2 border border-outline-variant rounded-lg text-sm bg-surface-container-high/50 text-secondary cursor-not-allowed focus:outline-none"
+                placeholder="Otomatis"
               />
             </div>
 

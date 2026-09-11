@@ -1,6 +1,7 @@
 import { supabase } from '@/shared/api/supabase';
 import type { ProjectActivity, CreateProjectActivity, UpdateProjectActivity } from '../types';
 import { withAuditCreated, withAuditUpdated, getCurrentUserId } from '@/shared/utils/audit';
+import { calculateCalendarDays } from '@/shared/lib/project-calculations';
 
 const mapActivity = (a: any): ProjectActivity => ({
   ...a,
@@ -8,7 +9,9 @@ const mapActivity = (a: any): ProjectActivity => ({
   projectId: a.project_id,
   parentId: a.parent_id,
   activityName: a.activity_name,
-  durationDays: a.duration_days,
+  durationDays: (a.start_date && a.end_date)
+    ? calculateCalendarDays(a.start_date, a.end_date)
+    : (a.duration_days ?? 0),
   startDate: a.start_date,
   endDate: a.end_date,
   actualStart: a.actual_start,
@@ -39,7 +42,7 @@ export const projectActivitiesApi = {
   },
 
   createActivity: async (data: CreateProjectActivity): Promise<ProjectActivity> => {
-    const payload = await withAuditCreated({
+    const rawPayload: any = {
       project_id: data.projectId,
       parent_id: data.parentId,
       activity_name: data.activityName,
@@ -47,7 +50,6 @@ export const projectActivitiesApi = {
       feature: data.feature,
       sub_feature: data.subFeature,
       details: data.details,
-      duration_days: data.durationDays || 0,
       mandays: data.mandays || 0,
       start_date: data.startDate,
       end_date: data.endDate,
@@ -56,7 +58,8 @@ export const projectActivitiesApi = {
       assigned_to: data.assignedToId,
       sort_order: data.sortOrder || 0,
       is_milestone: data.isMilestone || false,
-    });
+    };
+    const payload = await withAuditCreated(rawPayload);
 
     const { data: act, error } = await supabase
       .from('project_activities')
@@ -69,7 +72,7 @@ export const projectActivitiesApi = {
   },
 
   updateActivity: async (id: string, data: UpdateProjectActivity): Promise<ProjectActivity> => {
-    const payload = await withAuditUpdated({
+    const rawPayload: any = {
       project_id: data.projectId,
       parent_id: data.parentId,
       activity_name: data.activityName,
@@ -77,7 +80,6 @@ export const projectActivitiesApi = {
       feature: data.feature,
       sub_feature: data.subFeature,
       details: data.details,
-      duration_days: data.durationDays,
       mandays: data.mandays,
       start_date: data.startDate,
       end_date: data.endDate,
@@ -86,7 +88,11 @@ export const projectActivitiesApi = {
       assigned_to: data.assignedToId,
       sort_order: data.sortOrder,
       is_milestone: data.isMilestone,
-    });
+    };
+    if (data.durationDays !== undefined) {
+      rawPayload.duration_days = data.durationDays;
+    }
+    const payload = await withAuditUpdated(rawPayload);
 
     const { data: act, error } = await supabase
       .from('project_activities')
@@ -130,7 +136,6 @@ export const projectActivitiesApi = {
       feature: data.feature || null,
       sub_feature: data.subFeature || null,
       details: data.details || null,
-      duration_days: data.durationDays || 0,
       mandays: data.mandays || 0,
       start_date: data.startDate || null,
       end_date: data.endDate || null,
