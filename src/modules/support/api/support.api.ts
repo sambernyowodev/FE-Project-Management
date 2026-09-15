@@ -58,6 +58,104 @@ const mapTicket = (t: any): SupportTicket => {
   };
 };
 
+async function generateUniqueTicketCode(): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `SUP-${year}-`;
+
+  const { data: tickets } = await supabase
+    .from('support_tickets')
+    .select('ticket_code')
+    .like('ticket_code', `${prefix}%`)
+    .order('ticket_code', { ascending: false })
+    .limit(100);
+
+  let nextNum = 1;
+  if (tickets && tickets.length > 0) {
+    const numbers = tickets.map(t => {
+      const parts = (t.ticket_code || '').split('-');
+      if (parts.length >= 3) {
+        const num = parseInt(parts[2], 10);
+        return isNaN(num) ? 0 : num;
+      }
+      return 0;
+    });
+    nextNum = Math.max(...numbers, 0) + 1;
+  } else {
+    const { count } = await supabase.from('support_tickets').select('id', { count: 'exact', head: true });
+    nextNum = (count || 0) + 1;
+  }
+
+  let ticketCode = `${prefix}${String(nextNum).padStart(4, '0')}`;
+
+  // Safety check against race conditions or duplicate entries
+  let isUnique = false;
+  let attempts = 0;
+  while (!isUnique && attempts < 25) {
+    attempts++;
+    const { data: existing } = await supabase
+      .from('support_tickets')
+      .select('id')
+      .eq('ticket_code', ticketCode)
+      .maybeSingle();
+
+    if (!existing) {
+      isUnique = true;
+    } else {
+      nextNum++;
+      ticketCode = `${prefix}${String(nextNum).padStart(4, '0')}`;
+    }
+  }
+
+  return ticketCode;
+}
+
+async function generateUniqueMasterProjectCode(): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `HCM-${year}-`;
+
+  const { data: list } = await supabase
+    .from('master_projects')
+    .select('project_code')
+    .like('project_code', `${prefix}%`)
+    .order('project_code', { ascending: false })
+    .limit(100);
+
+  let nextNum = 1;
+  if (list && list.length > 0) {
+    const numbers = list.map(item => {
+      const parts = (item.project_code || '').split('-');
+      if (parts.length >= 3) {
+        const num = parseInt(parts[2], 10);
+        return isNaN(num) ? 0 : num;
+      }
+      return 0;
+    });
+    nextNum = Math.max(...numbers, 0) + 1;
+  }
+
+  let projectCode = `${prefix}${String(nextNum).padStart(3, '0')}`;
+
+  let isUnique = false;
+  let attempts = 0;
+  while (!isUnique && attempts < 25) {
+    attempts++;
+    const { data: existing } = await supabase
+      .from('master_projects')
+      .select('id')
+      .eq('project_code', projectCode)
+      .maybeSingle();
+
+    if (!existing) {
+      isUnique = true;
+    } else {
+      nextNum++;
+      projectCode = `${prefix}${String(nextNum).padStart(3, '0')}`;
+    }
+  }
+
+  return projectCode;
+}
+
 export const supportApi = {
   getTickets: async (params?: { page?: number; perPage?: number; sort?: string; search?: string; filter?: string }): Promise<{ data: SupportTicket[]; meta?: { total: number; page: number; perPage: number; totalPages: number } }> => {
     const canUsePo = await checkPoIdSupportColumn();
@@ -164,10 +262,7 @@ export const supportApi = {
       if (existingMaster) {
         masterProjectId = existingMaster.id;
       } else {
-        const year = new Date().getFullYear();
-        const { count } = await supabase.from('master_projects').select('id', { count: 'exact', head: true });
-        const seq = (count || 0) + 1;
-        const projectCode = `HCM-${year}-${String(seq).padStart(3, '0')}`;
+        const projectCode = await generateUniqueMasterProjectCode();
 
         const masterPayload = await withAuditCreated({
           project_code: projectCode,
@@ -187,10 +282,9 @@ export const supportApi = {
       }
     }
 
-    const year = new Date().getFullYear();
-    const { count } = await supabase.from('support_tickets').select('id', { count: 'exact', head: true });
-    const ticketSeq = (count || 0) + 1;
-    const ticketCode = `SUP-${year}-${String(ticketSeq).padStart(4, '0')}`;
+    const ticketCode = (data.ticketCode && data.ticketCode.trim())
+      ? data.ticketCode.trim()
+      : await generateUniqueTicketCode();
 
     const canUsePo = await checkPoIdSupportColumn();
     const rawInsertPayload: any = {
@@ -242,10 +336,7 @@ export const supportApi = {
       if (existingMaster) {
         masterProjectId = existingMaster.id;
       } else {
-        const year = new Date().getFullYear();
-        const { count } = await supabase.from('master_projects').select('id', { count: 'exact', head: true });
-        const seq = (count || 0) + 1;
-        const projectCode = `HCM-${year}-${String(seq).padStart(3, '0')}`;
+        const projectCode = await generateUniqueMasterProjectCode();
 
         const masterPayload = await withAuditCreated({
           project_code: projectCode,
