@@ -395,7 +395,8 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -404,7 +405,8 @@ export function ManageSupportMembersModal({ isOpen, onClose, ticketId, assignees
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    onClick={(e) => e.currentTarget.showPicker?.()}
+                    className="w-full px-3 py-2 border border-outline-variant rounded-lg text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
                   />
                 </div>
               </div>

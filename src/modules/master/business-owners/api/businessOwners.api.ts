@@ -36,15 +36,21 @@ const mapBusinessOwner = (b: any): BusinessOwner => ({
 
 export const businessOwnersApi = {
   getBusinessOwners: async (params?: { departmentId?: string; companyId?: string }): Promise<BusinessOwner[]> => {
+    let selectQuery = '*, department:departments(*, company:companies(*))';
+    if (params?.companyId) {
+      selectQuery = '*, department:departments!inner(*, company:companies(*))';
+    }
+
     let query = supabase
       .from('business_owners')
-      .select('*, department:departments(*, company:companies(*))')
+      .select(selectQuery)
       .order('name', { ascending: true });
 
+    if (params?.companyId) {
+      query = query.eq('department.company_id', params.companyId);
+    }
     if (params?.departmentId) {
       query = query.eq('department_id', params.departmentId);
-    } else if (params?.companyId) {
-      query = query.eq('department.company_id', params.companyId);
     }
 
     const { data, error } = await query;

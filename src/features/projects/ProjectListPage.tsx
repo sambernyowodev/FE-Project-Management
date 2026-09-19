@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, Calendar } from 'lucide-react';
 import { useGetProjects, useDeleteProject } from '@/modules/projects/hooks/useProjects';
 import { useGetPurchaseOrders } from '@/modules/purchase-orders/hooks/usePurchaseOrders';
+import { useGetCompanies } from '@/modules/master/companies/hooks/useCompanies';
+import { useGetDepartments } from '@/modules/master/departments/hooks/useDepartments';
+import { useGetBusinessOwners } from '@/modules/master/business-owners/hooks/useBusinessOwners';
 import DataTable, { type ColumnDef } from '@/shared/components/DataTable';
 import { StatusBadge } from '@/shared/components/common/StatusBadge';
 import { ConfirmDialog } from '@/shared/components/common/ConfirmDialog';
@@ -18,7 +21,38 @@ export function ProjectListPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<string | undefined>(undefined);
   const [filters, setFilters] = useState<Record<string, any>>({});
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [deletingProject, setDeletingProject] = useState<{ id: string; code: string } | null>(null);
+
+  // Active filter values from column filters
+  const selectedCompany = (columnFilters.find(f => f.id === 'companyId')?.value as string) || '';
+  const selectedDepartment = (columnFilters.find(f => f.id === 'departmentId')?.value as string) || '';
+
+  // Master data queries
+  const { data: companies = [] } = useGetCompanies();
+  const { data: rawDepartments = [] } = useGetDepartments(selectedCompany || undefined);
+
+  // Departments strictly based on selectedCompany
+  const departments = selectedCompany
+    ? rawDepartments.filter(d => !d.companyId || d.companyId === selectedCompany)
+    : [];
+
+  // Business owners strictly based on BOTH selectedCompany and selectedDepartment
+  const { data: rawBusinessOwners = [] } = useGetBusinessOwners({
+    companyId: selectedCompany || undefined,
+    departmentId: selectedDepartment || undefined,
+  });
+
+  const businessOwners = (selectedCompany && selectedDepartment)
+    ? rawBusinessOwners.filter(b => {
+        const matchesDept = b.departmentId === selectedDepartment;
+        const matchesComp = !selectedCompany ||
+          b.department?.companyId === selectedCompany ||
+          b.department?.company?.id === selectedCompany ||
+          departments.some(d => d.id === b.departmentId && (!d.companyId || d.companyId === selectedCompany));
+        return matchesDept && matchesComp;
+      })
+    : [];
 
   const filterString = Object.keys(filters).length > 0 ? JSON.stringify(filters) : undefined;
 
@@ -40,6 +74,21 @@ export function ProjectListPage() {
     value: po.id,
   }));
 
+  const companyFilterOptions = companies.map(c => ({
+    label: c.name,
+    value: c.id,
+  }));
+
+  const departmentFilterOptions = departments.map(d => ({
+    label: d.name,
+    value: d.id,
+  }));
+
+  const businessOwnerFilterOptions = businessOwners.map(b => ({
+    label: b.name + (b.title ? ` (${b.title})` : ''),
+    value: b.id,
+  }));
+
   const projects = data?.data || [];
   const totalItems = data?.meta?.total || 0;
 
@@ -53,9 +102,31 @@ export function ProjectListPage() {
   };
 
   const handleFilterChange = (filterState: ColumnFiltersState) => {
+    const prevCompany = (columnFilters.find(f => f.id === 'companyId')?.value as string) || '';
+    const newCompany = (filterState.find(f => f.id === 'companyId')?.value as string) || '';
+
+    const prevDept = (columnFilters.find(f => f.id === 'departmentId')?.value as string) || '';
+    const newDept = (filterState.find(f => f.id === 'departmentId')?.value as string) || '';
+
+    let cleanedFilters = [...filterState];
+
+    // If company changed, reset department and pic client filters
+    if (newCompany !== prevCompany) {
+      cleanedFilters = cleanedFilters.filter(f => f.id !== 'departmentId' && f.id !== 'businessOwnerId');
+    }
+
+    // If department changed, reset pic client filter
+    if (newDept !== prevDept) {
+      cleanedFilters = cleanedFilters.filter(f => f.id !== 'businessOwnerId');
+    }
+
+    setColumnFilters(cleanedFilters);
+
     const nextFilters: Record<string, any> = {};
-    filterState.forEach(f => {
-      nextFilters[f.id] = f.value;
+    cleanedFilters.forEach(f => {
+      if (f.value !== undefined && f.value !== null && f.value !== '') {
+        nextFilters[f.id] = f.value;
+      }
     });
     setFilters(nextFilters);
   };
@@ -79,7 +150,63 @@ export function ProjectListPage() {
       header: 'Project Name',
       accessorKey: 'name',
       cell: ({ row }) => (
-        <span className="font-semibold text-on-background">{row.original.name}</span>
+        <div className="flex flex-col">
+          <span className="font-semibold text-on-background">{row.original.name}</span>
+          <span className="text-xs text-secondary font-mono">{row.original.projectCode}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'companyId',
+      header: 'Company',
+      accessorKey: 'companyId',
+      meta: {
+        filterOptions: companyFilterOptions,
+        filterPlaceholder: 'All Company',
+      },
+      cell: ({ row }) => (
+        <span className="font-medium text-on-background">
+          {row.original.company?.name || row.original.customer || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'departmentId',
+      header: 'Department',
+      accessorKey: 'departmentId',
+      meta: {
+        filterOptions: departmentFilterOptions,
+        filterDisabled: !selectedCompany,
+        filterPlaceholder: !selectedCompany ? '-- Pilih Company dahulu --' : 'All Department',
+      },
+      cell: ({ row }) => (
+        <span className="text-secondary">
+          {row.original.department?.name || '-'}
+        </span>
+      ),
+    },
+    {
+      id: 'businessOwnerId',
+      header: 'PIC Client',
+      accessorKey: 'businessOwnerId',
+      meta: {
+        filterOptions: businessOwnerFilterOptions,
+        filterDisabled: !selectedDepartment,
+        filterPlaceholder: !selectedCompany
+          ? '-- Pilih Company dahulu --'
+          : (!selectedDepartment ? '-- Pilih Department dahulu --' : 'All PIC Client'),
+      },
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="font-medium text-on-background">
+            {row.original.businessOwner?.name || row.original.picClient || '-'}
+          </span>
+          {row.original.businessOwner?.title && (
+            <span className="text-[11px] text-secondary">
+              {row.original.businessOwner.title}
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -209,6 +336,8 @@ export function ProjectListPage() {
         onSearchChange={setSearch}
         onSortChange={handleSortChange}
         onFilterChange={handleFilterChange}
+        columnFilters={columnFilters}
+        defaultShowFilters={true}
         onRefresh={refetch}
         exportFilename="project-list"
       />
@@ -228,3 +357,5 @@ export function ProjectListPage() {
     </div>
   );
 }
+
+

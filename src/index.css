@@ -127,4 +127,20 @@
   ::-webkit-scrollbar-thumb:hover {
       background: var(--color-outline); 
   }
+
+  /* Date inputs interactive styling */
+  input[type="date"] {
+    cursor: pointer;
+    position: relative;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.75;
+    transition: opacity 0.15s ease-in-out;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+  }
 }

@@ -305,7 +305,8 @@ export function ExcelImportModal({
                       type="date"
                       value={row.startDate || ''}
                       onChange={(e) => handleCellChange(idx, 'startDate', e.target.value)}
-                      className="w-full px-2 py-1 border border-outline-variant rounded text-xs bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      className="w-full px-2 py-1 border border-outline-variant rounded text-xs bg-background focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                     />
                   </td>
 
@@ -315,7 +316,8 @@ export function ExcelImportModal({
                       type="date"
                       value={row.endDate || ''}
                       onChange={(e) => handleCellChange(idx, 'endDate', e.target.value)}
-                      className="w-full px-2 py-1 border border-outline-variant rounded text-xs bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+                      onClick={(e) => e.currentTarget.showPicker?.()}
+                      className="w-full px-2 py-1 border border-outline-variant rounded text-xs bg-background focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
                     />
                   </td>
 

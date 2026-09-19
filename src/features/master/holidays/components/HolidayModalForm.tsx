@@ -121,7 +121,8 @@ export function HolidayModalForm({
               id="holidayDate"
               value={formData.holidayDate}
               onChange={handleDateChange}
-              className="px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              onClick={(e) => e.currentTarget.showPicker?.()}
+              className="px-3.5 py-2.5 bg-surface border border-outline-variant rounded-xl text-sm text-on-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all cursor-pointer"
               required
             />
           </div>

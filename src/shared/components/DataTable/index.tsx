@@ -31,6 +31,8 @@ declare module '@tanstack/react-table' {
     className?: string
     filterOptions?: (string | { label: string; value: string })[]
     filterType?: 'text' | 'number' | 'date'
+    filterDisabled?: boolean
+    filterPlaceholder?: string
   }
 }
 
@@ -54,6 +56,8 @@ interface DataTableProps<T> {
   // Server-side search, filter, sort
   onSearchChange?: (searchTerm: string) => void
   onFilterChange?: (filters: ColumnFiltersState) => void
+  columnFilters?: ColumnFiltersState
+  defaultShowFilters?: boolean
   onSortChange?: (sorting: SortingState) => void
   onExport?: () => void
   // Row selection props
@@ -83,6 +87,8 @@ export default function DataTable<T>({
   onPageChange,
   onSearchChange,
   onFilterChange,
+  columnFilters: externalColumnFilters,
+  defaultShowFilters = false,
   onSortChange,
   onExport,
   rowSelection: externalRowSelection,
@@ -96,20 +102,21 @@ export default function DataTable<T>({
   customActions: _customActions,
 }: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFilters, setShowFilters] = useState(defaultShowFilters)
   const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const [internalColumnFilters, setInternalColumnFilters] = useState<ColumnFiltersState>([])
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: itemsPerPage })
   const [internalRowSelection, setInternalRowSelection] = useState<Record<string, boolean>>({})
 
   const isServerSide = totalItems !== undefined && onPageChange !== undefined
+  const effectiveColumnFilters = externalColumnFilters ?? internalColumnFilters
 
   const table = useReactTable({
     data,
     columns,
     state: {
       sorting,
-      columnFilters,
+      columnFilters: effectiveColumnFilters,
       globalFilter: searchTerm,
       rowSelection: externalRowSelection ?? internalRowSelection,
       ...(!isServerSide ? { pagination } : {}),
@@ -134,8 +141,10 @@ export default function DataTable<T>({
       }
     },
     onColumnFiltersChange: (updater) => {
-      const next = typeof updater === 'function' ? updater(columnFilters) : updater
-      setColumnFilters(next)
+      const next = typeof updater === 'function' ? updater(effectiveColumnFilters) : updater
+      if (externalColumnFilters === undefined) {
+        setInternalColumnFilters(next)
+      }
       if (isServerSide) {
         onFilterChange?.(next)
         onPageChange?.(1)
@@ -197,7 +206,9 @@ export default function DataTable<T>({
   }
 
   const clearFilters = () => {
-    setColumnFilters([])
+    if (externalColumnFilters === undefined) {
+      setInternalColumnFilters([])
+    }
     setSearchTerm('')
     if (isServerSide) {
       onSearchChange?.('')
@@ -253,7 +264,7 @@ export default function DataTable<T>({
   }
 
   // Count active filters
-  const activeFiltersCount = columnFilters.length
+  const activeFiltersCount = effectiveColumnFilters.length
 
   // Get filterable columns for filter panel
   const filterableColumns = table.getAllLeafColumns().filter(col => col.getCanFilter() && col.accessorFn != null)
@@ -363,6 +374,7 @@ export default function DataTable<T>({
                   {meta?.filterOptions ? (
                     <select
                       value={(column.getFilterValue() as string) || ''}
+                      disabled={meta.filterDisabled}
                       onChange={(e) => {
                         const value = e.target.value || undefined
                         column.setFilterValue(value)
@@ -372,9 +384,14 @@ export default function DataTable<T>({
                           setPagination(prev => ({ ...prev, pageIndex: 0 }))
                         }
                       }}
-                      className="w-full px-3 py-1.5 text-xs rounded-md border border-outline-variant bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary text-on-background"
+                      className={cn(
+                        "w-full px-3 py-1.5 text-xs rounded-md border border-outline-variant bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary text-on-background transition-all",
+                        meta.filterDisabled
+                          ? "bg-surface-container-low text-secondary/50 cursor-not-allowed opacity-75"
+                          : "cursor-pointer"
+                      )}
                     >
-                      <option value="">All</option>
+                      <option value="">{meta.filterPlaceholder || 'All'}</option>
                       {meta.filterOptions.map((opt) => {
                         const label = typeof opt === 'string' ? opt : opt.label
                         const val = typeof opt === 'string' ? opt : opt.value
@@ -395,8 +412,16 @@ export default function DataTable<T>({
                             setPagination(prev => ({ ...prev, pageIndex: 0 }))
                           }
                         }}
+                        onClick={(e) => {
+                          if (meta?.filterType === 'date') {
+                            (e.currentTarget as HTMLInputElement).showPicker?.();
+                          }
+                        }}
                         placeholder={`Filter ${headerText}...`}
-                        className="w-full px-3 py-1.5 text-xs rounded-md border border-outline-variant bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary text-on-background"
+                        className={cn(
+                          "w-full px-3 py-1.5 text-xs rounded-md border border-outline-variant bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary text-on-background",
+                          meta?.filterType === 'date' && "cursor-pointer"
+                        )}
                       />
                       {Boolean(column.getFilterValue()) && (
                         <button

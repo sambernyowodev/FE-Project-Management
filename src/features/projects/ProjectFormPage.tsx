@@ -82,7 +82,21 @@ export function ProjectFormPage() {
   });
 
   const { data: departments = [] } = useGetDepartments(formData.companyId || undefined);
-  const { data: businessOwners = [] } = useGetBusinessOwners({ departmentId: formData.departmentId || undefined });
+  const { data: rawBusinessOwners = [] } = useGetBusinessOwners({
+    companyId: formData.companyId || undefined,
+    departmentId: formData.departmentId || undefined,
+  });
+
+  const businessOwners = (formData.companyId && formData.departmentId)
+    ? rawBusinessOwners.filter(b => {
+        const matchesDept = b.departmentId === formData.departmentId;
+        const matchesComp = !formData.companyId ||
+          b.department?.companyId === formData.companyId ||
+          b.department?.company?.id === formData.companyId ||
+          departments.some(d => d.id === b.departmentId && (!d.companyId || d.companyId === formData.companyId));
+        return matchesDept && matchesComp;
+      })
+    : [];
 
   useEffect(() => {
     if (project && isEditing) {

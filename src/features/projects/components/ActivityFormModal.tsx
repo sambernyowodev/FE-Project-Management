@@ -346,7 +346,9 @@ export function ActivityFormModal({
                 name="startDate"
                 value={formData.startDate}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 transition-all ${
+                onClick={(e) => e.currentTarget.showPicker?.()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.showPicker?.(); }}
+                className={`w-full px-4 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 transition-all cursor-pointer ${
                   startHoliday
                     ? 'border-red-500/60 focus:ring-red-500/20 focus:border-red-500'
                     : 'border-outline-variant focus:ring-primary/20 focus:border-primary'
@@ -369,7 +371,9 @@ export function ActivityFormModal({
                 name="endDate"
                 value={formData.endDate}
                 onChange={handleChange}
-                className={`w-full px-4 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 transition-all ${
+                onClick={(e) => e.currentTarget.showPicker?.()}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') e.currentTarget.showPicker?.(); }}
+                className={`w-full px-4 py-2 border rounded-lg text-sm bg-background focus:outline-none focus:ring-2 transition-all cursor-pointer ${
                   endHoliday
                     ? 'border-red-500/60 focus:ring-red-500/20 focus:border-red-500'
                     : 'border-outline-variant focus:ring-primary/20 focus:border-primary'
