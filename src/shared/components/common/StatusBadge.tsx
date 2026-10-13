@@ -6,7 +6,8 @@ import {
 
 type StatusType =
   | keyof typeof ProjectStatus
-  | keyof typeof SupportTicketStatus;
+  | keyof typeof SupportTicketStatus
+  | 'DEPLOYMENT';
 
 const statusStyles: Record<StatusType, string> = {
   PLANNING: "bg-sky-900/15 text-sky-900 border-sky-900/30",
@@ -15,6 +16,7 @@ const statusStyles: Record<StatusType, string> = {
   UAT: "bg-blue-900/15 text-blue-900 border-blue-900/30",
   PENTEST: "bg-yellow-100 text-yellow-800 border-yellow-300",
   FUT: "bg-purple-100 text-purple-700 border-purple-200",
+  DEPLOYMENT: "bg-teal-100 text-teal-800 border-teal-200",
   CLOSED: "bg-green-100 text-green-700 border-green-200",
   ON_HOLD: "bg-amber-100 text-amber-800 border-amber-300",
   CANCELLED: "bg-red-100 text-red-700 border-red-200",

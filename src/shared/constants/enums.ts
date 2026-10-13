@@ -25,6 +25,7 @@ export const ProjectPhase = {
     UAT: 'UAT',
     NFT: 'NFT',
     SECURITY: 'SECURITY',
+    DEPLOYMENT: 'DEPLOYMENT',
     RFS: 'RFS',
     FUT: 'FUT',
 } as const;

@@ -5,6 +5,7 @@ import type { ParsedExcelRow } from '@/shared/lib/excel-helpers';
 import type { ProjectMember, ProjectActivity, CreateProjectActivity, UpdateProjectActivity } from '@/modules/projects/types';
 import { useBulkImportActivities } from '@/modules/projects/hooks/useProjectActivities';
 import { projectsApi } from '@/modules/projects/api/projects.api';
+import { ProjectPhase } from '@/shared/constants/enums';
 
 interface ExcelImportModalProps {
   isOpen: boolean;
@@ -16,10 +17,7 @@ interface ExcelImportModalProps {
   existingActivities: ProjectActivity[];
 }
 
-const PHASE_OPTIONS = [
-  'FCAB', 'REQUIREMENT', 'ANALYSIS', 'DESIGN', 'SRS', 'CRQ', 'DEVELOPMENT',
-  'UT SIT', 'TRA TC', 'REVIEW', 'SIT', 'UAT', 'NFT', 'SECURITY', 'RFS', 'FUT'
-];
+const PHASE_OPTIONS = Object.values(ProjectPhase);
 
 export function ExcelImportModal({
   isOpen,

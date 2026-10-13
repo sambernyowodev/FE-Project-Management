@@ -14,11 +14,9 @@ import {
   createHolidayMap
 } from '@/shared/lib/project-calculations';
 import type { ProjectActivity } from '@/modules/projects/types';
+import { ProjectPhase } from '@/shared/constants/enums';
 
-const PHASE_OPTIONS = [
-  'FCAB', 'REQUIREMENT', 'ANALYSIS', 'DESIGN', 'SRS', 'CRQ', 'DEVELOPMENT',
-  'UT SIT', 'TRA TC', 'REVIEW', 'SIT', 'UAT', 'NFT', 'SECURITY', 'RFS', 'FUT'
-];
+const PHASE_OPTIONS = Object.values(ProjectPhase);
 
 interface ActivityFormModalProps {
   isOpen: boolean;

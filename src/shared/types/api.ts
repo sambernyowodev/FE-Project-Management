@@ -1101,6 +1101,7 @@ export type Database = {
       | "UAT"
       | "NFT"
       | "SECURITY"
+      | "DEPLOYMENT"
       | "RFS"
       | "FUT"
       project_status:
@@ -1279,6 +1280,7 @@ export const Constants = {
         "SECURITY",
         "RFS",
         "FUT",
+        "DEPLOYMENT",
       ],
       project_status: [
         "PLANNING",

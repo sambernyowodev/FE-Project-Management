@@ -122,7 +122,7 @@ This builds and checks for TypeScript compilation errors, outputting production-
 ### 1. Custom Postgres ENUMs
 ```sql
 CREATE TYPE project_status AS ENUM ('PLANNING', 'IN PROGRESS', 'SIT', 'UAT', 'CLOSED', 'ON HOLD', 'CANCELLED', 'FUT');
-CREATE TYPE project_phase AS ENUM ('FCAB', 'REQUIREMENT', 'ANALYSIS', 'DESIGN', 'SRS', 'CRQ', 'DEVELOPMENT', 'UT SIT', 'TRA TC', 'REVIEW', 'SIT', 'UAT', 'NFT', 'SECURITY', 'RFS', 'FUT');
+CREATE TYPE project_phase AS ENUM ('FCAB', 'REQUIREMENT', 'ANALYSIS', 'DESIGN', 'SRS', 'CRQ', 'DEVELOPMENT', 'UT SIT', 'TRA TC', 'REVIEW', 'SIT', 'UAT', 'NFT', 'SECURITY', 'DEPLOYMENT', 'RFS', 'FUT');
 CREATE TYPE purchase_order_status AS ENUM ('DRAFT', 'ACTIVE', 'IN PROGRESS', 'COMPLETED', 'CLOSED', 'CANCELLED');
 CREATE TYPE support_ticket_status AS ENUM ('OPEN', 'IN PROGRESS', 'DEV DONE', 'SIT DONE', 'UAT DONE', 'DONE', 'ON HOLD', 'CANCELLED');
 CREATE TYPE support_ticket_detail_status AS ENUM ('OPEN', 'IN PROGRESS', 'DONE', 'ON HOLD');
